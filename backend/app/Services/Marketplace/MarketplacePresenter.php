@@ -106,6 +106,7 @@ final class MarketplacePresenter
         $sucursalIds = array_column($sucursales, 'id');
 
         $barberos = [];
+        $sedes = $this->repo->barberBranches($id);
         foreach ($this->repo->barbers($id) as $b) {
             $barberos[(int) $b['id']] = [
                 'id' => (int) $b['id'],
@@ -114,6 +115,8 @@ final class MarketplacePresenter
                 'biografia' => $b['biografia'],
                 'foto_url' => Media::url($b['foto_url']),
                 'sucursal_id' => (int) $b['sucursal_id'],
+                // Sede principal + sedes donde tiene jornada (el flujo de reserva filtra por sucursal).
+                'sucursal_ids' => array_values(array_unique(array_merge([(int) $b['sucursal_id']], $sedes[(int) $b['id']] ?? []))),
                 'reservas_online' => (bool) $b['acepta_reservas_online'],
                 'servicios' => [],
             ];

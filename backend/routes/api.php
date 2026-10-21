@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Controllers\AgendaBlocksController;
 use App\Controllers\AuthController;
 use App\Controllers\BarbersController;
+use App\Controllers\BookingPolicyController;
+use App\Controllers\BookingsController;
 use App\Controllers\BranchesController;
 use App\Controllers\FavoritesController;
 use App\Controllers\HealthController;
@@ -66,6 +68,20 @@ return static function (Router $router): void {
             $r->get('/barberias/{slug:[a-z0-9-]{1,80}}/qr', [MarketplaceController::class, 'qr'], [], 'marketplace.qr');
         }, [new AuthMiddleware(true, true)]);
 
+        // ---------------- Motor de reservas (Fase 5)
+        // Disponibilidad pública: sin sesión obligatoria (el cliente ve horarios antes de iniciar sesión).
+        $r->get('/disponibilidad', [BookingsController::class, 'availability'], [new AuthMiddleware(true, true)], 'bookings.availability');
+        $r->post('/reservas', [BookingsController::class, 'store'], [new AuthMiddleware(), new PermissionMiddleware('cliente.reservar'), new VerifiedEmailMiddleware()], 'bookings.store');
+        $r->group('/mis-reservas', static function (Router $r): void {
+            $gestionar = new PermissionMiddleware('cliente.reservas.gestionar');
+            $r->get('', [BookingsController::class, 'index'], [], 'bookings.mine');
+            $r->get('/{id:\d+}', [BookingsController::class, 'show'], [], 'bookings.mine.show');
+            $r->get('/{id:\d+}/disponibilidad', [BookingsController::class, 'rescheduleAvailability'], [$gestionar], 'bookings.mine.availability');
+            $r->post('/{id:\d+}/cancelar', [BookingsController::class, 'cancel'], [$gestionar], 'bookings.mine.cancel');
+            $r->post('/{id:\d+}/reprogramar', [BookingsController::class, 'reschedule'], [$gestionar], 'bookings.mine.reschedule');
+            $r->post('/{id:\d+}/confirmar-asistencia', [BookingsController::class, 'confirmAttendance'], [$gestionar], 'bookings.mine.confirm');
+        }, [new AuthMiddleware()]);
+
         // ---------------- Panel de barbería: requiere sesión + membresía activa en la barbería
         $r->group('/panel', static function (Router $r): void {
             $r->get('/contexto', [StaffController::class, 'context'], [], 'panel.context');
@@ -113,6 +129,12 @@ return static function (Router $router): void {
             $r->get('/barberos/{id:\d+}/jornada', [BarbersController::class, 'workingTime'], [$horarios], 'panel.barbers.working_time');
             $r->post('/barberos/{id:\d+}/foto', [BarbersController::class, 'uploadPhoto'], [$barberos], 'panel.barbers.photo');
             $r->delete('/barberos/{id:\d+}/foto', [BarbersController::class, 'deletePhoto'], [$barberos], 'panel.barbers.photo.delete');
+
+            // ---------- Reglas de reserva (Fase 5)
+            $politicas = new PermissionMiddleware('politicas.gestionar');
+            $r->get('/politicas-reserva', [BookingPolicyController::class, 'index'], [$politicas], 'panel.booking_policy');
+            $r->put('/politicas-reserva', [BookingPolicyController::class, 'update'], [$politicas], 'panel.booking_policy.update');
+            $r->delete('/politicas-reserva/{sucursal_id:\d+}', [BookingPolicyController::class, 'destroy'], [$politicas], 'panel.booking_policy.destroy');
 
             $bloqueos = new PermissionMiddleware('bloqueos.gestionar');
             $r->get('/bloqueos', [AgendaBlocksController::class, 'index'], [$bloqueos], 'panel.blocks');

@@ -12,7 +12,8 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | 2 | Autenticación, roles, permisos y multiempresa | ✅ Terminada |
 | 3 | Marketplace: explorar barberías, perfil público, favoritos, enlace directo y QR | ✅ Terminada |
 | 4 | Panel: sucursales, servicios, categorías, barberos, fotos, jornadas, descansos, vacaciones y bloqueos | ✅ Terminada |
-| 5+ | Agenda y reservas, notificaciones, apps… | Pendiente |
+| 5 | Motor de reservas: disponibilidad, reservar, comprobante, mis citas, cancelar y reprogramar sin doble reserva | ✅ Terminada |
+| 6+ | Agenda del panel, panel del barbero, notificaciones, apps… | Pendiente |
 
 ## Documentación
 
@@ -22,6 +23,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Autenticación, roles y multiempresa](docs/AUTENTICACION.md) (endpoints, sesiones, permisos)
 - [Marketplace, perfil público y QR](docs/MARKETPLACE.md)
 - [Servicios, barberos y horarios](docs/SERVICIOS_HORARIOS.md) (panel, reglas de jornada y bloqueos)
+- [Motor de reservas](docs/RESERVAS.md) (disponibilidad, endpoints, concurrencia, idempotencia y política)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -181,12 +183,14 @@ php bin/console docs:dictionary    Regenera docs/DICCIONARIO_DATOS.md
 php bin/console routes             Lista las rutas
 php bin/console key:generate       Genera APP_KEY en .env (--force para reemplazarla)
 php bin/console auth:purge         Borra sesiones, tokens y contadores vencidos
+php bin/console reservas:purge     Borra claves de idempotencia vencidas (reservas)
 ```
 
-Programa `auth:purge` una vez al día (cron en Linux o el Programador de tareas de Windows):
+Programa `auth:purge` y `reservas:purge` una vez al día (cron en Linux o el Programador de tareas de Windows):
 
 ```cron
 15 3 * * * cd /ruta/barberapp/backend && php bin/console auth:purge >> storage/logs/cron.log 2>&1
+20 3 * * * cd /ruta/barberapp/backend && php bin/console reservas:purge >> storage/logs/cron.log 2>&1
 ```
 
 ## Pruebas
@@ -206,6 +210,10 @@ Resultado al cerrar la Fase 3: **135 pruebas OK en PHP 8.3**; en **PHP 8.0.30** 
 Desde la Fase 4 cubren el panel: sucursales y horario de atención, servicios y categorías (duración y precio válidos, inactivos ocultos), barberos (foto, servicios con precio propio, cuentas vinculadas), jornada semanal con descansos (fuera de horario, dos sedes a la vez), jornada efectiva con bloqueos y zona horaria, y vacaciones/ausencias/bloqueos con conflicto de reservas y aprobación.
 
 Resultado al cerrar la Fase 4: **173 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 166 y se omiten 7 (sin GD ni zbar). Recorrido E2E del panel en Chromium móvil: 21/21 comprobaciones OK.
+
+Desde la Fase 5 cubren el motor de reservas: cálculo de horarios (servicio de 45 min, varios servicios, descansos, margen, anticipación y horizonte), reservar, cancelar y que otro tome el horario liberado, bloqueo de día completo, cambio de jornada, otra barbería, reintento con la misma `Idempotency-Key`, reprogramación que conserva el horario anterior, límites de la política y **carreras reales entre procesos** (dos clientes al mismo horario, solapamiento parcial simultáneo, "cualquier barbero", cancelación y reserva a la vez). Ver [RESERVAS.md](docs/RESERVAS.md#pruebas).
+
+Resultado al cerrar la Fase 5: **204 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 197 y se omiten 7 (sin GD ni zbar), incluidas las 5 de concurrencia. Recorrido E2E en Chromium móvil (390×844, zona horaria del teléfono distinta a la de la barbería): elegir sin sesión → login → confirmar → comprobante → reprogramar → confirmar asistencia → mis citas → cancelar → historial.
 
 ## Seguridad
 

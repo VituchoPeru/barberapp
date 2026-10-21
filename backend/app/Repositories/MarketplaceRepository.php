@@ -271,6 +271,26 @@ final class MarketplaceRepository extends BaseRepository
     }
 
     /**
+     * Sucursales donde atiende cada barbero según su jornada (puede ser más de una).
+     *
+     * @return array<int, list<int>> barbero_id => sucursal_ids
+     */
+    public function barberBranches(int $tenantId): array
+    {
+        $rows = $this->fetchAll(
+            'SELECT DISTINCT h.barbero_id, h.sucursal_id FROM horarios_barberos h
+               JOIN sucursales su ON su.tenant_id = h.tenant_id AND su.id = h.sucursal_id AND su.activo = 1 AND su.deleted_at IS NULL
+              WHERE h.tenant_id = :t AND h.activo = 1 ORDER BY h.barbero_id, h.sucursal_id',
+            ['t' => $tenantId]
+        );
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(int) $r['barbero_id']][] = (int) $r['sucursal_id'];
+        }
+        return $out;
+    }
+
+    /**
      * Servicios que realiza cada barbero, con precio y duración efectivos (override del barbero).
      *
      * @return list<array<string, mixed>>
