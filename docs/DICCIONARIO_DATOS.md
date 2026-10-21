@@ -50,6 +50,7 @@ La fila del barbero es el candado estable de su agenda (SELECT ... FOR UPDATE)
 | `usuario_id` | bigint unsigned | sí |  | MUL | Cuenta de acceso del barbero (opcional) |
 | `sucursal_id` | bigint unsigned | no |  |  | Sucursal principal |
 | `nombre_publico` | varchar(100) | no |  |  |  |
+| `especialidad` | varchar(120) | sí |  |  | Texto corto visible, p. ej. "Degradados y diseños" |
 | `biografia` | varchar(1000) | sí |  |  |  |
 | `foto_url` | varchar(500) | sí |  |  |  |
 | `activo` | tinyint(1) | no | `1` |  |  |
@@ -152,6 +153,24 @@ Persona que reserva. Una barbería solo ve clientes vinculados mediante cliente_
 | `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
 
 **Claves foráneas:** (tenant_id) → `tenants`(id); (actualizado_por) → `usuarios`(id)
+
+## `descansos_barberos`
+
+Descansos semanales recurrentes; se descuentan de la jornada al calcular disponibilidad
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `tenant_id` | bigint unsigned | no |  | MUL |  |
+| `barbero_id` | bigint unsigned | no |  |  |  |
+| `dia_semana` | tinyint unsigned | no |  |  | ISO-8601: 1 = lunes … 7 = domingo |
+| `hora_inicio` | time | no |  |  | Hora local de la sucursal donde trabaja ese día |
+| `hora_fin` | time | no |  |  |  |
+| `motivo` | varchar(80) | sí |  |  | Texto interno, p. ej. "Almuerzo" |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+| `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (tenant_id,barbero_id) → `barberos`(tenant_id,id)
 
 ## `dispositivos_push`
 

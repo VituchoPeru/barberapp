@@ -110,6 +110,7 @@ final class MarketplacePresenter
             $barberos[(int) $b['id']] = [
                 'id' => (int) $b['id'],
                 'nombre' => $b['nombre_publico'],
+                'especialidad' => $b['especialidad'],
                 'biografia' => $b['biografia'],
                 'foto_url' => Media::url($b['foto_url']),
                 'sucursal_id' => (int) $b['sucursal_id'],

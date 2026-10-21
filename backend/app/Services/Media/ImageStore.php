@@ -22,12 +22,15 @@ use RuntimeException;
  */
 final class ImageStore
 {
+    /** Fotos del perfil público de la barbería (tenant_fotos). */
     public const TIPOS = ['logo', 'portada', 'galeria'];
+    /** Todos los tipos aceptados: 'barbero' es el retrato cuadrado de cada barbero (Fase 4). */
+    public const TODOS = ['logo', 'portada', 'galeria', 'barbero'];
 
     /** @return array{ruta:string, ancho:int, alto:int, bytes:int} */
     public function store(int $tenantId, string $binary, string $tipo): array
     {
-        if (!in_array($tipo, self::TIPOS, true)) {
+        if (!in_array($tipo, self::TODOS, true)) {
             throw new ValidationException(['tipo' => ['Tipo de imagen no permitido.']]);
         }
         if (!extension_loaded('gd')) {
@@ -52,7 +55,7 @@ final class ImageStore
         if ($w < 1 || $h < 1 || $w > $maxSide || $h > $maxSide || $w * $h > (int) Config::get('media.max_input_pixels', 40000000)) {
             throw new ValidationException(['archivo' => ["La imagen es demasiado grande (máximo {$maxSide} px por lado)."]]);
         }
-        $minSide = $tipo === 'logo' ? 64 : 320;
+        $minSide = ['logo' => 64, 'barbero' => 200][$tipo] ?? 320;
         if (min($w, $h) < $minSide) {
             throw new ValidationException(['archivo' => ["La imagen es muy pequeña: mínimo {$minSide} px por lado para que se vea nítida."]]);
         }
@@ -64,6 +67,9 @@ final class ImageStore
         try {
             if ($info[2] === IMAGETYPE_JPEG) {
                 $src = $this->applyExifOrientation($src, $binary);
+            }
+            if ($tipo === 'barbero') {
+                $src = $this->cropSquare($src);
             }
             $out = $this->resize($src, (int) (Config::get('media.max_side')[$tipo] ?? 1600));
             [$bytes, $ext] = $this->encode($out);
@@ -110,6 +116,24 @@ final class ImageStore
             throw new RuntimeException('No se pudo guardar la imagen.');
         }
         @chmod($file, 0644);
+    }
+
+    /** Recorte cuadrado centrado (retratos de barberos). @param \GdImage|resource $img @return \GdImage|resource */
+    private function cropSquare($img)
+    {
+        $w = imagesx($img);
+        $h = imagesy($img);
+        if ($w === $h) {
+            return $img;
+        }
+        $side = min($w, $h);
+        // En retratos verticales se conserva el tercio superior (la cara suele estar arriba).
+        $cropped = imagecrop($img, ['x' => intdiv($w - $side, 2), 'y' => $h > $w ? intdiv($h - $side, 4) : 0, 'width' => $side, 'height' => $side]);
+        if ($cropped === false) {
+            return $img;
+        }
+        imagedestroy($img);
+        return $cropped;
     }
 
     /** @param \GdImage|resource $img @return \GdImage|resource */

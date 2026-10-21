@@ -1,0 +1,91 @@
+/* Panel de la barbería: servicios, barberos, horarios, ausencias y sucursales (Fase 4).
+   Reutiliza tokens, botones, campos y hojas modales de base/auth/app.css. */
+
+.panel-nav { position: sticky; top: 0; z-index: 15; display: flex; gap: 4px; overflow-x: auto; padding: var(--space-2) var(--space-4); margin: 0 calc(-1 * var(--space-4)); background: rgba(17, 17, 17, .92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid #26262A; scrollbar-width: none; }
+.panel-nav::-webkit-scrollbar { display: none; }
+.panel-nav a { display: inline-flex; align-items: center; gap: 6px; flex: none; min-height: 40px; padding: 0 14px; font-size: .875rem; font-weight: 600; color: var(--text-muted); text-decoration: none; border-radius: 999px; }
+.panel-nav a .icon { width: 18px; height: 18px; }
+.panel-nav a:hover { color: var(--text); background: var(--surface); }
+.panel-nav a[aria-current="page"] { color: var(--color-negro); background: var(--accent); }
+
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.panel-head h2 { margin: 0; font-size: 1.25rem; font-weight: 800; }
+.panel-head p { margin: 2px 0 0; color: var(--text-muted); font-size: .9rem; }
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.toolbar .field { min-width: 180px; }
+.toolbar select { min-height: 40px; }
+
+.group-title { margin: var(--space-4) 0 var(--space-2); font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); }
+
+.rows { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.row { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid #26262A; border-radius: var(--radius-md); }
+.row[data-inactive="true"] { opacity: .62; }
+.row__main { min-width: 0; }
+.row__title { margin: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row__meta { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 2px 0 0; font-size: .82rem; color: var(--text-muted); }
+.row__meta strong { color: var(--accent-strong); font-weight: 700; }
+.row__actions { display: flex; gap: 4px; align-items: center; }
+.row--link { cursor: pointer; transition: border-color .15s var(--ease); }
+.row--link:hover { border-color: rgba(201, 164, 92, .45); }
+.row .thumb { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #26262A; color: var(--accent); font-weight: 800; overflow: hidden; }
+.row .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.row .thumb .icon { width: 22px; height: 22px; }
+
+.badge { display: inline-flex; align-items: center; padding: 1px 8px; font-size: .72rem; font-weight: 700; border-radius: 999px; color: var(--text-muted); background: #2A2A2E; }
+.badge--ok { color: #BDF5D8; background: rgba(61, 214, 140, .14); }
+.badge--warn { color: #FFD08A; background: rgba(255, 176, 32, .14); }
+.badge--off { color: #FFC9CA; background: rgba(229, 72, 77, .14); }
+.badge--gold { color: var(--color-negro); background: var(--accent); }
+
+.alert ul { margin: var(--space-2) 0 0; padding-left: 1.2em; }
+.sheet__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+.sheet--confirm { max-width: 420px; }
+.confirm-text { margin: 0; font-size: 1rem; }
+.field--inline { display: flex; align-items: center; gap: var(--space-3); }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-3); }
+@media (max-width: 520px) { .row3 { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- Ficha del barbero ---------- */
+.profile-head { display: grid; grid-template-columns: auto 1fr; gap: var(--space-4); align-items: center; }
+.portrait { position: relative; width: 96px; height: 96px; border-radius: 50%; overflow: hidden; background: #26262A; display: grid; place-items: center; font-size: 1.8rem; font-weight: 800; color: var(--accent); border: 2px solid rgba(201, 164, 92, .4); }
+.portrait img { width: 100%; height: 100%; object-fit: cover; }
+.profile-head h2 { margin: 0; font-size: 1.3rem; }
+.profile-head .toolbar { margin-top: var(--space-2); }
+
+.svc-list { display: grid; gap: var(--space-2); }
+.svc { display: grid; grid-template-columns: auto 1fr; gap: var(--space-3); align-items: start; padding: var(--space-3) var(--space-4); background: var(--bg); border: 1px solid #2A2A2E; border-radius: var(--radius-md); }
+.svc:has(input[type="checkbox"]:checked) { border-color: rgba(201, 164, 92, .6); }
+.svc > input { width: 20px; height: 20px; margin: 4px 0 0; accent-color: var(--accent); }
+.svc__overrides { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin-top: var(--space-2); }
+.svc__overrides input { min-height: 40px; }
+.svc:not(:has(input[type="checkbox"]:checked)) .svc__overrides { display: none; }
+
+/* Editor semanal: un bloque por día con sus tramos y descansos */
+.week { display: grid; gap: var(--space-2); }
+.day { display: grid; grid-template-columns: 110px 1fr; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--bg); border: 1px solid #2A2A2E; border-radius: var(--radius-md); }
+@media (max-width: 560px) { .day { grid-template-columns: 1fr; } }
+.day__name { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; }
+.day__name input { width: 20px; height: 20px; accent-color: var(--accent); }
+.day[data-off="true"] .day__slots { display: none; }
+.day[data-off="true"] .day__name::after { content: "Descansa"; margin-left: auto; font-size: .78rem; font-weight: 600; color: var(--text-muted); }
+.day__slots { display: grid; gap: var(--space-2); }
+.slot { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.slot input[type="time"], .slot select { min-height: 40px; padding: 0 var(--space-2); font: inherit; color: var(--text); background: var(--surface); border: 1px solid #2E2E32; border-radius: var(--radius-sm); color-scheme: dark; }
+.slot select { max-width: 190px; }
+.slot--break { padding-left: var(--space-3); border-left: 2px solid rgba(201, 164, 92, .45); }
+.slot__label { font-size: .78rem; font-weight: 700; color: var(--text-muted); min-width: 64px; }
+.slot .icon-btn { width: 36px; height: 36px; }
+.day__add { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.link-btn { padding: 4px 0; font: inherit; font-size: .82rem; font-weight: 600; color: var(--accent); background: none; border: 0; cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
+
+/* Vista previa de la jornada efectiva */
+.timeline { display: grid; gap: 6px; }
+.tl-day { display: grid; grid-template-columns: 92px 1fr; gap: var(--space-3); align-items: center; font-size: .85rem; }
+.tl-day__label { color: var(--text-muted); text-transform: capitalize; }
+.tl-track { position: relative; height: 26px; background: #1A1A1C; border-radius: 6px; overflow: hidden; }
+.tl-seg { position: absolute; top: 3px; bottom: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); border-radius: 4px; }
+.tl-seg span { position: absolute; inset: 0; display: grid; place-items: center; font-size: .66rem; font-weight: 800; color: var(--color-negro); white-space: nowrap; overflow: hidden; }
+.tl-empty { font-size: .8rem; color: var(--text-muted); }
+.tl-scale { display: flex; justify-content: space-between; margin-left: 104px; font-size: .68rem; color: var(--text-muted); }
+.icon--flip { transform: scaleX(-1); color: var(--text-muted); }

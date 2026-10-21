@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { $, clearErrors, showErrors, withLoading, notice, escapeHtml } from '../ui.js';
 import { icon } from '../icons.js';
 import { safeUrl, toast } from '../marketplace.js';
+import { bootPanel } from '../panel.js';
 
 /**
  * Panel de la barbería: perfil público en el marketplace, fotos, enlace directo y QR.
@@ -21,6 +22,7 @@ const REQ = {
   servicio: 'Al menos un servicio activo',
   barbero: 'Al menos un barbero activo con servicios asignados',
 };
+const REQ_LINK = { sucursal: 'sucursales', horario: 'sucursales', servicio: 'servicios', barbero: 'barberos' };
 let profile = null;
 
 function render(p) {
@@ -34,7 +36,7 @@ function render(p) {
   else if (p.publicado_marketplace) vis.textContent = 'Está marcada para publicarse, pero aún no aparece: completa los requisitos.';
   else vis.textContent = 'No aparece en las búsquedas. Los clientes pueden llegar por tu enlace directo o QR.';
   $('[data-reqs]').innerHTML = Object.entries(REQ).map(([k, label]) =>
-    `<li data-ok="${p.requisitos[k]}">${escapeHtml(label)}${p.requisitos[k] ? '' : ' <small>(se gestiona en el panel de la Fase 4)</small>'}</li>`).join('');
+    `<li data-ok="${p.requisitos[k]}">${escapeHtml(label)}${p.requisitos[k] ? '' : ` <a href="${REQ_LINK[k]}.html${location.search}">Configurar</a>`}</li>`).join('');
   $('[data-publish]').checked = p.publicado_marketplace;
 
   $('[data-link]').textContent = p.enlace;
@@ -147,4 +149,5 @@ document.addEventListener('click', async (e) => {
   }
 });
 
+bootPanel('perfil-publico');
 load();

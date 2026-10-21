@@ -105,6 +105,7 @@ function renderTeam(b) {
       ${avatarHtml(x.nombre, x.foto_url)}
       <div>
         <h3>${escapeHtml(x.nombre)}</h3>
+        ${x.especialidad ? `<p class="barber__specialty">${escapeHtml(x.especialidad)}</p>` : ''}
         ${b.sucursales.length > 1 ? `<p>${icon('pin')} ${escapeHtml(sede.get(x.sucursal_id) || '')}</p>` : ''}
         ${x.biografia ? `<p>${escapeHtml(x.biografia)}</p>` : ''}
         ${x.servicios.length ? `<ul class="tags">${x.servicios.map((s) => `<li>${escapeHtml(servName.get(s.id) || '')}</li>`).join('')}</ul>` : ''}

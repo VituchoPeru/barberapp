@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Barberos · Panel BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Barberos <span class="muted" data-tenant-name></span></h1>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos del panel"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <div class="panel-head">
+      <div><h2>Equipo de barberos</h2><p>Quién atiende, en qué sucursal, qué servicios realiza y su horario.</p></div>
+      <div class="toolbar"><button class="btn btn--sm" type="button" data-new hidden>Nuevo barbero</button></div>
+    </div>
+    <div data-loading><div class="skeleton"></div><div class="skeleton" style="margin-top:8px"></div></div>
+    <ul class="rows" data-list></ul>
+  </main>
+
+  <dialog class="sheet" data-sheet aria-labelledby="new-title">
+    <form class="form" data-form novalidate>
+      <div class="sheet__head"><h2 id="new-title">Nuevo barbero</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+      <div class="sheet__body">
+        <p class="alert" data-form-alert role="alert" hidden></p>
+        <div class="field"><label for="nombre_publico">Nombre visible para clientes</label><input id="nombre_publico" name="nombre_publico" maxlength="100" required placeholder="Ej.: Luis “El Maestro”"><p class="field__error" data-error-for="nombre_publico"></p></div>
+        <div class="field"><label for="especialidad">Especialidad (opcional)</label><input id="especialidad" name="especialidad" maxlength="120" placeholder="Ej.: Degradados y diseños"><p class="field__error" data-error-for="especialidad"></p></div>
+        <div class="field"><label for="sucursal_id">Sucursal principal</label><select id="sucursal_id" name="sucursal_id" required></select><p class="field__error" data-error-for="sucursal_id"></p></div>
+        <div class="field"><label for="usuario_id">Cuenta de acceso (opcional)</label><select id="usuario_id" name="usuario_id"></select>
+          <p class="hint">Vincula a un integrante invitado con rol barbero para que vea su agenda. Invita desde Mi cuenta → Personal.</p><p class="field__error" data-error-for="usuario_id"></p></div>
+      </div>
+      <div class="sheet__foot"><button class="btn btn--ghost" type="button" data-close>Cancelar</button><button class="btn" type="submit" data-loading="Creando…">Crear y configurar</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="../../js/pages/panel-barberos.js"></script>
+</body>
+</html>

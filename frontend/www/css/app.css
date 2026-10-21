@@ -349,3 +349,4 @@ dialog.lightbox .icon-btn { position: fixed; top: 12px; right: 12px; background:
 .upload input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .link-box { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-3) var(--space-4); background: var(--bg); border: 1px solid #2E2E32; border-radius: var(--radius-md); overflow: hidden; }
 .link-box code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; color: var(--accent-strong); }
+.barber__specialty { color: var(--accent-strong) !important; font-weight: 600; }

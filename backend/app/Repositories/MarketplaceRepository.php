@@ -261,7 +261,7 @@ final class MarketplaceRepository extends BaseRepository
     public function barbers(int $tenantId): array
     {
         return $this->fetchAll(
-            'SELECT b.id, b.nombre_publico, b.biografia, b.foto_url, b.sucursal_id, b.acepta_reservas_online
+            'SELECT b.id, b.nombre_publico, b.especialidad, b.biografia, b.foto_url, b.sucursal_id, b.acepta_reservas_online
                FROM barberos b
                JOIN sucursales su ON su.tenant_id = b.tenant_id AND su.id = b.sucursal_id AND su.activo = 1 AND su.deleted_at IS NULL
               WHERE b.tenant_id = :t AND b.activo = 1 AND b.deleted_at IS NULL

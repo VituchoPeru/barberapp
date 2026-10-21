@@ -131,6 +131,18 @@ final class ConstraintsTest extends DatabaseTestCase
         $this->assertSqlFails(self::CHECK, "INSERT INTO bloqueos_agenda (tenant_id, barbero_id, tipo, inicio_utc, fin_utc) VALUES (?, ?, 'bloqueo', '2030-01-01 10:00', '2030-01-01 09:00')", [$t, $b], 'bloqueo invertido');
     }
 
+    public function testRecurringBreaksAndNamesAreValidated(): void
+    {
+        $t = $this->tenantId('demo-centro');
+        $n = $this->tenantId('demo-norte');
+        $b = (int) $this->scalar('SELECT id FROM barberos WHERE tenant_id = ? LIMIT 1', [$t]);
+        $this->assertSqlFails(self::CHECK, "INSERT INTO descansos_barberos (tenant_id, barbero_id, dia_semana, hora_inicio, hora_fin) VALUES (?, ?, 1, '14:00', '13:00')", [$t, $b], 'descanso invertido');
+        $this->assertSqlFails(self::CHECK, "INSERT INTO descansos_barberos (tenant_id, barbero_id, dia_semana, hora_inicio, hora_fin) VALUES (?, ?, 0, '13:00', '14:00')", [$t, $b], 'día 0');
+        $this->assertSqlFails(self::FK, "INSERT INTO descansos_barberos (tenant_id, barbero_id, dia_semana, hora_inicio, hora_fin) VALUES (?, ?, 1, '13:00', '14:00')", [$n, $b], 'barbero de otro tenant');
+        $this->assertSqlFails(self::CHECK, "UPDATE servicios SET nombre = ' ' WHERE tenant_id = ?", [$t], 'nombre vacío');
+        $this->assertSqlFails(self::CHECK, "UPDATE barberos SET nombre_publico = 'X' WHERE id = ?", [$b], 'nombre de una letra');
+    }
+
     public function testNotificationDedupeAndIdempotencyKeys(): void
     {
         $existing = (string) $this->scalar('SELECT dedupe_key FROM notificaciones LIMIT 1');

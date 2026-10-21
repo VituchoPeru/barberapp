@@ -49,10 +49,17 @@ async function renderMemberships(me) {
     const select = m.roles.length && t.id !== current
       ? `<button class="btn btn--ghost btn--sm" type="button" data-context="${escapeHtml(t.slug)}">Trabajar aquí</button>`
       : (t.id === current ? '<span class="chip">Barbería activa</span>' : '');
-    // El propietario gestiona el perfil público (permiso negocio.perfil.gestionar).
-    const perfil = m.roles.includes('propietario')
-      ? `<a class="btn btn--ghost btn--sm" href="../panel/perfil-publico.html?tenant=${encodeURIComponent(t.slug)}">Perfil público y QR</a>`
-      : '';
+    // Accesos al panel según rol (el backend vuelve a verificar cada permiso).
+    const qs = `?tenant=${encodeURIComponent(t.slug)}`;
+    const links = [];
+    if (m.roles.includes('propietario') || m.roles.includes('administrador')) {
+      links.push(`<a class="btn btn--ghost btn--sm" href="../panel/servicios.html${qs}">Servicios</a>`, `<a class="btn btn--ghost btn--sm" href="../panel/barberos.html${qs}">Barberos y horarios</a>`,
+        `<a class="btn btn--ghost btn--sm" href="../panel/ausencias.html${qs}">Ausencias</a>`);
+    }
+    if (m.roles.includes('propietario')) {
+      links.push(`<a class="btn btn--ghost btn--sm" href="../panel/sucursales.html${qs}">Sucursales</a>`, `<a class="btn btn--ghost btn--sm" href="../panel/perfil-publico.html${qs}">Perfil público y QR</a>`);
+    }
+    const perfil = links.join('');
     return `<li class="item" data-current="${t.id === current}">
       <div><p class="item__title">${escapeHtml(t.nombre_comercial)}</p>
         <p class="item__meta">/b/${escapeHtml(t.slug)}</p><div class="chips">${roles}${estado}</div></div>

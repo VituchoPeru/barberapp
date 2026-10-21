@@ -961,6 +961,48 @@ CREATE TABLE tenant_fotos (
 ALTER TABLE sucursales
     ADD KEY idx_sucursales_tenant_activo (tenant_id, activo);
 
+-- ============================================================
+-- BARBERAPP · Migración 0009 · Servicios, barberos y horarios (Fase 4)
+-- Descansos semanales recurrentes de cada barbero (p. ej. almuerzo de 13:00 a 14:00)
+-- y datos de presentación del barbero en el panel y el marketplace.
+--
+-- Modelo de agenda resultante (todo en hora local de la sucursal salvo bloqueos):
+--   horarios_sucursales  horario comercial (el barbero nunca trabaja fuera de él)
+--   horarios_barberos    jornada semanal por tramos y sucursal
+--   descansos_barberos   descansos recurrentes dentro de la jornada
+--   bloqueos_agenda      excepciones puntuales en UTC: vacaciones, ausencias, feriados, bloqueos
+-- ============================================================
+
+CREATE TABLE descansos_barberos (
+    id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id      BIGINT UNSIGNED NOT NULL,
+    barbero_id     BIGINT UNSIGNED NOT NULL,
+    dia_semana     TINYINT UNSIGNED NOT NULL COMMENT 'ISO-8601: 1 = lunes … 7 = domingo',
+    hora_inicio    TIME            NOT NULL COMMENT 'Hora local de la sucursal donde trabaja ese día',
+    hora_fin       TIME            NOT NULL,
+    motivo         VARCHAR(80)     NULL COMMENT 'Texto interno, p. ej. "Almuerzo"',
+    created_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_descansos_barberos_tenant_id (tenant_id, id),
+    KEY idx_descansos_barberos_dia (tenant_id, barbero_id, dia_semana),
+    CONSTRAINT fk_descansos_barberos_barbero FOREIGN KEY (tenant_id, barbero_id) REFERENCES barberos (tenant_id, id) ON DELETE CASCADE,
+    CONSTRAINT ck_descansos_barberos_dia   CHECK (dia_semana BETWEEN 1 AND 7),
+    CONSTRAINT ck_descansos_barberos_rango CHECK (hora_fin > hora_inicio)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+  COMMENT='Descansos semanales recurrentes; se descuentan de la jornada al calcular disponibilidad';
+
+ALTER TABLE barberos
+    ADD COLUMN especialidad VARCHAR(120) NULL COMMENT 'Texto corto visible, p. ej. "Degradados y diseños"' AFTER nombre_publico,
+    ADD CONSTRAINT ck_barberos_nombre CHECK (CHAR_LENGTH(TRIM(nombre_publico)) >= 2);
+
+ALTER TABLE servicios
+    ADD CONSTRAINT ck_servicios_nombre CHECK (CHAR_LENGTH(TRIM(nombre)) >= 2);
+
+-- Bloqueos por rango: el listado del panel filtra por tenant + rango sin barbero concreto.
+ALTER TABLE bloqueos_agenda
+    ADD KEY idx_bloqueos_tenant_rango (tenant_id, inicio_utc, fin_utc);
+
 -- Registra las migraciones incluidas para que `php bin/console migrate` no las repita.
 INSERT INTO migraciones (migracion, checksum, lote) VALUES
     ('0001_nucleo_saas.sql', '09a74ba54a5988c50081099bd8610fdb78a2b380636abdb7b516239b05a7d194', 1),
@@ -970,4 +1012,5 @@ INSERT INTO migraciones (migracion, checksum, lote) VALUES
     ('0005_notificaciones.sql', '0414ab60959f3fd6196ca4f4741c3e751258327c1d63d3ee9620861ecd40b772', 1),
     ('0006_sistema.sql', '611f9c0c55f5b38ce5499ed8c611655ee8c705fa86e4df32c9b7dcc28e50d903', 1),
     ('0007_autenticacion.sql', '5f36d58b4fd7bea3fe481696b0e74d21137fc8c1b5a1082e09e8120e6520d445', 1),
-    ('0008_marketplace.sql', '16af758ab0a8e00a30dad2149d230bffb3afda8e46397ae899db58a702ea3622', 1);
+    ('0008_marketplace.sql', '16af758ab0a8e00a30dad2149d230bffb3afda8e46397ae899db58a702ea3622', 1),
+    ('0009_agenda_barberos.sql', 'c9c5181d3dda834224d66e2cfd98374f33494024c55bb1d6c2816d2c6efec601', 1);
