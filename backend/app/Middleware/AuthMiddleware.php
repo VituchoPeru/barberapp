@@ -25,10 +25,13 @@ use App\Helpers\Tokens;
  * Orden: 1) Authorization: Bearer <access token> (app móvil)  2) cookie de sesión (web).
  * Con cookie, los métodos que modifican datos exigen X-CSRF-Token válido.
  * Con $optional = true la petición continúa sin usuario si no hay credenciales.
+ * Con $anonymousOnInvalid = true (rutas públicas como el marketplace), una cookie de sesión
+ * vencida o inválida no bloquea la página: se audita y la petición sigue como anónima.
+ * Un access token móvil inválido sí responde 401, para que la app lo renueve con /auth/refresh.
  */
 final class AuthMiddleware implements MiddlewareInterface
 {
-    public function __construct(private bool $optional = false)
+    public function __construct(private bool $optional = false, private bool $anonymousOnInvalid = false)
     {
     }
 
@@ -52,7 +55,7 @@ final class AuthMiddleware implements MiddlewareInterface
                 $session = null;
             }
             if ($session === null) {
-                $response = $this->reject($request, 'auth.sesion_invalida', 'session_expired', 'Tu sesión expiró. Inicia sesión nuevamente.');
+                $response = $this->reject($request, 'auth.sesion_invalida', 'session_expired', 'Tu sesión expiró. Inicia sesión nuevamente.', $next);
                 return SessionService::clearCookie($response);
             }
             if (!$request->isSafeMethod()) {
@@ -73,7 +76,7 @@ final class AuthMiddleware implements MiddlewareInterface
 
         $user = (new UserRepository())->findById((int) $session['usuario_id']);
         if ($user === null || $user['estado'] !== 'activo') {
-            return $this->reject($request, 'auth.usuario_inactivo', 'unauthenticated', 'Debes iniciar sesión.');
+            return $this->reject($request, 'auth.usuario_inactivo', 'unauthenticated', 'Debes iniciar sesión.', $next);
         }
         unset($user['password_hash']);
 
@@ -95,9 +98,12 @@ final class AuthMiddleware implements MiddlewareInterface
     }
 
     /** Credenciales presentes pero inválidas (también en modo opcional): se audita y se responde 401. */
-    private function reject(Request $request, string $accion, string $code, string $message): Response
+    private function reject(Request $request, string $accion, string $code, string $message, ?callable $next = null): Response
     {
         Audit::denied($accion, $request);
+        if ($next !== null && $this->optional && $this->anonymousOnInvalid) {
+            return $next($request);
+        }
         $response = Response::error(401, $code, $message);
         $response->setHeader('WWW-Authenticate', 'Bearer error="invalid_token"');
         return $response;

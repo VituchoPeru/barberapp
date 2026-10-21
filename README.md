@@ -10,7 +10,8 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 |---|---|---|
 | 1 | Estructura, base de datos, núcleo PHP, health check | ✅ Terminada |
 | 2 | Autenticación, roles, permisos y multiempresa | ✅ Terminada |
-| 3+ | Marketplace, agenda, reservas, paneles, notificaciones, apps… | Pendiente |
+| 3 | Marketplace: explorar barberías, perfil público, favoritos, enlace directo y QR | ✅ Terminada |
+| 4+ | Panel de barbería, agenda, reservas, notificaciones, apps… | Pendiente |
 
 ## Documentación
 
@@ -18,6 +19,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Modelo entidad-relación](docs/MODELO_ER.md) (diagramas Mermaid; versiones SVG en `docs/diagramas/`)
 - [Diccionario de datos](docs/DICCIONARIO_DATOS.md) (generado desde la base)
 - [Autenticación, roles y multiempresa](docs/AUTENTICACION.md) (endpoints, sesiones, permisos)
+- [Marketplace, perfil público y QR](docs/MARKETPLACE.md)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -29,7 +31,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 
 | Componente | Versión | Nota |
 |---|---|---|
-| XAMPP | con PHP **8.0 o superior** | Se usan su Apache y su PHP. Extensiones necesarias (activas por defecto): `pdo_mysql`, `mbstring`, `json`. |
+| XAMPP | con PHP **8.0 o superior** | Se usan su Apache y su PHP. Extensiones necesarias (activas por defecto): `pdo_mysql`, `mbstring`, `json`. Para subir fotos: `gd` (con soporte WebP/JPEG) y, opcional, `exif`. En XAMPP activa `extension=gd` en `php.ini`. |
 | MySQL Community Server | **8.0.16 o superior** | ⚠️ El "MySQL" que trae XAMPP es en realidad **MariaDB**, que no es compatible con este esquema (usa `REGEXP_LIKE`, colación `utf8mb4_0900_ai_ci` y restricciones `CHECK` de MySQL 8). La consola detecta MariaDB y se detiene con un aviso. |
 | Composer | 2.x | Opcional: solo para ejecutar las pruebas. |
 
@@ -96,7 +98,9 @@ php bin/console migrate:status    # todas deben figurar como "aplicada"
 Inicia **Apache** en el panel de XAMPP y abre:
 
 - http://localhost/barberapp/backend/public/api/v1/health
-- http://localhost/barberapp/frontend/www/ (debe mostrar "API conectada" y los botones de acceso)
+- http://localhost/barberapp/frontend/www/ (splash: comprueba la API y abre el marketplace)
+- http://localhost/barberapp/frontend/www/pages/explorar.html (buscar barberías demo)
+- http://localhost/barberapp/frontend/www/b/demo-centro (enlace directo; necesita `AllowOverride FileInfo` en Apache, activo por defecto en XAMPP para `htdocs`)
 - http://localhost/barberapp/frontend/www/pages/auth/login.html (inicia sesión con un usuario demo)
 
 Respuesta esperada de `/health`:
@@ -107,11 +111,11 @@ Respuesta esperada de `/health`:
   "data": {
     "status": "ok",
     "app": "BARBERAPP",
-    "version": "0.1.0",
+    "version": "0.3.0",
     "environment": "local",
     "checks": {
       "database": { "status": "ok", "latency_ms": 2.7, "session_time_zone": "+00:00" },
-      "migrations": { "aplicadas": 7, "pendientes": 0, "ultima": "0007_autenticacion.sql" }
+      "migrations": { "aplicadas": 8, "pendientes": 0, "ultima": "0008_marketplace.sql" }
     }
   },
   "meta": { "request_id": "…" }
@@ -160,7 +164,7 @@ Creados por `php bin/console db:seed --demo` (solo con `APP_ENV=local` o `testin
 | barbero1.norte@barberapp.test | Barbero en *Demo Norte* |
 | cliente1@barberapp.test, cliente2@barberapp.test | Clientes |
 
-Barberías: `demo-centro` (activa, plan Profesional), `demo-norte` (activa, en prueba), `demo-suspendida` (suspendida). Incluye sucursales, horarios con descanso, servicios (uno inactivo), reservas en varios estados, un recordatorio en cola y vacaciones de un barbero.
+Barberías: `demo-centro` (activa, plan Profesional), `demo-norte` (activa, en prueba), `demo-sur` (activa, sede sin coordenadas), `demo-privada` (activa, fuera del marketplace) y `demo-suspendida` (suspendida). Ver [MARKETPLACE.md](docs/MARKETPLACE.md#datos-demo). Incluye sucursales, horarios con descanso, servicios (uno inactivo), reservas en varios estados, un recordatorio en cola y vacaciones de un barbero.
 
 ## Comandos de consola
 
@@ -192,6 +196,10 @@ vendor/bin/phpunit
 ```
 
 Las pruebas de integración crean y borran la base `DB_TEST_DATABASE` (por defecto `barberapp_test`); nunca tocan `DB_DATABASE`. Cubren: estructura del esquema, restricciones de integridad, aislamiento entre barberías (FK compuestas y middleware), catálogo de roles/permisos, datos demo, router, validador, el endpoint de salud y, desde la Fase 2, registro, login/logout web y móvil, CSRF, rotación y reutilización de refresh tokens, vencimiento por inactividad, recuperación de contraseña, verificación de correo, límites de intentos, permisos por rol, invitaciones de personal, acceso entre barberías y registro en auditoría de los intentos no autorizados.
+
+Desde la Fase 3 cubren también el marketplace: reglas de visibilidad, búsqueda y filtros (nombre sin tildes, distrito, tipo, precio, distancia), paginación, perfil público, favoritos, perfil público del panel con publicación condicionada, subida de fotos (tipo real, tamaño, reemplazo, límite de galería, aislamiento entre barberías) y el generador de QR, cuyos códigos se decodifican con `zbarimg` si está instalado (`apt-get install zbar-tools`). Las pruebas de fotos se omiten si PHP no tiene GD.
+
+Resultado al cerrar la Fase 3: **135 pruebas OK en PHP 8.3**; en **PHP 8.0.30** pasan 129 y se omiten 6 (la imagen de prueba no tenía GD ni zbar). Además se recorrieron todas las pantallas del marketplace en un navegador móvil emulado (Chromium, 390×844) con Playwright.
 
 ## Seguridad
 

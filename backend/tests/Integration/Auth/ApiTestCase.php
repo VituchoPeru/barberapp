@@ -57,14 +57,26 @@ abstract class ApiTestCase extends DatabaseTestCase
      */
     protected function call(string $method, string $path, ?array $body = null, array $headers = []): Response
     {
+        return $this->send($method, $path, $body !== null ? (string) json_encode($body) : null, $headers + ($body !== null ? ['Content-Type' => 'application/json'] : []));
+    }
+
+    /**
+     * Petición con cuerpo crudo (p. ej. subida de imágenes). La query (?a=b) se separa de la ruta.
+     *
+     * @param array<string, string> $headers
+     */
+    protected function send(string $method, string $path, ?string $rawBody = null, array $headers = []): Response
+    {
+        $query = [];
+        if (str_contains($path, '?')) {
+            [$path, $qs] = explode('?', $path, 2);
+            parse_str($qs, $query);
+        }
         if ($this->cookies !== [] && !isset($headers['Cookie'])) {
             $headers['Cookie'] = implode('; ', array_map(static fn ($k, $v) => $k . '=' . rawurlencode($v), array_keys($this->cookies), $this->cookies));
         }
-        if ($body !== null) {
-            $headers['Content-Type'] = 'application/json';
-        }
         $headers += ['User-Agent' => 'PHPUnit'];
-        $request = new Request($method, '/api/v1' . $path, [], $headers, $body !== null ? (string) json_encode($body) : '', ['REMOTE_ADDR' => $this->ip]);
+        $request = new Request($method, '/api/v1' . $path, $query, $headers, $rawBody ?? '', ['REMOTE_ADDR' => $this->ip]);
         $response = $this->app->handle($request);
 
         foreach ($response->cookies() as $name => $line) {

@@ -72,6 +72,16 @@ final class DemoSeeder
             $centro = $this->tenant('demo-centro', 'Barbería Demo Centro', 'activo', $propCentro, true);
             $norte = $this->tenant('demo-norte', 'Barbería Demo Norte', 'activo', $propNorte, true);
             $suspendida = $this->tenant('demo-suspendida', 'Barbería Demo Suspendida', 'suspendido', null, false);
+            // Activa y publicada, con sucursal sin coordenadas (prueba de distancias).
+            $sur = $this->tenant('demo-sur', 'Barbería Demo Sur', 'activo', null, true);
+            // Activa pero NO publicada: solo accesible por su enlace directo o QR.
+            $privada = $this->tenant('demo-privada', 'Barbería Demo Privada', 'activo', null, false);
+            $this->exec(
+                "UPDATE tenants SET descripcion = ?, telefono = '+51900000010', whatsapp = '+51900000010' WHERE id = ?",
+                ['Barbería de demostración con dos sedes en Lima. Cortes clásicos, barba y atención para niños.', $centro]
+            );
+            $this->exec("UPDATE tenants SET descripcion = ?, telefono = '+51900000020' WHERE id = ?", ['Barbería de demostración en Lima Norte.', $norte]);
+            $this->exec("UPDATE tenants SET descripcion = ? WHERE id = ?", ['Barbería de demostración especializada en afeitado clásico y color.', $sur]);
 
             // ---------- Membresías (un usuario puede tener roles distintos en barberías distintas) ----------
             $this->membresia($centro, $propCentro, 'propietario');
@@ -94,10 +104,14 @@ final class DemoSeeder
             );
 
             // ---------- Sucursales y horarios comerciales ----------
-            $sedeCentro = $this->sucursal($centro, 'Sede Demo Cercado', 'sede-cercado', 'Av. Demo 123', 'Cercado de Lima', true);
-            $sedeCentro2 = $this->sucursal($centro, 'Sede Demo Miraflores', 'sede-miraflores', 'Calle Demo 456', 'Miraflores', false);
-            $sedeNorte = $this->sucursal($norte, 'Sede Demo Los Olivos', 'sede-los-olivos', 'Jr. Demo 789', 'Los Olivos', true);
-            foreach ([[$centro, $sedeCentro], [$centro, $sedeCentro2], [$norte, $sedeNorte]] as [$t, $s]) {
+            // Coordenadas aproximadas del centro de cada distrito (solo demostración).
+            $sedeCentro = $this->sucursal($centro, 'Sede Demo Cercado', 'sede-cercado', 'Av. Demo 123', 'Cercado de Lima', true, -12.046374, -77.042793);
+            $sedeCentro2 = $this->sucursal($centro, 'Sede Demo Miraflores', 'sede-miraflores', 'Calle Demo 456', 'Miraflores', false, -12.121100, -77.029700);
+            $sedeNorte = $this->sucursal($norte, 'Sede Demo Los Olivos', 'sede-los-olivos', 'Jr. Demo 789', 'Los Olivos', true, -11.992100, -77.070500);
+            // Sin coordenadas: el marketplace no debe calcularle distancia.
+            $sedeSur = $this->sucursal($sur, 'Sede Demo Chorrillos', 'sede-chorrillos', 'Av. Demo Sur 321', 'Chorrillos', true);
+            $sedePrivada = $this->sucursal($privada, 'Sede Demo Surco', 'sede-surco', 'Calle Demo Privada 55', 'Santiago de Surco', true, -12.136900, -76.996900);
+            foreach ([[$centro, $sedeCentro], [$centro, $sedeCentro2], [$norte, $sedeNorte], [$sur, $sedeSur], [$privada, $sedePrivada]] as [$t, $s]) {
                 for ($dia = 1; $dia <= 6; $dia++) {
                     $this->exec(
                         "INSERT INTO horarios_sucursales (tenant_id, sucursal_id, dia_semana, hora_apertura, hora_cierre) VALUES (?, ?, ?, '09:00', '20:00')",
@@ -107,7 +121,7 @@ final class DemoSeeder
             }
 
             // ---------- Políticas de reserva ----------
-            foreach ([$centro, $norte, $suspendida] as $t) {
+            foreach ([$centro, $norte, $suspendida, $sur, $privada] as $t) {
                 $this->exec(
                     "INSERT INTO politicas_reserva (tenant_id, texto_politica_cancelacion) VALUES (?, 'Puedes cancelar o reprogramar sin costo hasta 2 horas antes de tu cita.')",
                     [$t]
@@ -117,18 +131,30 @@ final class DemoSeeder
             // ---------- Servicios ----------
             $catCortes = $this->insert('INSERT INTO categorias_servicio (tenant_id, nombre, orden) VALUES (?, ?, 1)', [$centro, 'Cortes']);
             $catBarba = $this->insert('INSERT INTO categorias_servicio (tenant_id, nombre, orden) VALUES (?, ?, 2)', [$centro, 'Barba']);
-            $sCorte = $this->servicio($centro, $catCortes, 'Corte clásico', 30, '25.00', 1);
-            $sCorteBarba = $this->servicio($centro, $catCortes, 'Corte y barba', 45, '40.00', 2);
-            $sBarba = $this->servicio($centro, $catBarba, 'Perfilado de barba', 20, '15.00', 3);
-            $sInfantil = $this->servicio($centro, $catCortes, 'Corte infantil', 30, '20.00', 4);
-            $this->servicio($centro, null, 'Servicio inactivo de prueba', 15, '10.00', 9, false);
-            $sNorteCorte = $this->servicio($norte, null, 'Corte moderno', 30, '30.00', 1);
-            $sNorteBarba = $this->servicio($norte, null, 'Barba con toalla caliente', 25, '18.00', 2);
+            $sCorte = $this->servicio($centro, $catCortes, 'Corte clásico', 30, '25.00', 1, true, 'corte');
+            $sCorteBarba = $this->servicio($centro, $catCortes, 'Corte y barba', 45, '40.00', 2, true, 'corte_barba');
+            $sBarba = $this->servicio($centro, $catBarba, 'Perfilado de barba', 20, '15.00', 3, true, 'barba');
+            $sInfantil = $this->servicio($centro, $catCortes, 'Corte infantil', 30, '20.00', 4, true, 'infantil');
+            $this->servicio($centro, null, 'Servicio inactivo de prueba', 15, '10.00', 9, false, 'color');
+            $sNorteCorte = $this->servicio($norte, null, 'Corte moderno', 30, '30.00', 1, true, 'corte');
+            $sNorteBarba = $this->servicio($norte, null, 'Barba con toalla caliente', 25, '18.00', 2, true, 'barba');
+            $sSurAfeitado = $this->servicio($sur, null, 'Afeitado clásico con navaja', 40, '35.00', 1, true, 'afeitado');
+            $sSurColor = $this->servicio($sur, null, 'Color de barba', 45, '60.00', 2, true, 'color');
+            $sPrivCorte = $this->servicio($privada, null, 'Corte ejecutivo', 30, '45.00', 1, true, 'corte');
 
             // ---------- Barberos, servicios habilitados y jornada ----------
             $b1 = $this->barbero($centro, $barb1User, $sedeCentro, 'Barbero Uno Demo', 1);
             $b2 = $this->barbero($centro, $barb2User, $sedeCentro, 'Barbero Dos Demo', 2);
             $b3 = $this->barbero($norte, $barb3User, $sedeNorte, 'Barbero Tres Demo', 1);
+            // Barberos sin cuenta de acceso (la cuenta es opcional).
+            $b4 = $this->barbero($sur, null, $sedeSur, 'Barbero Cuatro Demo', 1);
+            $b5 = $this->barbero($privada, null, $sedePrivada, 'Barbero Cinco Demo', 1);
+            $bInactivo = $this->barbero($centro, null, $sedeCentro2, 'Barbero Inactivo Demo', 9);
+            $this->exec('UPDATE barberos SET activo = 0 WHERE id = ?', [$bInactivo]);
+            $this->exec("UPDATE barberos SET biografia = 'Barbero de demostración. Especialista en cortes clásicos y degradados.' WHERE id = ?", [$b1]);
+            foreach ([[$sur, $b4, $sSurAfeitado], [$sur, $b4, $sSurColor], [$privada, $b5, $sPrivCorte], [$centro, $bInactivo, $sCorte]] as [$t, $b, $s]) {
+                $this->exec('INSERT INTO barbero_servicios (tenant_id, barbero_id, servicio_id) VALUES (?, ?, ?)', [$t, $b, $s]);
+            }
             foreach ([$sCorte, $sCorteBarba, $sBarba, $sInfantil] as $s) {
                 $this->exec('INSERT INTO barbero_servicios (tenant_id, barbero_id, servicio_id) VALUES (?, ?, ?)', [$centro, $b1, $s]);
             }
@@ -138,7 +164,7 @@ final class DemoSeeder
             foreach ([$sNorteCorte, $sNorteBarba] as $s) {
                 $this->exec('INSERT INTO barbero_servicios (tenant_id, barbero_id, servicio_id) VALUES (?, ?, ?)', [$norte, $b3, $s]);
             }
-            foreach ([[$centro, $b1, $sedeCentro], [$centro, $b2, $sedeCentro], [$norte, $b3, $sedeNorte]] as [$t, $b, $s]) {
+            foreach ([[$centro, $b1, $sedeCentro], [$centro, $b2, $sedeCentro], [$norte, $b3, $sedeNorte], [$sur, $b4, $sedeSur], [$privada, $b5, $sedePrivada]] as [$t, $b, $s]) {
                 for ($dia = 1; $dia <= 6; $dia++) {
                     // Jornada partida: el descanso de 13:00 a 14:00 es el hueco entre tramos.
                     $this->exec("INSERT INTO horarios_barberos (tenant_id, barbero_id, sucursal_id, dia_semana, hora_inicio, hora_fin) VALUES (?, ?, ?, ?, '09:00', '13:00')", [$t, $b, $s, $dia]);
@@ -190,8 +216,8 @@ final class DemoSeeder
 
             $this->exec(
                 "INSERT INTO auditoria (tenant_id, usuario_id, accion, entidad, entidad_id, resultado, datos_nuevos)
-                 VALUES (NULL, ?, 'seed.demo', 'tenants', NULL, 'exito', JSON_OBJECT('tenants', JSON_ARRAY(?, ?, ?)))",
-                [$superadmin, $centro, $norte, $suspendida]
+                 VALUES (NULL, ?, 'seed.demo', 'tenants', NULL, 'exito', JSON_OBJECT('tenants', JSON_ARRAY(?, ?, ?, ?, ?)))",
+                [$superadmin, $centro, $norte, $suspendida, $sur, $privada]
             );
 
             $this->db->commit();
@@ -200,7 +226,7 @@ final class DemoSeeder
             throw $e;
         }
 
-        $this->summary[] = 'Tenants: demo-centro (activo), demo-norte (activo, en prueba), demo-suspendida (suspendido)';
+        $this->summary[] = 'Tenants: demo-centro y demo-norte (activos, en el marketplace), demo-sur (activo, sede sin coordenadas), demo-privada (activo, solo por enlace /b/demo-privada), demo-suspendida (suspendido)';
         $this->summary[] = 'Usuarios (*@barberapp.test): superadmin, propietario.centro, admin.centro, barbero1.centro, barbero2.centro, propietario.norte, barbero1.norte, cliente1, cliente2';
         $this->summary[] = 'Contraseña de todos los usuarios demo: valor de DEMO_PASSWORD en .env';
         $this->summary[] = "Reservas: 5 (ids {$r1}, {$r2}, {$r3}, {$r4} en demo-centro y 1 en demo-norte)";
@@ -256,23 +282,24 @@ final class DemoSeeder
         );
     }
 
-    private function sucursal(int $tenant, string $nombre, string $slug, string $direccion, string $distrito, bool $principal): int
+    private function sucursal(int $tenant, string $nombre, string $slug, string $direccion, string $distrito, bool $principal, ?float $lat = null, ?float $lng = null): int
     {
         return $this->insert(
-            'INSERT INTO sucursales (tenant_id, nombre, slug, direccion, distrito, es_principal) VALUES (?, ?, ?, ?, ?, ?)',
-            [$tenant, $nombre, $slug, $direccion, $distrito, $principal ? 1 : 0]
+            'INSERT INTO sucursales (tenant_id, nombre, slug, direccion, distrito, es_principal, latitud, longitud) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [$tenant, $nombre, $slug, $direccion, $distrito, $principal ? 1 : 0, $lat, $lng]
         );
     }
 
-    private function servicio(int $tenant, ?int $categoria, string $nombre, int $min, string $precio, int $orden, bool $activo = true): int
+    private function servicio(int $tenant, ?int $categoria, string $nombre, int $min, string $precio, int $orden, bool $activo = true, ?string $tipo = null): int
     {
+        $tipoId = $tipo === null ? null : $this->db->query('SELECT id FROM tipos_servicio WHERE codigo = ' . $this->db->quote($tipo))->fetchColumn();
         return $this->insert(
-            'INSERT INTO servicios (tenant_id, categoria_id, nombre, duracion_minutos, precio, orden, activo) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [$tenant, $categoria, $nombre, $min, $precio, $orden, $activo ? 1 : 0]
+            'INSERT INTO servicios (tenant_id, categoria_id, tipo_servicio_id, nombre, duracion_minutos, precio, orden, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [$tenant, $categoria, $tipoId === false ? null : $tipoId, $nombre, $min, $precio, $orden, $activo ? 1 : 0]
         );
     }
 
-    private function barbero(int $tenant, int $usuario, int $sucursal, string $nombre, int $orden): int
+    private function barbero(int $tenant, ?int $usuario, int $sucursal, string $nombre, int $orden): int
     {
         return $this->insert(
             'INSERT INTO barberos (tenant_id, usuario_id, sucursal_id, nombre_publico, orden) VALUES (?, ?, ?, ?, ?)',

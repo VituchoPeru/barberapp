@@ -25,17 +25,18 @@ export const csrf = {
 
 const SAFE = ['GET', 'HEAD', 'OPTIONS'];
 
-async function request(path, { method = 'GET', body, headers = {}, signal } = {}) {
+async function request(path, { method = 'GET', body, headers = {}, signal, withMeta = false, raw, timeout } = {}) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), config.REQUEST_TIMEOUT_MS);
-  const h = { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...headers };
+  const timer = setTimeout(() => controller.abort(), timeout || config.REQUEST_TIMEOUT_MS);
+  // raw: cuerpo binario (p. ej. un File de imagen) enviado tal cual con su tipo MIME.
+  const h = { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(raw ? { 'Content-Type': raw.type } : {}), ...headers };
   if (!SAFE.includes(method) && csrf.get()) h['X-CSRF-Token'] = csrf.get();
   try {
     const res = await fetch(config.API_BASE_URL + path, {
       method,
       credentials: 'include',
       headers: h,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: raw || (body !== undefined ? JSON.stringify(body) : undefined),
       signal: signal || controller.signal,
     });
     if (res.status === 204) return null;
@@ -44,7 +45,7 @@ async function request(path, { method = 'GET', body, headers = {}, signal } = {}
       const err = payload && payload.error ? payload.error : {};
       throw new ApiError(res.status, err.code || 'network_error', err.message || 'No se pudo completar la solicitud.', err.details);
     }
-    return payload.data;
+    return withMeta ? { data: payload.data, meta: payload.meta || {} } : payload.data;
   } catch (e) {
     if (e instanceof ApiError) throw e;
     throw new ApiError(0, 'network_error', 'Sin conexión con el servidor. Verifica tu internet e intenta de nuevo.');

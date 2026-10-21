@@ -20,7 +20,8 @@
     ServerName app.barberapp.local
     DocumentRoot "C:/xampp/htdocs/barberapp/frontend/www"
     <Directory "C:/xampp/htdocs/barberapp/frontend/www">
-        AllowOverride None
+        # frontend/www/.htaccess redirige el enlace directo /b/{slug} al perfil de la barbería.
+        AllowOverride FileInfo Options Indexes
         Require all granted
     </Directory>
 </VirtualHost>

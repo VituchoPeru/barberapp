@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Bienvenido · BARBERAPP</title>
+</head>
+<body>
+  <main class="onboarding">
+    <a class="btn btn--ghost btn--sm onboarding__skip" href="inicio.html" data-finish>Omitir</a>
+    <section class="slides" aria-roledescription="carrusel" aria-label="Cómo funciona BARBERAPP">
+      <div class="slide" data-slide>
+        <div class="slide__art" data-icon="search"></div>
+        <h1>Encuentra tu barbería</h1>
+        <p>Busca por nombre, distrito o servicio y compara precios reales publicados por cada barbería.</p>
+      </div>
+      <div class="slide" data-slide hidden>
+        <div class="slide__art" data-icon="scissors"></div>
+        <h1>Elige servicio y barbero</h1>
+        <p>Revisa duración y precio de cada servicio, conoce al equipo y escoge a tu barbero de confianza.</p>
+      </div>
+      <div class="slide" data-slide hidden>
+        <div class="slide__art" data-icon="heart"></div>
+        <h1>Guarda tus favoritas</h1>
+        <p>Vuelve en un toque a tus barberías preferidas o entra directo escaneando el código QR del local.</p>
+      </div>
+    </section>
+    <div>
+      <div class="dots" data-dots aria-hidden="true"><span aria-current="true"></span><span></span><span></span></div>
+      <div class="onboarding__actions">
+        <button class="btn btn--block" type="button" data-next>Siguiente</button>
+        <a class="btn btn--ghost btn--block" href="auth/login.html?next=..%2Finicio.html" data-finish>Ya tengo cuenta</a>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="../js/pages/onboarding.js"></script>
+</body>
+</html>

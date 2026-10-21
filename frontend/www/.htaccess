@@ -1,0 +1,13 @@
+# BARBERAPP — frontend web (Apache / XAMPP)
+# Enlace directo de cada barbería: /b/{slug}  →  pages/barberia.html?slug={slug}
+# (QSA conserva ?o=qr cuando el cliente llega escaneando el código QR).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^b/([a-z0-9]+(?:-[a-z0-9]+)*)/?$ pages/barberia.html?slug=$1 [R=302,L,QSA,NC]
+</IfModule>
+
+Options -Indexes
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

@@ -1,6 +1,9 @@
 import { api } from '../api.js';
 import { currentUser, logout } from '../auth.js';
 import { $, withLoading, notice, escapeHtml } from '../ui.js';
+import { mountTabbar } from '../marketplace.js';
+
+mountTabbar('cuenta');
 
 const noticeEl = $('[data-notice]');
 const ROLES = { propietario: 'Propietario', administrador: 'Administrador', barbero: 'Barbero' };
@@ -46,10 +49,14 @@ async function renderMemberships(me) {
     const select = m.roles.length && t.id !== current
       ? `<button class="btn btn--ghost btn--sm" type="button" data-context="${escapeHtml(t.slug)}">Trabajar aquí</button>`
       : (t.id === current ? '<span class="chip">Barbería activa</span>' : '');
+    // El propietario gestiona el perfil público (permiso negocio.perfil.gestionar).
+    const perfil = m.roles.includes('propietario')
+      ? `<a class="btn btn--ghost btn--sm" href="../panel/perfil-publico.html?tenant=${encodeURIComponent(t.slug)}">Perfil público y QR</a>`
+      : '';
     return `<li class="item" data-current="${t.id === current}">
       <div><p class="item__title">${escapeHtml(t.nombre_comercial)}</p>
         <p class="item__meta">/b/${escapeHtml(t.slug)}</p><div class="chips">${roles}${estado}</div></div>
-      <div class="item__actions">${select}</div>${invites}</li>`;
+      <div class="item__actions">${select}${perfil}</div>${invites}</li>`;
   }).join('');
 }
 

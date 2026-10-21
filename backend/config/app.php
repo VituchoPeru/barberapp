@@ -6,11 +6,13 @@ use App\Core\Env;
 
 return [
     'name' => Env::get('APP_NAME', 'BARBERAPP'),
-    'version' => '0.2.0',
+    'version' => '0.3.0',
     'env' => Env::get('APP_ENV', 'production'),
     'debug' => (bool) Env::get('APP_DEBUG', false),
     'url' => Env::get('APP_URL', 'http://localhost'),
     'frontend_url' => Env::get('FRONTEND_URL', 'http://localhost'),
+    // Base del enlace público de reservas: {PUBLIC_BOOKING_URL}/b/{slug}. En producción: https://app.barberapp.pe
+    'public_booking_url' => Env::get('PUBLIC_BOOKING_URL') ?: Env::get('FRONTEND_URL', 'http://localhost'),
     'timezone' => 'UTC',
     'default_tenant_timezone' => Env::get('DEFAULT_TENANT_TIMEZONE', 'America/Lima'),
     'force_https' => (bool) Env::get('FORCE_HTTPS', false),

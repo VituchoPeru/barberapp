@@ -535,6 +535,7 @@ superadmin, propietario, administrador, barbero, cliente
 | `id` | bigint unsigned auto_increment | no |  | PRI |  |
 | `tenant_id` | bigint unsigned | no |  | MUL |  |
 | `categoria_id` | bigint unsigned | sí |  |  |  |
+| `tipo_servicio_id` | bigint unsigned | sí |  | MUL | Clasificación global para los filtros del marketplace |
 | `nombre` | varchar(120) | no |  |  |  |
 | `descripcion` | varchar(1000) | sí |  |  |  |
 | `duracion_minutos` | smallint unsigned | no |  |  |  |
@@ -547,7 +548,7 @@ superadmin, propietario, administrador, barbero, cliente
 | `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
 | `deleted_at` | datetime | sí |  |  |  |
 
-**Claves foráneas:** (tenant_id,categoria_id) → `categorias_servicio`(tenant_id,id); (tenant_id) → `tenants`(id)
+**Claves foráneas:** (tenant_id,categoria_id) → `categorias_servicio`(tenant_id,id); (tenant_id) → `tenants`(id); (tipo_servicio_id) → `tipos_servicio`(id)
 
 ## `sesiones`
 
@@ -621,6 +622,27 @@ Sesiones autenticadas; revocables individualmente
 
 **Claves foráneas:** (plan_id) → `planes`(id); (tenant_id) → `tenants`(id)
 
+## `tenant_fotos`
+
+Fotografías reales subidas por la barbería (logo, portada y galería). Se recodifican al subirse
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `tenant_id` | bigint unsigned | no |  | MUL |  |
+| `sucursal_id` | bigint unsigned | sí |  |  | NULL = foto general de la barbería |
+| `tipo` | enum('logo','portada','galeria') | no | `galeria` |  |  |
+| `ruta` | varchar(255) | no |  | UNI | Ruta relativa dentro de MEDIA_PATH (tenants/{id}/{aleatorio}.webp) |
+| `ancho` | smallint unsigned | no |  |  |  |
+| `alto` | smallint unsigned | no |  |  |  |
+| `bytes` | int unsigned | no |  |  |  |
+| `texto_alternativo` | varchar(160) | sí |  |  | Descripción accesible de la imagen |
+| `orden` | smallint | no | `0` |  |  |
+| `subido_por` | bigint unsigned | sí |  | MUL |  |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (subido_por) → `usuarios`(id); (tenant_id,sucursal_id) → `sucursales`(tenant_id,id); (tenant_id) → `tenants`(id)
+
 ## `tenants`
 
 Cada barbería es un tenant
@@ -634,6 +656,11 @@ Cada barbería es un tenant
 | `ruc` | char(11) | sí |  | UNI |  |
 | `email` | varchar(190) | sí |  |  |  |
 | `telefono` | varchar(20) | sí |  |  |  |
+| `whatsapp` | varchar(20) | sí |  |  | Número E.164 para contacto por WhatsApp |
+| `instagram` | varchar(30) | sí |  |  | Usuario sin @ |
+| `facebook` | varchar(100) | sí |  |  | Nombre de página (facebook.com/{valor}) |
+| `tiktok` | varchar(30) | sí |  |  | Usuario sin @ |
+| `sitio_web` | varchar(255) | sí |  |  |  |
 | `descripcion` | text | sí |  |  |  |
 | `logo_url` | varchar(500) | sí |  |  |  |
 | `portada_url` | varchar(500) | sí |  |  |  |
@@ -651,6 +678,19 @@ Cada barbería es un tenant
 | `deleted_at` | datetime | sí |  |  |  |
 
 **Claves foráneas:** (propietario_usuario_id) → `usuarios`(id)
+
+## `tipos_servicio`
+
+Clasificación global de servicios (corte, barba…). Cada barbería nombra libremente sus servicios y los clasifica aquí
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `codigo` | varchar(40) | no |  | UNI |  |
+| `nombre` | varchar(80) | no |  |  |  |
+| `orden` | smallint | no | `0` |  |  |
+| `activo` | tinyint(1) | no | `1` |  |  |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
 
 ## `tokens_refresco`
 

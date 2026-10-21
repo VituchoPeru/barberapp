@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Perfil público · Panel BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Perfil público <span class="muted" data-tenant-name></span></h1>
+  </header>
+  <main class="wrap panel-page" data-page aria-busy="true">
+    <p class="alert" data-notice role="status" hidden></p>
+    <div data-loading class="sk" style="height:200px"></div>
+
+    <section class="panel" data-section hidden aria-labelledby="h-visibilidad">
+      <h2 id="h-visibilidad">Visibilidad en el marketplace</h2>
+      <p class="muted" data-visibility-text></p>
+      <ul class="req" data-reqs></ul>
+      <label class="switch"><span><strong>Publicar en el marketplace</strong><br><small class="muted">Si la desactivas, tu barbería sigue disponible por su enlace directo y QR.</small></span>
+        <input type="checkbox" role="switch" data-publish></label>
+    </section>
+
+    <section class="panel" data-section hidden aria-labelledby="h-enlace">
+      <h2 id="h-enlace">Enlace directo y código QR</h2>
+      <p class="muted">Compártelo en redes o imprime el QR para tu local: abre tu barbería aunque el cliente no tenga la app.</p>
+      <div class="link-box"><code data-link></code><button class="icon-btn" type="button" data-copy aria-label="Copiar enlace" data-icon="copy"></button></div>
+      <div class="qr-box" data-qr></div>
+    </section>
+
+    <section class="panel" data-section hidden aria-labelledby="h-imagenes">
+      <h2 id="h-imagenes">Imágenes</h2>
+      <p class="hint">JPG, PNG o WebP de hasta <span data-max-mb>5</span> MB. Usa fotos reales de tu local y tus trabajos: se optimizan y se les quitan los datos de ubicación.</p>
+      <div class="brand-media">
+        <figure>
+          <div data-logo>Sin logo</div>
+          <figcaption class="upload btn btn--ghost btn--sm">Subir logo<input type="file" accept="image/jpeg,image/png,image/webp" data-upload="logo" aria-label="Subir logo"></figcaption>
+        </figure>
+        <figure>
+          <div data-portada>Sin portada</div>
+          <figcaption class="upload btn btn--ghost btn--sm">Subir portada<input type="file" accept="image/jpeg,image/png,image/webp" data-upload="portada" aria-label="Subir portada"></figcaption>
+        </figure>
+      </div>
+      <h3>Galería <small class="muted" data-gallery-count></small></h3>
+      <div class="field">
+        <label for="alt">Descripción de la próxima foto (opcional, mejora la accesibilidad)</label>
+        <input id="alt" maxlength="160" placeholder="Ej.: Fachada de la sede Miraflores" data-alt>
+      </div>
+      <div class="media-grid" data-gallery></div>
+      <span class="upload btn btn--sm" data-gallery-upload>Agregar foto<input type="file" accept="image/jpeg,image/png,image/webp" data-upload="galeria" aria-label="Agregar foto a la galería"></span>
+    </section>
+
+    <section class="panel" data-section hidden aria-labelledby="h-datos">
+      <h2 id="h-datos">Descripción y contacto</h2>
+      <form class="form" data-form novalidate>
+        <p class="alert" data-form-alert role="alert" hidden></p>
+        <div class="field"><label for="descripcion">Descripción</label>
+          <textarea id="descripcion" name="descripcion" maxlength="2000" placeholder="Cuéntales a tus clientes qué hace especial a tu barbería"></textarea>
+          <p class="field__error" data-error-for="descripcion"></p></div>
+        <div class="row2">
+          <div class="field"><label for="telefono">Teléfono</label><input id="telefono" name="telefono" type="tel" inputmode="tel" placeholder="+51 1 2345678"><p class="field__error" data-error-for="telefono"></p></div>
+          <div class="field"><label for="whatsapp">WhatsApp</label><input id="whatsapp" name="whatsapp" type="tel" inputmode="tel" placeholder="987 654 321"><p class="field__error" data-error-for="whatsapp"></p></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="instagram">Instagram</label><input id="instagram" name="instagram" placeholder="@tubarberia"><p class="field__error" data-error-for="instagram"></p></div>
+          <div class="field"><label for="tiktok">TikTok</label><input id="tiktok" name="tiktok" placeholder="@tubarberia"><p class="field__error" data-error-for="tiktok"></p></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="facebook">Facebook (página)</label><input id="facebook" name="facebook" placeholder="tubarberia"><p class="field__error" data-error-for="facebook"></p></div>
+          <div class="field"><label for="sitio_web">Sitio web</label><input id="sitio_web" name="sitio_web" type="url" inputmode="url" placeholder="https://"><p class="field__error" data-error-for="sitio_web"></p></div>
+        </div>
+        <button class="btn" type="submit" data-loading="Guardando…">Guardar cambios</button>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="../../js/pages/perfil-publico.js"></script>
+</body>
+</html>
