@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="referrer" content="no-referrer">
+  <title>Crear cuenta · BARBERAPP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+</head>
+<body>
+  <main class="auth">
+    <div class="auth__card">
+      <a class="auth__brand" href="../../index.html" aria-label="BARBERAPP, inicio">
+        <span class="brand">BARBER<span>APP</span></span>
+        <span class="tagline">Tu estilo, tu momento</span>
+      </a>
+      <h1>Crear cuenta</h1>
+      <div class="segmented" role="tablist" aria-label="Tipo de cuenta">
+        <button type="button" role="tab" id="tab-cliente" aria-selected="true" aria-controls="registro-form" data-tipo="cliente">Quiero reservar</button>
+        <button type="button" role="tab" id="tab-propietario" aria-selected="false" aria-controls="registro-form" data-tipo="propietario">Tengo una barbería</button>
+      </div>
+      <form class="form" id="registro-form" role="tabpanel" aria-labelledby="tab-cliente" novalidate>
+        <p class="alert" data-form-alert role="alert" hidden></p>
+        <div class="field">
+          <label for="nombres">Nombres</label>
+          <input id="nombres" name="nombres" autocomplete="given-name" required maxlength="100">
+          <p class="field__error" data-error-for="nombres"></p>
+        </div>
+        <div class="field">
+          <label for="apellidos">Apellidos</label>
+          <input id="apellidos" name="apellidos" autocomplete="family-name" maxlength="100">
+          <p class="field__error" data-error-for="apellidos"></p>
+        </div>
+        <div class="field">
+          <label for="email">Correo electrónico</label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" required>
+          <p class="field__error" data-error-for="email"></p>
+        </div>
+        <div class="field">
+          <label for="telefono">Celular <span class="muted">(opcional)</span></label>
+          <input id="telefono" name="telefono" type="tel" autocomplete="tel" inputmode="tel" placeholder="+51 9XX XXX XXX">
+          <p class="field__error" data-error-for="telefono"></p>
+        </div>
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <div class="password">
+            <input id="password" name="password" type="password" autocomplete="new-password" required minlength="8" aria-describedby="password-hint">
+            <button type="button" data-toggle-password aria-controls="password" aria-pressed="false">Mostrar</button>
+          </div>
+          <p class="hint" id="password-hint">Mínimo 8 caracteres, con letras y números.</p>
+          <p class="field__error" data-error-for="password"></p>
+        </div>
+
+        <fieldset class="fieldset" data-propietario hidden disabled>
+          <legend>Tu barbería</legend>
+          <div class="field">
+            <label for="nombre_comercial">Nombre comercial</label>
+            <input id="nombre_comercial" name="nombre_comercial" required maxlength="120">
+            <p class="field__error" data-error-for="barberia.nombre_comercial"></p>
+          </div>
+          <div class="field">
+            <label for="slug">Enlace de reservas <span class="muted">(opcional)</span></label>
+            <input id="slug" name="slug" maxlength="80" pattern="[a-z0-9]+(-[a-z0-9]+)*" aria-describedby="slug-hint">
+            <p class="hint" id="slug-hint">Tus clientes reservarán en /b/<strong data-slug-preview>tu-barberia</strong></p>
+            <p class="field__error" data-error-for="barberia.slug"></p>
+          </div>
+          <div class="field">
+            <label for="ruc">RUC <span class="muted">(opcional)</span></label>
+            <input id="ruc" name="ruc" inputmode="numeric" maxlength="11">
+            <p class="field__error" data-error-for="barberia.ruc"></p>
+          </div>
+          <p class="hint">Tu barbería quedará pendiente de aprobación. Mientras tanto ya puedes configurarla.</p>
+        </fieldset>
+
+        <label class="check">
+          <input type="checkbox" name="acepta_terminos" required>
+          <span>Acepto los términos de uso y la política de privacidad, y autorizo el tratamiento de mis datos personales conforme a la Ley N.º 29733.</span>
+        </label>
+        <p class="field__error" data-error-for="acepta_terminos"></p>
+        <button class="btn btn--block" type="submit" data-loading="Creando cuenta…">Crear cuenta</button>
+        <p class="center muted">¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a></p>
+      </form>
+    </div>
+  </main>
+  <script type="module" src="../../js/pages/registro.js"></script>
+</body>
+</html>

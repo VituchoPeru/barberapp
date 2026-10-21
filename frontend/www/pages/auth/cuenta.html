@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="referrer" content="no-referrer">
+  <title>Mi cuenta · BARBERAPP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+</head>
+<body>
+  <main class="auth">
+    <div class="auth__card account">
+      <a class="auth__brand" href="../../index.html" aria-label="BARBERAPP, inicio">
+        <span class="brand">BARBER<span>APP</span></span>
+        <span class="tagline">Tu estilo, tu momento</span>
+      </a>
+      <h1>Mi cuenta</h1>
+      <p class="alert" data-notice role="status" aria-live="polite" hidden></p>
+
+      <section class="panel" aria-labelledby="perfil-titulo">
+        <h2 id="perfil-titulo">Perfil</h2>
+        <div data-profile><div class="skeleton" aria-hidden="true"></div></div>
+        <div data-verify hidden>
+          <p class="alert" data-type="info">Confirma tu correo para activar todas las funciones. Revisa tu bandeja de entrada.</p>
+          <button class="btn btn--ghost btn--sm" type="button" data-resend data-loading="Enviando…">Reenviar enlace</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="barberias-titulo">
+        <h2 id="barberias-titulo">Mis barberías</h2>
+        <p class="muted" data-memberships-empty hidden>No formas parte del equipo de ninguna barbería.</p>
+        <ul class="list" data-memberships><li class="skeleton" aria-hidden="true"></li></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="sesiones-titulo">
+        <h2 id="sesiones-titulo">Sesiones abiertas</h2>
+        <ul class="list" data-sessions><li class="skeleton" aria-hidden="true"></li></ul>
+      </section>
+
+      <div class="form">
+        <button class="btn btn--ghost btn--block" type="button" data-logout data-loading="Cerrando…">Cerrar sesión</button>
+        <button class="btn btn--danger btn--block" type="button" data-logout-all data-loading="Cerrando…">Cerrar sesión en todos mis dispositivos</button>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="../../js/pages/cuenta.js"></script>
+</body>
+</html>

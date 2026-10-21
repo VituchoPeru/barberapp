@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
   <main class="splash">
@@ -17,6 +18,10 @@
     <p class="tagline">Tu estilo, tu momento</p>
     <div class="rule" aria-hidden="true"></div>
     <p class="status" data-api-status role="status" aria-live="polite">Verificando conexión…</p>
+    <nav class="home-actions" data-home-actions aria-label="Cuenta">
+      <a class="btn" href="pages/auth/login.html">Iniciar sesión</a>
+      <a class="btn btn--ghost" href="pages/auth/registro.html">Crear cuenta</a>
+    </nav>
   </main>
   <script type="module" src="js/app.js"></script>
 </body>

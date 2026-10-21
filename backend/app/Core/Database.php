@@ -72,8 +72,12 @@ final class Database
         return $pdo;
     }
 
+    private static int $savepointDepth = 0;
+
     /**
      * Ejecuta $fn dentro de una transacción. Hace rollback ante cualquier excepción.
+     * Si ya hay una transacción abierta, usa un SAVEPOINT: el bloque se revierte solo,
+     * sin deshacer el trabajo previo de la transacción externa.
      *
      * @template T
      * @param callable(PDO): T $fn
@@ -83,7 +87,18 @@ final class Database
     {
         $pdo = self::connection();
         if ($pdo->inTransaction()) {
-            throw new RuntimeException('Transacción anidada no soportada; reutilice la transacción en curso.');
+            $name = 'sp_trx_' . (++self::$savepointDepth);
+            $pdo->exec("SAVEPOINT {$name}");
+            try {
+                $result = $fn($pdo);
+                $pdo->exec("RELEASE SAVEPOINT {$name}");
+                return $result;
+            } catch (Throwable $e) {
+                $pdo->exec("ROLLBACK TO SAVEPOINT {$name}");
+                throw $e;
+            } finally {
+                self::$savepointDepth--;
+            }
         }
         $pdo->beginTransaction();
         try {

@@ -9,6 +9,7 @@ use App\Core\Exceptions\HttpException;
 use App\Core\Exceptions\NotFoundException;
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\Audit;
 
 /**
  * Resuelve la barbería (tenant) de la petición y la deja en $request->attribute('tenant').
@@ -16,11 +17,12 @@ use App\Core\Response;
  * Origen del tenant, en orden:
  *   1. Parámetro de ruta {tenant} (slug), p. ej. /api/v1/b/{tenant}/servicios
  *   2. Cabecera X-Tenant (slug) para paneles administrativos.
+ *   3. Barbería seleccionada en la sesión (POST /api/v1/me/context), si la hay.
  *
  * Nunca se acepta un tenant_id numérico del cliente: siempre se busca por slug en la BD y,
  * si $requireMembership es true, se verifica que el usuario autenticado tenga una membresía
  * activa en ese tenant (el usuario lo coloca el middleware de autenticación de la Fase 2
- * en el atributo 'auth_user').
+ * en el atributo 'auth_user'). Los accesos denegados quedan en la auditoría.
  */
 final class TenantContextMiddleware implements MiddlewareInterface
 {
@@ -33,21 +35,29 @@ final class TenantContextMiddleware implements MiddlewareInterface
     public function handle(Request $request, callable $next): Response
     {
         $slug = $request->param('tenant') ?? $request->header('x-tenant');
-        if ($slug === null || $slug === '') {
+        $session = $request->attribute('auth_session');
+        $sessionTenant = is_array($session) && !empty($session['tenant_id']) ? (int) $session['tenant_id'] : null;
+
+        if ($slug !== null && $slug !== '') {
+            $slug = strtolower(trim($slug));
+            if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug) || strlen($slug) > 80) {
+                throw new NotFoundException('Barbería no encontrada.');
+            }
+            $stmt = Database::connection()->prepare(
+                'SELECT id, slug, nombre_comercial, estado, zona_horaria
+                   FROM tenants
+                  WHERE slug = :slug AND deleted_at IS NULL
+                  LIMIT 1'
+            );
+            $stmt->execute(['slug' => $slug]);
+        } elseif ($this->requireMembership && $sessionTenant !== null) {
+            $stmt = Database::connection()->prepare(
+                'SELECT id, slug, nombre_comercial, estado, zona_horaria FROM tenants WHERE id = :id AND deleted_at IS NULL LIMIT 1'
+            );
+            $stmt->execute(['id' => $sessionTenant]);
+        } else {
             throw new HttpException(400, 'tenant_required', 'Debe indicar la barbería (tenant).');
         }
-        $slug = strtolower(trim($slug));
-        if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug) || strlen($slug) > 80) {
-            throw new NotFoundException('Barbería no encontrada.');
-        }
-
-        $stmt = Database::connection()->prepare(
-            'SELECT id, slug, nombre_comercial, estado, zona_horaria
-               FROM tenants
-              WHERE slug = :slug AND deleted_at IS NULL
-              LIMIT 1'
-        );
-        $stmt->execute(['slug' => $slug]);
         $tenant = $stmt->fetch();
         if (!$tenant) {
             throw new NotFoundException('Barbería no encontrada.');
@@ -64,14 +74,14 @@ final class TenantContextMiddleware implements MiddlewareInterface
             if (!is_array($user) || !isset($user['id'])) {
                 throw new HttpException(401, 'unauthenticated', 'Debe iniciar sesión.');
             }
-            $request->withAttribute('membership', $this->membership((int) $user['id'], $tenant['id']));
+            $request->withAttribute('membership', $this->membership($request, (int) $user['id'], $tenant['id']));
         }
 
         return $next($request);
     }
 
     /** @return array{id:int, roles:list<string>} */
-    private function membership(int $userId, int $tenantId): array
+    private function membership(Request $request, int $userId, int $tenantId): array
     {
         $stmt = Database::connection()->prepare(
             "SELECT m.id, r.codigo AS rol
@@ -82,6 +92,7 @@ final class TenantContextMiddleware implements MiddlewareInterface
         $stmt->execute(['u' => $userId, 't' => $tenantId]);
         $rows = $stmt->fetchAll();
         if ($rows === []) {
+            Audit::denied('authz.tenant_denegado', $request, [], $userId, $tenantId);
             // Respuesta 404 en lugar de 403 para no revelar la existencia de datos ajenos.
             throw new NotFoundException('Barbería no encontrada.');
         }

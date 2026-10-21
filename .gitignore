@@ -14,3 +14,4 @@ backend/.phpunit.result.cache
 Thumbs.db
 .idea/
 .vscode/
+backend/storage/mail/*.eml

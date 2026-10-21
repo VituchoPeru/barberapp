@@ -1,6 +1,8 @@
 import { api } from './api.js';
+import { currentUser } from './auth.js';
 
-// Fase 1: verifica la conexión con la API (GET /health). Las pantallas llegan en fases posteriores.
+// Verifica la conexión con la API (GET /health) y muestra el acceso a la cuenta.
+// El marketplace y el resto de pantallas llegan en la Fase 3.
 const status = document.querySelector('[data-api-status]');
 
 async function checkApi() {
@@ -15,3 +17,9 @@ async function checkApi() {
 }
 
 checkApi();
+
+currentUser().then((me) => {
+  if (!me) return;
+  document.querySelector('[data-home-actions]').innerHTML =
+    '<a class="btn" href="pages/auth/cuenta.html">Mi cuenta</a>';
+}).catch(() => {});

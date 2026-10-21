@@ -245,6 +245,18 @@ Evita reservas duplicadas por reintentos de red
 
 **Claves foráneas:** (tenant_id) → `tenants`(id); (usuario_id) → `usuarios`(id)
 
+## `limites_intentos`
+
+Contadores de ventana fija para limitar intentos de autenticación
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `clave` | char(64) | no |  | PRI | SHA-256 de ámbito + identificador (correo, IP, usuario) |
+| `ambito` | varchar(40) | no |  |  | login, registro, recuperacion, restablecer, verificacion… |
+| `intentos` | int unsigned | no | `0` |  |  |
+| `ventana_inicio` | datetime | no |  | MUL |  |
+| `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
+
 ## `membresias`
 
 Rol de un usuario dentro de una barbería (un usuario puede tener roles distintos en barberías distintas)
@@ -537,6 +549,28 @@ superadmin, propietario, administrador, barbero, cliente
 
 **Claves foráneas:** (tenant_id,categoria_id) → `categorias_servicio`(tenant_id,id); (tenant_id) → `tenants`(id)
 
+## `sesiones`
+
+Sesiones autenticadas; revocables individualmente
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `usuario_id` | bigint unsigned | no |  | MUL |  |
+| `canal` | enum('web','movil') | no |  |  | web = cookie HttpOnly + CSRF; movil = access token corto + refresh token |
+| `token_hash` | char(64) | sí |  | UNI | SHA-256 del token de la cookie de sesión (solo canal web) |
+| `tenant_id` | bigint unsigned | sí |  | MUL | Barbería seleccionada como contexto de trabajo |
+| `nombre_dispositivo` | varchar(120) | sí |  |  |  |
+| `ip` | varbinary(16) | sí |  |  |  |
+| `user_agent` | varchar(255) | sí |  |  |  |
+| `ultimo_uso_en` | datetime | no |  |  |  |
+| `expira_en` | datetime | no |  | MUL | Vencimiento absoluto de la sesión |
+| `revocada_en` | datetime | sí |  |  |  |
+| `motivo_revocacion` | varchar(40) | sí |  |  | logout, logout_todas, password_reset, refresh_reutilizado, usuario |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (tenant_id) → `tenants`(id); (usuario_id) → `usuarios`(id)
+
 ## `sucursales`
 
 | Columna | Tipo | Nulo | Defecto | Clave | Descripción |
@@ -617,6 +651,39 @@ Cada barbería es un tenant
 | `deleted_at` | datetime | sí |  |  |  |
 
 **Claves foráneas:** (propietario_usuario_id) → `usuarios`(id)
+
+## `tokens_refresco`
+
+Refresh tokens rotativos de la app móvil
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `sesion_id` | bigint unsigned | no |  | MUL |  |
+| `token_hash` | char(64) | no |  | UNI |  |
+| `expira_en` | datetime | no |  | MUL |  |
+| `usado_en` | datetime | sí |  |  | Rotación: cada token se usa una sola vez. Reutilizar uno usado revoca la sesión |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (sesion_id) → `sesiones`(id)
+
+## `tokens_usuario`
+
+Tokens de un solo uso enviados por correo
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `usuario_id` | bigint unsigned | no |  | MUL |  |
+| `tipo` | enum('verificar_email','restablecer_password') | no |  |  |  |
+| `token_hash` | char(64) | no |  | UNI |  |
+| `email` | varchar(190) | no |  |  | Correo al que se envió; si el usuario cambia de correo el token deja de valer |
+| `expira_en` | datetime | no |  | MUL |  |
+| `usado_en` | datetime | sí |  |  |  |
+| `ip` | varbinary(16) | sí |  |  |  |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (usuario_id) → `usuarios`(id)
 
 ## `usuarios`
 

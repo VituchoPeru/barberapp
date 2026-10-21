@@ -15,3 +15,13 @@
 | 011 | 2026-10-21 | `auditoria` sin FKs, solo inserciones. | El historial debe sobrevivir a la eliminación de usuarios o barberías. |
 | 012 | 2026-10-21 | Migraciones en SQL plano con checksum; `schema.sql` generado y verificado por pruebas. | SQL legible por cualquier DBA; una prueba falla si `schema.sql` se desincroniza. |
 | 013 | 2026-10-21 | Datos demo con nombres "Demo" y correos `@barberapp.test`. | Nunca se confunden con datos reales (requisito de no presentar datos ficticios como reales). |
+| 014 | 2026-10-21 | Web con cookie de sesión `HttpOnly`/`SameSite=Lax` + token CSRF en cabecera; móvil con access token HS256 de 15 min + refresh token rotativo. | Recomendación del documento: nada sensible en `localStorage` del navegador; la app nativa no maneja cookies de forma fiable entre dominios. |
+| 015 | 2026-10-21 | Tokens opacos (cookie, refresh, correo) guardados solo como SHA-256. | Una filtración de la base no permite suplantar sesiones ni usar enlaces de correo. |
+| 016 | 2026-10-21 | Cada access token lleva el id de su sesión y se valida contra `sesiones` en cada petición. | Permite cerrar sesión, revocar dispositivos y cortar el acceso al cambiar la contraseña de inmediato, a cambio de una consulta indexada por petición. |
+| 017 | 2026-10-21 | Token CSRF = HMAC(APP_KEY, sesión). | No necesita almacenarse ni rotarse; funciona en varias pestañas. |
+| 018 | 2026-10-21 | Límite de intentos persistido en MySQL con ventana fija y `INSERT … ON DUPLICATE KEY UPDATE` atómico. | Sin Redis ni APCu (XAMPP / hosting compartido); funciona con varios procesos PHP. |
+| 019 | 2026-10-21 | Barbería inexistente y barbería sin membresía responden igual (404). | No revelar qué barberías o datos existen a quien no pertenece. |
+| 020 | 2026-10-21 | Permisos `cliente.*` para toda cuenta activa; `plataforma.*` solo por `rol_plataforma_id`; el resto por membresía activa en la barbería del contexto. | Una persona puede reservar como cliente y trabajar en una barbería con la misma cuenta; el superadmin no ve datos de barberías por defecto. |
+| 021 | 2026-10-21 | Registro de propietario crea la barbería en estado `pendiente` cuando `plataforma.aprobacion_manual_tenants` es verdadero. | El superadministrador aprueba empresas (Fase 9); el propietario puede configurar mientras tanto. |
+| 022 | 2026-10-21 | `Database::transaction()` anidada usa SAVEPOINT. | Los servicios pueden componerse y las pruebas corren dentro de una transacción que se revierte. |
+| 023 | 2026-10-21 | Cliente SMTP propio (STARTTLS/SSL, AUTH LOGIN) y driver `log` a `.eml`. | Sin dependencias de Composer en producción; en XAMPP se ven los correos sin configurar un servidor. |

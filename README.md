@@ -9,7 +9,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | Fase | Contenido | Estado |
 |---|---|---|
 | 1 | Estructura, base de datos, núcleo PHP, health check | ✅ Terminada |
-| 2 | Autenticación y multitenancy | Pendiente |
+| 2 | Autenticación, roles, permisos y multiempresa | ✅ Terminada |
 | 3+ | Marketplace, agenda, reservas, paneles, notificaciones, apps… | Pendiente |
 
 ## Documentación
@@ -17,6 +17,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Arquitectura](docs/ARQUITECTURA.md)
 - [Modelo entidad-relación](docs/MODELO_ER.md) (diagramas Mermaid; versiones SVG en `docs/diagramas/`)
 - [Diccionario de datos](docs/DICCIONARIO_DATOS.md) (generado desde la base)
+- [Autenticación, roles y multiempresa](docs/AUTENTICACION.md) (endpoints, sesiones, permisos)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -69,6 +70,14 @@ DB_USERNAME=root
 DB_PASSWORD=tu_contraseña
 ```
 
+Genera la clave secreta que firma las sesiones (una sola vez):
+
+```bash
+php bin/console key:generate
+```
+
+En local los correos (verificación, recuperación de contraseña, invitaciones) no se envían: se guardan como archivos `.eml` en `backend/storage/mail/` y se abren con cualquier cliente de correo. Para enviarlos de verdad configura `MAIL_DRIVER=smtp` y los datos `MAIL_*` (ver `docs/AUTENTICACION.md`).
+
 ### 4. Crear la base de datos, migrar y cargar datos
 
 Usa el PHP de XAMPP (`C:\xampp\php\php.exe` en Windows si `php` no está en el PATH):
@@ -87,7 +96,8 @@ php bin/console migrate:status    # todas deben figurar como "aplicada"
 Inicia **Apache** en el panel de XAMPP y abre:
 
 - http://localhost/barberapp/backend/public/api/v1/health
-- http://localhost/barberapp/frontend/www/ (debe mostrar "API conectada")
+- http://localhost/barberapp/frontend/www/ (debe mostrar "API conectada" y los botones de acceso)
+- http://localhost/barberapp/frontend/www/pages/auth/login.html (inicia sesión con un usuario demo)
 
 Respuesta esperada de `/health`:
 
@@ -101,7 +111,7 @@ Respuesta esperada de `/health`:
     "environment": "local",
     "checks": {
       "database": { "status": "ok", "latency_ms": 2.7, "session_time_zone": "+00:00" },
-      "migrations": { "aplicadas": 6, "pendientes": 0, "ultima": "0006_sistema.sql" }
+      "migrations": { "aplicadas": 7, "pendientes": 0, "ultima": "0007_autenticacion.sql" }
     }
   },
   "meta": { "request_id": "…" }
@@ -129,12 +139,15 @@ Para usar `http://api.barberapp.local` en lugar de la ruta larga, sigue `infrast
 | `Access denied for user` | Revisa `DB_USERNAME` / `DB_PASSWORD` en `backend/.env`. |
 | 404 de Apache en `/api/v1/health` | Activa `mod_rewrite` y `AllowOverride All` en `httpd.conf` (XAMPP los trae activos por defecto). |
 | 403 al abrir `backend/` | Es intencional: solo `backend/public` es accesible por web. |
+| `APP_KEY no está configurada` | Ejecuta `php bin/console key:generate`. |
+| El login funciona pero `/me` responde 401 en el navegador | Con `http://` deja `SESSION_SECURE_COOKIE=false`; con HTTPS ponlo en `true`. |
+| `too_many_attempts` (429) | Límite de intentos; espera el tiempo indicado en `Retry-After` o, en local, `php bin/console migrate:fresh --demo`. |
 
 ---
 
 ## Usuarios de demostración
 
-Creados por `php bin/console db:seed --demo` (solo con `APP_ENV=local` o `testing`). Contraseña: el valor de `DEMO_PASSWORD` en `.env` (por defecto `Demo2026!`). El inicio de sesión se implementa en la Fase 2.
+Creados por `php bin/console db:seed --demo` (solo con `APP_ENV=local` o `testing`). Contraseña: el valor de `DEMO_PASSWORD` en `.env` (por defecto `Demo2026!`). Todos tienen el correo ya verificado.
 
 | Correo | Rol |
 |---|---|
@@ -160,6 +173,14 @@ php bin/console db:seed [--demo]   Catálogo (roles, permisos, planes, plantilla
 php bin/console schema:build       Regenera database/schema.sql
 php bin/console docs:dictionary    Regenera docs/DICCIONARIO_DATOS.md
 php bin/console routes             Lista las rutas
+php bin/console key:generate       Genera APP_KEY en .env (--force para reemplazarla)
+php bin/console auth:purge         Borra sesiones, tokens y contadores vencidos
+```
+
+Programa `auth:purge` una vez al día (cron en Linux o el Programador de tareas de Windows):
+
+```cron
+15 3 * * * cd /ruta/barberapp/backend && php bin/console auth:purge >> storage/logs/cron.log 2>&1
 ```
 
 ## Pruebas
@@ -170,9 +191,9 @@ composer install
 vendor/bin/phpunit
 ```
 
-Las pruebas de integración crean y borran la base `DB_TEST_DATABASE` (por defecto `barberapp_test`); nunca tocan `DB_DATABASE`. Cubren: estructura del esquema, restricciones de integridad, aislamiento entre barberías (FK compuestas y middleware), catálogo de roles/permisos, datos demo, router, validador y el endpoint de salud (en proceso y por HTTP real).
+Las pruebas de integración crean y borran la base `DB_TEST_DATABASE` (por defecto `barberapp_test`); nunca tocan `DB_DATABASE`. Cubren: estructura del esquema, restricciones de integridad, aislamiento entre barberías (FK compuestas y middleware), catálogo de roles/permisos, datos demo, router, validador, el endpoint de salud y, desde la Fase 2, registro, login/logout web y móvil, CSRF, rotación y reutilización de refresh tokens, vencimiento por inactividad, recuperación de contraseña, verificación de correo, límites de intentos, permisos por rol, invitaciones de personal, acceso entre barberías y registro en auditoría de los intentos no autorizados.
 
 ## Seguridad
 
 - Nunca subas `backend/.env` (está en `.gitignore`).
-- El servidor web debe apuntar a `backend/public`. En producción: `APP_ENV=production`, `APP_DEBUG=false`, `FORCE_HTTPS=true`.
+- El servidor web debe apuntar a `backend/public`. En producción: `APP_ENV=production`, `APP_DEBUG=false`, `FORCE_HTTPS=true`, `SESSION_SECURE_COOKIE=true` y una `APP_KEY` propia.
