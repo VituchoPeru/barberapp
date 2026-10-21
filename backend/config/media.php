@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Core\Env;
 
 /*
- * Archivos subidos por las barberías (logo, portada y galería).
+ * Archivos subidos por las barberías (logo, portada, galería y fotos de barberos).
  * Las imágenes se validan, se recodifican (se descartan metadatos EXIF y contenido incrustado)
  * y se guardan con nombre aleatorio. MEDIA_PATH debe ser servido como estático por el servidor
  * web SIN ejecución de PHP (ver backend/public/media/.htaccess).
@@ -18,6 +18,6 @@ return [
     'max_input_pixels' => 40_000_000,
     'max_input_side' => 8000,
     // Lado mayor tras redimensionar.
-    'max_side' => ['logo' => 512, 'portada' => 1920, 'galeria' => 1600],
+    'max_side' => ['logo' => 512, 'portada' => 1920, 'galeria' => 1600, 'barbero' => 800],
     'max_galeria' => 12,
 ];

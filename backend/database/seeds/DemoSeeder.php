@@ -164,7 +164,13 @@ final class DemoSeeder
             foreach ([$sNorteCorte, $sNorteBarba] as $s) {
                 $this->exec('INSERT INTO barbero_servicios (tenant_id, barbero_id, servicio_id) VALUES (?, ?, ?)', [$norte, $b3, $s]);
             }
-            foreach ([[$centro, $b1, $sedeCentro], [$centro, $b2, $sedeCentro], [$norte, $b3, $sedeNorte], [$sur, $b4, $sedeSur], [$privada, $b5, $sedePrivada]] as [$t, $b, $s]) {
+            // Barbero Uno: jornada continua con descanso recurrente (Fase 4). Los demás: jornada partida.
+            $this->exec("UPDATE barberos SET especialidad = 'Cortes clásicos y degradados' WHERE id = ?", [$b1]);
+            for ($dia = 1; $dia <= 6; $dia++) {
+                $this->exec("INSERT INTO horarios_barberos (tenant_id, barbero_id, sucursal_id, dia_semana, hora_inicio, hora_fin) VALUES (?, ?, ?, ?, '09:00', '20:00')", [$centro, $b1, $sedeCentro, $dia]);
+                $this->exec("INSERT INTO descansos_barberos (tenant_id, barbero_id, dia_semana, hora_inicio, hora_fin, motivo) VALUES (?, ?, ?, '13:00', '14:00', 'Almuerzo')", [$centro, $b1, $dia]);
+            }
+            foreach ([[$centro, $b2, $sedeCentro], [$norte, $b3, $sedeNorte], [$sur, $b4, $sedeSur], [$privada, $b5, $sedePrivada]] as [$t, $b, $s]) {
                 for ($dia = 1; $dia <= 6; $dia++) {
                     // Jornada partida: el descanso de 13:00 a 14:00 es el hueco entre tramos.
                     $this->exec("INSERT INTO horarios_barberos (tenant_id, barbero_id, sucursal_id, dia_semana, hora_inicio, hora_fin) VALUES (?, ?, ?, ?, '09:00', '13:00')", [$t, $b, $s, $dia]);
@@ -212,6 +218,14 @@ final class DemoSeeder
                 "INSERT INTO bloqueos_agenda (tenant_id, barbero_id, sucursal_id, tipo, inicio_utc, fin_utc, motivo, estado, creado_por, aprobado_por)
                  VALUES (?, ?, NULL, 'vacaciones', ?, ?, 'Vacaciones (demo)', 'aprobado', ?, ?)",
                 [$centro, $b2, $this->utc($vac), $this->utc($vac->modify('+2 days')), $propCentro, $propCentro]
+            );
+
+            // Solicitud pendiente del barbero 1 (ausencia por trámite), para el flujo de aprobación.
+            $tramite = (new DateTimeImmutable('now', new DateTimeZone(self::TZ)))->modify('+21 days')->setTime(9, 0);
+            $this->exec(
+                "INSERT INTO bloqueos_agenda (tenant_id, barbero_id, sucursal_id, tipo, inicio_utc, fin_utc, motivo, estado, creado_por)
+                 VALUES (?, ?, NULL, 'ausencia', ?, ?, 'Trámite personal (demo)', 'solicitado', ?)",
+                [$centro, $b1, $this->utc($tramite), $this->utc($tramite->setTime(13, 0)), $barb1User]
             );
 
             $this->exec(

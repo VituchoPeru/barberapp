@@ -2,12 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Controllers\AgendaBlocksController;
 use App\Controllers\AuthController;
+use App\Controllers\BarbersController;
+use App\Controllers\BranchesController;
 use App\Controllers\FavoritesController;
 use App\Controllers\HealthController;
 use App\Controllers\MarketplaceController;
 use App\Controllers\MeController;
 use App\Controllers\PublicProfileController;
+use App\Controllers\ServicesController;
 use App\Controllers\StaffController;
 use App\Core\Router;
 use App\Middleware\AuthMiddleware;
@@ -74,6 +78,48 @@ return static function (Router $router): void {
             $r->put('/perfil-publico', [PublicProfileController::class, 'update'], [new PermissionMiddleware('negocio.perfil.gestionar')], 'panel.public_profile.update');
             $r->post('/fotos', [PublicProfileController::class, 'uploadPhoto'], [new PermissionMiddleware('negocio.perfil.gestionar')], 'panel.photos.upload');
             $r->delete('/fotos/{id:\d+}', [PublicProfileController::class, 'deletePhoto'], [new PermissionMiddleware('negocio.perfil.gestionar')], 'panel.photos.delete');
+
+            // ---------- Servicios, barberos, horarios y sucursales (Fase 4)
+            $catalogo = PermissionMiddleware::any('sucursales.gestionar', 'servicios.gestionar', 'barberos.gestionar', 'horarios.gestionar', 'bloqueos.gestionar');
+            $sucursales = new PermissionMiddleware('sucursales.gestionar');
+            $r->get('/sucursales', [BranchesController::class, 'index'], [$catalogo], 'panel.branches');
+            $r->post('/sucursales', [BranchesController::class, 'store'], [$sucursales], 'panel.branches.store');
+            $r->get('/sucursales/{id:\d+}', [BranchesController::class, 'show'], [$catalogo], 'panel.branches.show');
+            $r->put('/sucursales/{id:\d+}', [BranchesController::class, 'update'], [$sucursales], 'panel.branches.update');
+            $r->delete('/sucursales/{id:\d+}', [BranchesController::class, 'destroy'], [$sucursales], 'panel.branches.destroy');
+            $r->put('/sucursales/{id:\d+}/horario', [BranchesController::class, 'hours'], [$sucursales], 'panel.branches.hours');
+
+            $servicios = new PermissionMiddleware('servicios.gestionar');
+            $r->get('/servicios', [ServicesController::class, 'index'], [$servicios], 'panel.services');
+            $r->post('/servicios', [ServicesController::class, 'store'], [$servicios], 'panel.services.store');
+            $r->get('/servicios/{id:\d+}', [ServicesController::class, 'show'], [$servicios], 'panel.services.show');
+            $r->put('/servicios/{id:\d+}', [ServicesController::class, 'update'], [$servicios], 'panel.services.update');
+            $r->delete('/servicios/{id:\d+}', [ServicesController::class, 'destroy'], [$servicios], 'panel.services.destroy');
+            $r->get('/categorias', [ServicesController::class, 'categories'], [$servicios], 'panel.categories');
+            $r->post('/categorias', [ServicesController::class, 'storeCategory'], [$servicios], 'panel.categories.store');
+            $r->put('/categorias/{id:\d+}', [ServicesController::class, 'updateCategory'], [$servicios], 'panel.categories.update');
+            $r->delete('/categorias/{id:\d+}', [ServicesController::class, 'destroyCategory'], [$servicios], 'panel.categories.destroy');
+
+            $verBarberos = PermissionMiddleware::any('barberos.gestionar', 'horarios.gestionar', 'bloqueos.gestionar');
+            $barberos = new PermissionMiddleware('barberos.gestionar');
+            $horarios = new PermissionMiddleware('horarios.gestionar');
+            $r->get('/barberos', [BarbersController::class, 'index'], [$verBarberos], 'panel.barbers');
+            $r->post('/barberos', [BarbersController::class, 'store'], [$barberos], 'panel.barbers.store');
+            $r->get('/barberos/{id:\d+}', [BarbersController::class, 'show'], [$verBarberos], 'panel.barbers.show');
+            $r->put('/barberos/{id:\d+}', [BarbersController::class, 'update'], [$barberos], 'panel.barbers.update');
+            $r->delete('/barberos/{id:\d+}', [BarbersController::class, 'destroy'], [$barberos], 'panel.barbers.destroy');
+            $r->put('/barberos/{id:\d+}/servicios', [BarbersController::class, 'services'], [$barberos], 'panel.barbers.services');
+            $r->put('/barberos/{id:\d+}/horario', [BarbersController::class, 'schedule'], [$horarios], 'panel.barbers.schedule');
+            $r->get('/barberos/{id:\d+}/jornada', [BarbersController::class, 'workingTime'], [$horarios], 'panel.barbers.working_time');
+            $r->post('/barberos/{id:\d+}/foto', [BarbersController::class, 'uploadPhoto'], [$barberos], 'panel.barbers.photo');
+            $r->delete('/barberos/{id:\d+}/foto', [BarbersController::class, 'deletePhoto'], [$barberos], 'panel.barbers.photo.delete');
+
+            $bloqueos = new PermissionMiddleware('bloqueos.gestionar');
+            $r->get('/bloqueos', [AgendaBlocksController::class, 'index'], [$bloqueos], 'panel.blocks');
+            $r->post('/bloqueos', [AgendaBlocksController::class, 'store'], [$bloqueos], 'panel.blocks.store');
+            $r->post('/bloqueos/{id:\d+}/aprobar', [AgendaBlocksController::class, 'approve'], [$bloqueos], 'panel.blocks.approve');
+            $r->post('/bloqueos/{id:\d+}/rechazar', [AgendaBlocksController::class, 'reject'], [$bloqueos], 'panel.blocks.reject');
+            $r->delete('/bloqueos/{id:\d+}', [AgendaBlocksController::class, 'destroy'], [$bloqueos], 'panel.blocks.destroy');
         }, [new AuthMiddleware(), new TenantContextMiddleware(true, true)]);
     });
 };

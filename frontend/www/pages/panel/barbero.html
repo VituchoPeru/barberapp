@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Barbero · Panel BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Barbero <span class="muted" data-tenant-name></span></h1>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos del panel"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <a class="link-btn" data-back href="barberos.html">← Todos los barberos</a>
+    <div data-loading class="sk" style="height:220px"></div>
+
+    <section class="panel" data-section hidden aria-labelledby="h-ficha">
+      <div class="profile-head">
+        <div class="portrait" data-portrait></div>
+        <div><h2 id="h-ficha" data-name></h2><p class="muted" data-sub></p>
+          <div class="toolbar" data-photo-actions hidden>
+            <span class="upload btn btn--ghost btn--sm">Subir foto<input type="file" accept="image/jpeg,image/png,image/webp" data-photo aria-label="Subir foto del barbero"></span>
+            <button class="btn btn--ghost btn--sm" type="button" data-photo-delete hidden>Quitar foto</button>
+          </div></div>
+      </div>
+      <form class="form" data-form novalidate>
+        <p class="alert" data-form-alert role="alert" hidden></p>
+        <div class="row2">
+          <div class="field"><label for="nombre_publico">Nombre visible</label><input id="nombre_publico" name="nombre_publico" maxlength="100" required><p class="field__error" data-error-for="nombre_publico"></p></div>
+          <div class="field"><label for="especialidad">Especialidad</label><input id="especialidad" name="especialidad" maxlength="120"><p class="field__error" data-error-for="especialidad"></p></div>
+        </div>
+        <div class="field"><label for="biografia">Presentación (visible en tu perfil)</label><textarea id="biografia" name="biografia" maxlength="1000"></textarea><p class="field__error" data-error-for="biografia"></p></div>
+        <div class="row2">
+          <div class="field"><label for="sucursal_id">Sucursal principal</label><select id="sucursal_id" name="sucursal_id"></select><p class="field__error" data-error-for="sucursal_id"></p></div>
+          <div class="field"><label for="usuario_id">Cuenta de acceso</label><select id="usuario_id" name="usuario_id"></select><p class="field__error" data-error-for="usuario_id"></p></div>
+        </div>
+        <label class="switch"><span><strong>Activo</strong><br><small class="muted">Un barbero inactivo no aparece ni recibe reservas.</small></span><input type="checkbox" role="switch" name="activo"></label>
+        <label class="switch"><span><strong>Acepta reservas online</strong><br><small class="muted">Si lo desactivas, solo se le asignan citas desde el panel.</small></span><input type="checkbox" role="switch" name="acepta_reservas_online"></label>
+        <div class="toolbar"><button class="btn btn--sm" type="submit" data-loading="Guardando…">Guardar ficha</button>
+          <button class="btn btn--danger btn--sm" type="button" data-delete>Eliminar barbero</button></div>
+      </form>
+    </section>
+
+    <section class="panel" data-section hidden aria-labelledby="h-servicios">
+      <h2 id="h-servicios">Servicios que realiza</h2>
+      <p class="hint">Marca lo que hace este barbero. Si tarda distinto o cobra otro precio, indícalo; si lo dejas vacío se usa el estándar del servicio.</p>
+      <p class="alert" data-svc-alert role="alert" hidden></p>
+      <div class="svc-list" data-svc-list></div>
+      <div class="toolbar"><button class="btn btn--sm" type="button" data-svc-save data-loading="Guardando…">Guardar servicios</button></div>
+    </section>
+
+    <section class="panel" data-section hidden aria-labelledby="h-horario">
+      <h2 id="h-horario">Jornada semanal y descansos</h2>
+      <p class="hint">Cada tramo indica en qué sucursal atiende. Debe estar dentro del horario de atención de la sucursal y no puede cruzarse con otro tramo, aunque sea en otra sede.</p>
+      <p class="alert" data-week-alert role="alert" hidden></p>
+      <div class="week" data-week></div>
+      <div class="toolbar"><button class="btn btn--sm" type="button" data-week-save data-loading="Guardando…">Guardar jornada</button>
+        <button class="btn btn--ghost btn--sm" type="button" data-week-copy>Copiar el lunes a martes–sábado</button></div>
+    </section>
+
+    <section class="panel" data-section hidden aria-labelledby="h-jornada">
+      <div class="panel-head"><h2 id="h-jornada">Así se verá su disponibilidad</h2>
+        <a class="btn btn--ghost btn--sm" data-absences href="ausencias.html">Vacaciones y ausencias</a></div>
+      <p class="hint">Próximos 7 días: jornada menos descansos, vacaciones, ausencias y bloqueos aprobados. Las reservas se descontarán en el motor de reservas.</p>
+      <div class="tl-scale" aria-hidden="true"><span>06:00</span><span>10:00</span><span>14:00</span><span>18:00</span><span>22:00</span></div>
+      <div class="timeline" data-timeline></div>
+    </section>
+  </main>
+  <script type="module" src="../../js/pages/panel-barbero.js"></script>
+</body>
+</html>

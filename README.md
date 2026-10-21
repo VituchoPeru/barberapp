@@ -11,7 +11,8 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | 1 | Estructura, base de datos, núcleo PHP, health check | ✅ Terminada |
 | 2 | Autenticación, roles, permisos y multiempresa | ✅ Terminada |
 | 3 | Marketplace: explorar barberías, perfil público, favoritos, enlace directo y QR | ✅ Terminada |
-| 4+ | Panel de barbería, agenda, reservas, notificaciones, apps… | Pendiente |
+| 4 | Panel: sucursales, servicios, categorías, barberos, fotos, jornadas, descansos, vacaciones y bloqueos | ✅ Terminada |
+| 5+ | Agenda y reservas, notificaciones, apps… | Pendiente |
 
 ## Documentación
 
@@ -20,6 +21,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Diccionario de datos](docs/DICCIONARIO_DATOS.md) (generado desde la base)
 - [Autenticación, roles y multiempresa](docs/AUTENTICACION.md) (endpoints, sesiones, permisos)
 - [Marketplace, perfil público y QR](docs/MARKETPLACE.md)
+- [Servicios, barberos y horarios](docs/SERVICIOS_HORARIOS.md) (panel, reglas de jornada y bloqueos)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -200,6 +202,10 @@ Las pruebas de integración crean y borran la base `DB_TEST_DATABASE` (por defec
 Desde la Fase 3 cubren también el marketplace: reglas de visibilidad, búsqueda y filtros (nombre sin tildes, distrito, tipo, precio, distancia), paginación, perfil público, favoritos, perfil público del panel con publicación condicionada, subida de fotos (tipo real, tamaño, reemplazo, límite de galería, aislamiento entre barberías) y el generador de QR, cuyos códigos se decodifican con `zbarimg` si está instalado (`apt-get install zbar-tools`). Las pruebas de fotos se omiten si PHP no tiene GD.
 
 Resultado al cerrar la Fase 3: **135 pruebas OK en PHP 8.3**; en **PHP 8.0.30** pasan 129 y se omiten 6 (la imagen de prueba no tenía GD ni zbar). Además se recorrieron todas las pantallas del marketplace en un navegador móvil emulado (Chromium, 390×844) con Playwright.
+
+Desde la Fase 4 cubren el panel: sucursales y horario de atención, servicios y categorías (duración y precio válidos, inactivos ocultos), barberos (foto, servicios con precio propio, cuentas vinculadas), jornada semanal con descansos (fuera de horario, dos sedes a la vez), jornada efectiva con bloqueos y zona horaria, y vacaciones/ausencias/bloqueos con conflicto de reservas y aprobación.
+
+Resultado al cerrar la Fase 4: **173 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 166 y se omiten 7 (sin GD ni zbar). Recorrido E2E del panel en Chromium móvil: 21/21 comprobaciones OK.
 
 ## Seguridad
 
