@@ -1,0 +1,26 @@
+# BARBERAPP — VirtualHost para XAMPP (opcional, recomendado)
+# 1) Agregue este bloque a C:\xampp\apache\conf\extra\httpd-vhosts.conf (Windows)
+#    o /Applications/XAMPP/etc/extra/httpd-vhosts.conf (macOS).
+# 2) Agregue al archivo hosts:  127.0.0.1  api.barberapp.local  app.barberapp.local
+#    Windows: C:\Windows\System32\drivers\etc\hosts  ·  macOS/Linux: /etc/hosts
+# 3) Ajuste las rutas a su carpeta y reinicie Apache desde el panel de XAMPP.
+
+<VirtualHost *:80>
+    ServerName api.barberapp.local
+    DocumentRoot "C:/xampp/htdocs/barberapp/backend/public"
+    <Directory "C:/xampp/htdocs/barberapp/backend/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog "logs/barberapp-api-error.log"
+    CustomLog "logs/barberapp-api-access.log" common
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerName app.barberapp.local
+    DocumentRoot "C:/xampp/htdocs/barberapp/frontend/www"
+    <Directory "C:/xampp/htdocs/barberapp/frontend/www">
+        AllowOverride None
+        Require all granted
+    </Directory>
+</VirtualHost>

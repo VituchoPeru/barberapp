@@ -1,0 +1,3 @@
+# Protección si el proyecto se copia completo dentro de htdocs:
+# nada de backend/ es accesible por web excepto backend/public (que tiene su propio .htaccess).
+Require all denied

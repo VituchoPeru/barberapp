@@ -1,0 +1,16 @@
+# Secretos y entorno
+backend/.env
+*.env.local
+
+# Dependencias
+backend/vendor/
+frontend/node_modules/
+
+# Logs y temporales
+backend/storage/logs/*.log
+.phpunit.result.cache
+backend/.phpunit.result.cache
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

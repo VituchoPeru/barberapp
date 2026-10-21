@@ -1,0 +1,187 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Consola de BARBERAPP.
+ *
+ *   php bin/console db:create          Crea la base de datos (DB_DATABASE) si no existe
+ *   php bin/console migrate            Aplica migraciones pendientes
+ *   php bin/console migrate:status     Lista migraciones y su estado
+ *   php bin/console migrate:fresh      BORRA todas las tablas y migra de nuevo (solo local/testing)
+ *   php bin/console db:seed            Datos de catálogo (roles, permisos, planes, plantillas)
+ *   php bin/console db:seed --demo     Catálogo + datos de demostración (solo local/testing)
+ *   php bin/console schema:build       Regenera database/schema.sql desde las migraciones
+ *   php bin/console routes             Lista las rutas registradas
+ *   php bin/console docs:dictionary    Regenera docs/DICCIONARIO_DATOS.md desde la base de datos
+ */
+
+use App\Core\Config;
+use App\Core\Database;
+use App\Core\Env;
+use App\Core\Migrator;
+use Database\Seeds\CatalogSeeder;
+use Database\Seeds\DemoSeeder;
+
+$base = dirname(__DIR__);
+require $base . '/bootstrap/autoload.php';
+Env::load($base . '/.env');
+Config::loadDirectory($base . '/config');
+date_default_timezone_set('UTC');
+
+$command = $argv[1] ?? 'help';
+$flags = array_slice($argv, 2);
+
+function out(string $msg): void
+{
+    fwrite(STDOUT, $msg . PHP_EOL);
+}
+
+function fail(string $msg): void
+{
+    fwrite(STDERR, "ERROR: {$msg}" . PHP_EOL);
+    exit(1);
+}
+
+function assertNonProduction(string $what): void
+{
+    $env = (string) Config::get('app.env');
+    if (!in_array($env, ['local', 'testing'], true)) {
+        fail("{$what} solo se permite con APP_ENV=local o testing (actual: {$env}).");
+    }
+}
+
+/** BARBERAPP requiere MySQL 8.0+. XAMPP trae MariaDB, que no es compatible con este esquema. */
+function assertMysql8(PDO $pdo): void
+{
+    $version = (string) $pdo->query('SELECT VERSION()')->fetchColumn();
+    if (stripos($version, 'mariadb') !== false) {
+        fail("El servidor es MariaDB ({$version}). BARBERAPP requiere MySQL 8.0+ (vea README: sección XAMPP).");
+    }
+    if (version_compare(preg_replace('/[^0-9.].*$/', '', $version) ?? '0', '8.0.16', '<')) {
+        fail("MySQL {$version} no soportado. Se requiere MySQL 8.0.16 o superior (restricciones CHECK).");
+    }
+}
+
+try {
+    if (in_array($command, ['db:create', 'migrate', 'migrate:fresh'], true)) {
+        assertMysql8(Database::connect(Config::get('database'), false));
+    }
+    switch ($command) {
+        case 'db:create':
+            $cfg = Config::get('database');
+            $name = (string) $cfg['database'];
+            if (!preg_match('/^[A-Za-z0-9_]+$/', $name)) {
+                fail('DB_DATABASE solo puede contener letras, números y guion bajo.');
+            }
+            $pdo = Database::connect($cfg, false);
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
+            out("Base de datos `{$name}` lista.");
+            break;
+
+        case 'migrate':
+            $migrator = new Migrator(Database::connection(), $base . '/database/migrations');
+            $done = $migrator->migrate(static fn (string $m) => out("  ✔ {$m}"));
+            out($done === [] ? 'No hay migraciones pendientes.' : count($done) . ' migración(es) aplicada(s).');
+            break;
+
+        case 'migrate:status':
+            $migrator = new Migrator(Database::connection(), $base . '/database/migrations');
+            foreach ($migrator->status() as $row) {
+                out(str_pad($row['migracion'], 40) . $row['estado']);
+            }
+            break;
+
+        case 'migrate:fresh':
+            assertNonProduction('migrate:fresh');
+            $migrator = new Migrator(Database::connection(), $base . '/database/migrations');
+            $migrator->dropAllTables();
+            out('Tablas eliminadas.');
+            $migrator->migrate(static fn (string $m) => out("  ✔ {$m}"));
+            if (in_array('--seed', $flags, true) || in_array('--demo', $flags, true)) {
+                (new CatalogSeeder(Database::connection()))->run();
+                out('Catálogo cargado.');
+                if (in_array('--demo', $flags, true)) {
+                    (new DemoSeeder(Database::connection()))->run();
+                    out('Datos de demostración cargados.');
+                }
+            }
+            break;
+
+        case 'db:seed':
+            (new CatalogSeeder(Database::connection()))->run();
+            out('Catálogo cargado (roles, permisos, planes, plantillas, configuraciones).');
+            if (in_array('--demo', $flags, true)) {
+                assertNonProduction('db:seed --demo');
+                $summary = (new DemoSeeder(Database::connection()))->run();
+                out('Datos de demostración cargados:');
+                foreach ($summary as $line) {
+                    out('  - ' . $line);
+                }
+            }
+            break;
+
+        case 'schema:build':
+            file_put_contents($base . '/database/schema.sql', Migrator::buildSchema($base . '/database/migrations'));
+            out('database/schema.sql regenerado.');
+            break;
+
+        case 'routes':
+            $router = new App\Core\Router();
+            (require $base . '/routes/api.php')($router);
+            foreach ($router->routes() as $r) {
+                out(str_pad($r['method'], 8) . $r['path'] . ($r['name'] ? "  ({$r['name']})" : ''));
+            }
+            break;
+
+        case 'docs:dictionary':
+            $pdo = Database::connection();
+            $tables = $pdo->query(
+                "SELECT table_name AS t, table_comment AS c FROM information_schema.tables
+                  WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE' ORDER BY table_name"
+            )->fetchAll();
+            $md = "# Diccionario de datos\n\n_Generado con `php bin/console docs:dictionary` a partir de la base de datos migrada. No editar a mano._\n\n";
+            $md .= "Convenciones: fechas de eventos en UTC; importes en DECIMAL(10,2); `tenant_id` identifica la barbería.\n\n";
+            $colStmt = $pdo->prepare(
+                "SELECT column_name AS n, column_type AS ty, is_nullable AS nu, column_default AS d, column_key AS k, extra AS e, column_comment AS c
+                   FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? ORDER BY ordinal_position"
+            );
+            $fkStmt = $pdo->prepare(
+                "SELECT constraint_name AS n, GROUP_CONCAT(column_name ORDER BY ordinal_position) AS cols, referenced_table_name AS rt,
+                        GROUP_CONCAT(referenced_column_name ORDER BY ordinal_position) AS rcols
+                   FROM information_schema.key_column_usage
+                  WHERE table_schema = DATABASE() AND table_name = ? AND referenced_table_name IS NOT NULL
+                  GROUP BY constraint_name, referenced_table_name ORDER BY constraint_name"
+            );
+            $esc = static fn ($v): string => str_replace(['|', "\n"], ['\\|', ' '], (string) $v);
+            foreach ($tables as $t) {
+                if ($t['t'] === 'migraciones') {
+                    continue;
+                }
+                $md .= "## `{$t['t']}`\n\n" . ($t['c'] !== '' ? $esc($t['c']) . "\n\n" : '');
+                $md .= "| Columna | Tipo | Nulo | Defecto | Clave | Descripción |\n|---|---|---|---|---|---|\n";
+                $colStmt->execute([$t['t']]);
+                foreach ($colStmt->fetchAll() as $c) {
+                    $extra = $c['e'] !== '' ? ' ' . $c['e'] : '';
+                    $md .= sprintf("| `%s` | %s | %s | %s | %s | %s |\n", $c['n'], $esc($c['ty'] . $extra), $c['nu'] === 'YES' ? 'sí' : 'no',
+                        $c['d'] === null ? '' : '`' . $esc($c['d']) . '`', $c['k'], $esc($c['c']));
+                }
+                $fkStmt->execute([$t['t']]);
+                $fks = $fkStmt->fetchAll();
+                if ($fks !== []) {
+                    $md .= "\n**Claves foráneas:** ";
+                    $md .= implode('; ', array_map(static fn ($f) => "({$f['cols']}) → `{$f['rt']}`({$f['rcols']})", $fks)) . "\n";
+                }
+                $md .= "\n";
+            }
+            file_put_contents(dirname($base) . '/docs/DICCIONARIO_DATOS.md', $md);
+            out('docs/DICCIONARIO_DATOS.md regenerado (' . (count($tables) - 1) . ' tablas).');
+            break;
+
+        default:
+            out(trim((string) preg_replace('/^.*?\/\*\*|\*\/.*$/s', '', (string) file_get_contents(__FILE__))));
+    }
+} catch (Throwable $e) {
+    fail($e->getMessage());
+}

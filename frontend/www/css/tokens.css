@@ -1,0 +1,36 @@
+/* BARBERAPP — tokens de diseño compartidos (cliente, panel de barbería y superadmin).
+   Modo oscuro como identidad principal. */
+:root {
+  --color-negro: #111111;
+  --color-gris-oscuro: #1C1C1E;
+  --color-dorado: #C9A45C;
+  --color-dorado-claro: #E4C88A;
+  --color-blanco: #FFFFFF;
+  --color-gris-claro: #F5F5F5;
+
+  --bg: var(--color-negro);
+  --surface: var(--color-gris-oscuro);
+  --text: var(--color-blanco);
+  --text-muted: #B8B8BC;
+  --accent: var(--color-dorado);
+  --accent-strong: var(--color-dorado-claro);
+  --danger: #E5484D;
+  --success: #3DD68C;
+
+  --font-sans: "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --shadow-1: 0 8px 24px rgba(0, 0, 0, .35);
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
