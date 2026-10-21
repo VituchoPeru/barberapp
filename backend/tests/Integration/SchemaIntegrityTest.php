@@ -24,6 +24,8 @@ final class SchemaIntegrityTest extends DatabaseTestCase
         'dispositivos_push', 'preferencias_notificacion', 'notificaciones', 'plantillas_notificacion',
         // Sistema
         'auditoria', 'configuraciones', 'webhook_eventos', 'idempotency_keys',
+        // Autenticación (Fase 2)
+        'sesiones', 'tokens_refresco', 'tokens_usuario', 'limites_intentos',
     ];
 
     /** @return list<string> */
@@ -134,7 +136,8 @@ final class SchemaIntegrityTest extends DatabaseTestCase
                 return $st->fetchAll(PDO::FETCH_COLUMN);
             };
             $this->assertSame($columns($server, BARBERAPP_TEST_DB), $columns($server, $name));
-            $this->assertSame(6, (int) $server->query("SELECT COUNT(*) FROM `{$name}`.migraciones")->fetchColumn());
+            $expected = count(glob(BARBERAPP_BASE . '/database/migrations/*.sql') ?: []);
+            $this->assertSame($expected, (int) $server->query("SELECT COUNT(*) FROM `{$name}`.migraciones")->fetchColumn());
         } finally {
             $server->exec("DROP DATABASE IF EXISTS `{$name}`");
             $this->db->beginTransaction();

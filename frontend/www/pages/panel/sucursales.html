@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Sucursales · Panel BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Sucursales <span class="muted" data-tenant-name></span></h1>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos del panel"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <div class="panel-head">
+      <div><h2>Sucursales</h2><p>Dirección, ubicación y horario de atención de cada sede.</p></div>
+      <div class="toolbar"><button class="btn btn--sm" type="button" data-new>Nueva sucursal</button></div>
+    </div>
+    <div data-loading><div class="skeleton"></div></div>
+    <ul class="rows" data-list></ul>
+  </main>
+
+  <dialog class="sheet" data-sheet aria-labelledby="suc-title">
+    <form class="form" data-form novalidate>
+      <div class="sheet__head"><h2 id="suc-title" data-sheet-title>Nueva sucursal</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+      <div class="sheet__body">
+        <p class="alert" data-form-alert role="alert" hidden></p>
+        <div class="field"><label for="nombre">Nombre</label><input id="nombre" name="nombre" maxlength="120" required placeholder="Ej.: Sede Miraflores"><p class="field__error" data-error-for="nombre"></p></div>
+        <div class="field"><label for="direccion">Dirección</label><input id="direccion" name="direccion" maxlength="255" required placeholder="Av. Larco 123"><p class="field__error" data-error-for="direccion"></p></div>
+        <div class="field"><label for="referencia">Referencia (opcional)</label><input id="referencia" name="referencia" maxlength="255" placeholder="Frente al parque"><p class="field__error" data-error-for="referencia"></p></div>
+        <div class="row3">
+          <div class="field"><label for="distrito">Distrito</label><input id="distrito" name="distrito" maxlength="80" required><p class="field__error" data-error-for="distrito"></p></div>
+          <div class="field"><label for="provincia">Provincia</label><input id="provincia" name="provincia" maxlength="80" placeholder="Lima"><p class="field__error" data-error-for="provincia"></p></div>
+          <div class="field"><label for="departamento">Departamento</label><input id="departamento" name="departamento" maxlength="80" placeholder="Lima"><p class="field__error" data-error-for="departamento"></p></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="telefono">Teléfono</label><input id="telefono" name="telefono" type="tel" inputmode="tel"><p class="field__error" data-error-for="telefono"></p></div>
+          <div class="field"><label for="email">Correo</label><input id="email" name="email" type="email" inputmode="email"><p class="field__error" data-error-for="email"></p></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="latitud">Latitud (opcional)</label><input id="latitud" name="latitud" inputmode="decimal" placeholder="-12.121100"><p class="field__error" data-error-for="latitud"></p></div>
+          <div class="field"><label for="longitud">Longitud (opcional)</label><input id="longitud" name="longitud" inputmode="decimal" placeholder="-77.029700"><p class="field__error" data-error-for="longitud"></p></div>
+        </div>
+        <p class="hint">Con coordenadas reales el marketplace puede mostrar la distancia a tus clientes. Cópialas desde Google Maps (clic derecho sobre tu local).</p>
+        <div class="field"><label for="zona_horaria">Zona horaria</label><select id="zona_horaria" name="zona_horaria"></select></div>
+        <label class="switch"><span><strong>Sucursal principal</strong></span><input type="checkbox" role="switch" name="es_principal"></label>
+        <label class="switch"><span><strong>Activa</strong><br><small class="muted">Una sucursal inactiva no aparece ni recibe reservas.</small></span><input type="checkbox" role="switch" name="activo" checked></label>
+
+        <fieldset class="fieldset" data-hours-box hidden><legend>Horario de atención</legend>
+          <p class="alert" data-hours-alert role="alert" hidden></p>
+          <div class="week" data-hours></div>
+          <button class="btn btn--ghost btn--sm" type="button" data-hours-save data-loading="Guardando…">Guardar horario</button>
+        </fieldset>
+        <button class="btn btn--danger btn--sm" type="button" data-delete hidden>Eliminar sucursal</button>
+      </div>
+      <div class="sheet__foot"><button class="btn btn--ghost" type="button" data-close>Cerrar</button><button class="btn" type="submit" data-loading="Guardando…">Guardar datos</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="../../js/pages/panel-sucursales.js"></script>
+</body>
+</html>

@@ -4,19 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111111">
+  <meta name="description" content="BARBERAPP: encuentra barberías, revisa sus servicios y reserva tu cita.">
   <title>BARBERAPP</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <main class="splash">
+  <!-- Splash: verifica la API y lleva al onboarding (primera vez) o al inicio. -->
+  <main class="splash splash--app" aria-busy="true">
+    <div data-crest></div>
     <h1 class="brand">BARBER<span>APP</span></h1>
     <p class="tagline">Tu estilo, tu momento</p>
     <div class="rule" aria-hidden="true"></div>
-    <p class="status" data-api-status role="status" aria-live="polite">Verificando conexión…</p>
+    <div class="spinner" data-spinner role="progressbar" aria-label="Cargando"></div>
+    <p class="splash__note" data-api-status role="status" aria-live="polite">Cargando tu experiencia…</p>
+    <nav class="home-actions" data-retry hidden>
+      <button class="btn" type="button" data-retry-btn>Reintentar</button>
+    </nav>
   </main>
   <script type="module" src="js/app.js"></script>
 </body>

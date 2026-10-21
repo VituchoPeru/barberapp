@@ -810,6 +810,199 @@ CREATE TABLE idempotency_keys (
     CONSTRAINT fk_idempotency_keys_tenant  FOREIGN KEY (tenant_id)  REFERENCES tenants (id)  ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Evita reservas duplicadas por reintentos de red';
 
+-- ============================================================
+-- BARBERAPP · Migración 0007 · Autenticación (Fase 2)
+-- sesiones (web y móvil), tokens de renovación, tokens de un solo uso
+-- (verificación de correo / recuperación de contraseña) y límites de intentos.
+-- Ningún token se guarda en claro: solo su SHA-256.
+-- ============================================================
+
+CREATE TABLE sesiones (
+    id                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    usuario_id         BIGINT UNSIGNED NOT NULL,
+    canal              ENUM('web','movil') NOT NULL COMMENT 'web = cookie HttpOnly + CSRF; movil = access token corto + refresh token',
+    token_hash         CHAR(64)        NULL COMMENT 'SHA-256 del token de la cookie de sesión (solo canal web)',
+    tenant_id          BIGINT UNSIGNED NULL COMMENT 'Barbería seleccionada como contexto de trabajo',
+    nombre_dispositivo VARCHAR(120)    NULL,
+    ip                 VARBINARY(16)   NULL,
+    user_agent         VARCHAR(255)    NULL,
+    ultimo_uso_en      DATETIME        NOT NULL,
+    expira_en          DATETIME        NOT NULL COMMENT 'Vencimiento absoluto de la sesión',
+    revocada_en        DATETIME        NULL,
+    motivo_revocacion  VARCHAR(40)     NULL COMMENT 'logout, logout_todas, password_reset, refresh_reutilizado, usuario',
+    created_at         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_sesiones_token (token_hash),
+    KEY idx_sesiones_usuario_activas (usuario_id, revocada_en, expira_en),
+    KEY idx_sesiones_tenant (tenant_id),
+    KEY idx_sesiones_expira (expira_en),
+    CONSTRAINT fk_sesiones_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+    CONSTRAINT fk_sesiones_tenant  FOREIGN KEY (tenant_id)  REFERENCES tenants (id)  ON DELETE SET NULL,
+    CONSTRAINT ck_sesiones_token_web CHECK (canal <> 'web' OR token_hash IS NOT NULL),
+    CONSTRAINT ck_sesiones_expira CHECK (expira_en >= ultimo_uso_en)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Sesiones autenticadas; revocables individualmente';
+
+CREATE TABLE tokens_refresco (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    sesion_id   BIGINT UNSIGNED NOT NULL,
+    token_hash  CHAR(64)        NOT NULL,
+    expira_en   DATETIME        NOT NULL,
+    usado_en    DATETIME        NULL COMMENT 'Rotación: cada token se usa una sola vez. Reutilizar uno usado revoca la sesión',
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_tokens_refresco_hash (token_hash),
+    KEY idx_tokens_refresco_sesion (sesion_id),
+    KEY idx_tokens_refresco_expira (expira_en),
+    CONSTRAINT fk_tokens_refresco_sesion FOREIGN KEY (sesion_id) REFERENCES sesiones (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Refresh tokens rotativos de la app móvil';
+
+CREATE TABLE tokens_usuario (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    usuario_id  BIGINT UNSIGNED NOT NULL,
+    tipo        ENUM('verificar_email','restablecer_password') NOT NULL,
+    token_hash  CHAR(64)        NOT NULL,
+    email       VARCHAR(190)    NOT NULL COMMENT 'Correo al que se envió; si el usuario cambia de correo el token deja de valer',
+    expira_en   DATETIME        NOT NULL,
+    usado_en    DATETIME        NULL,
+    ip          VARBINARY(16)   NULL,
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_tokens_usuario_hash (token_hash),
+    KEY idx_tokens_usuario_usuario_tipo (usuario_id, tipo, usado_en),
+    KEY idx_tokens_usuario_expira (expira_en),
+    CONSTRAINT fk_tokens_usuario_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Tokens de un solo uso enviados por correo';
+
+CREATE TABLE limites_intentos (
+    clave           CHAR(64)        NOT NULL COMMENT 'SHA-256 de ámbito + identificador (correo, IP, usuario)',
+    ambito          VARCHAR(40)     NOT NULL COMMENT 'login, registro, recuperacion, restablecer, verificacion…',
+    intentos        INT UNSIGNED    NOT NULL DEFAULT 0,
+    ventana_inicio  DATETIME        NOT NULL,
+    updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (clave),
+    KEY idx_limites_intentos_ventana (ventana_inicio)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Contadores de ventana fija para limitar intentos de autenticación';
+
+-- ============================================================
+-- BARBERAPP · Migración 0008 · Marketplace (Fase 3)
+-- Catálogo global de tipos de servicio (para filtrar barberías por servicio),
+-- datos de contacto públicos de la barbería y galería de fotografías.
+-- ============================================================
+
+CREATE TABLE tipos_servicio (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    codigo      VARCHAR(40)     NOT NULL,
+    nombre      VARCHAR(80)     NOT NULL,
+    orden       SMALLINT        NOT NULL DEFAULT 0,
+    activo      TINYINT(1)      NOT NULL DEFAULT 1,
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_tipos_servicio_codigo (codigo),
+    CONSTRAINT ck_tipos_servicio_codigo CHECK (REGEXP_LIKE(codigo, '^[a-z0-9_]+$', 'c'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+  COMMENT='Clasificación global de servicios (corte, barba…). Cada barbería nombra libremente sus servicios y los clasifica aquí';
+
+INSERT INTO tipos_servicio (codigo, nombre, orden) VALUES
+    ('corte', 'Corte de cabello', 1),
+    ('barba', 'Barba', 2),
+    ('corte_barba', 'Corte y barba', 3),
+    ('afeitado', 'Afeitado clásico', 4),
+    ('infantil', 'Corte infantil', 5),
+    ('diseno', 'Diseños y líneas', 6),
+    ('cejas', 'Cejas', 7),
+    ('color', 'Color y tinte', 8),
+    ('tratamiento', 'Tratamiento capilar', 9),
+    ('facial', 'Cuidado facial', 10),
+    ('otro', 'Otros servicios', 99);
+
+ALTER TABLE servicios
+    ADD COLUMN tipo_servicio_id BIGINT UNSIGNED NULL COMMENT 'Clasificación global para los filtros del marketplace' AFTER categoria_id,
+    ADD KEY idx_servicios_tipo (tipo_servicio_id, activo),
+    ADD CONSTRAINT fk_servicios_tipo FOREIGN KEY (tipo_servicio_id) REFERENCES tipos_servicio (id) ON DELETE RESTRICT;
+
+ALTER TABLE tenants
+    ADD COLUMN whatsapp   VARCHAR(20)  NULL COMMENT 'Número E.164 para contacto por WhatsApp' AFTER telefono,
+    ADD COLUMN instagram  VARCHAR(30)  NULL COMMENT 'Usuario sin @' AFTER whatsapp,
+    ADD COLUMN facebook   VARCHAR(100) NULL COMMENT 'Nombre de página (facebook.com/{valor})' AFTER instagram,
+    ADD COLUMN tiktok     VARCHAR(30)  NULL COMMENT 'Usuario sin @' AFTER facebook,
+    ADD COLUMN sitio_web  VARCHAR(255) NULL AFTER tiktok,
+    ADD CONSTRAINT ck_tenants_whatsapp  CHECK (whatsapp IS NULL OR REGEXP_LIKE(whatsapp, '^\\+?[0-9]{6,15}$')),
+    ADD CONSTRAINT ck_tenants_instagram CHECK (instagram IS NULL OR REGEXP_LIKE(instagram, '^[A-Za-z0-9._]{1,30}$', 'c')),
+    ADD CONSTRAINT ck_tenants_facebook  CHECK (facebook IS NULL OR REGEXP_LIKE(facebook, '^[A-Za-z0-9.\\-]{1,100}$', 'c')),
+    ADD CONSTRAINT ck_tenants_tiktok    CHECK (tiktok IS NULL OR REGEXP_LIKE(tiktok, '^[A-Za-z0-9._]{1,30}$', 'c')),
+    ADD CONSTRAINT ck_tenants_sitio_web CHECK (sitio_web IS NULL OR REGEXP_LIKE(sitio_web, '^https?://', 'c'));
+
+CREATE TABLE tenant_fotos (
+    id                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id          BIGINT UNSIGNED NOT NULL,
+    sucursal_id        BIGINT UNSIGNED NULL COMMENT 'NULL = foto general de la barbería',
+    tipo               ENUM('logo','portada','galeria') NOT NULL DEFAULT 'galeria',
+    ruta               VARCHAR(255)    NOT NULL COMMENT 'Ruta relativa dentro de MEDIA_PATH (tenants/{id}/{aleatorio}.webp)',
+    ancho              SMALLINT UNSIGNED NOT NULL,
+    alto               SMALLINT UNSIGNED NOT NULL,
+    bytes              INT UNSIGNED    NOT NULL,
+    texto_alternativo  VARCHAR(160)    NULL COMMENT 'Descripción accesible de la imagen',
+    orden              SMALLINT        NOT NULL DEFAULT 0,
+    subido_por         BIGINT UNSIGNED NULL,
+    created_at         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_tenant_fotos_tenant_id (tenant_id, id),
+    UNIQUE KEY uk_tenant_fotos_ruta (ruta),
+    KEY idx_tenant_fotos_tipo (tenant_id, tipo, orden),
+    KEY idx_tenant_fotos_sucursal (tenant_id, sucursal_id),
+    KEY idx_tenant_fotos_subido_por (subido_por),
+    CONSTRAINT fk_tenant_fotos_tenant     FOREIGN KEY (tenant_id) REFERENCES tenants (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_tenant_fotos_sucursal   FOREIGN KEY (tenant_id, sucursal_id) REFERENCES sucursales (tenant_id, id) ON DELETE RESTRICT,
+    CONSTRAINT fk_tenant_fotos_subido_por FOREIGN KEY (subido_por) REFERENCES usuarios (id) ON DELETE SET NULL,
+    CONSTRAINT ck_tenant_fotos_ruta CHECK (REGEXP_LIKE(ruta, '^tenants/[0-9]+/[a-f0-9]{32}\\.(webp|jpg|png)$', 'c'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+  COMMENT='Fotografías reales subidas por la barbería (logo, portada y galería). Se recodifican al subirse';
+
+ALTER TABLE sucursales
+    ADD KEY idx_sucursales_tenant_activo (tenant_id, activo);
+
+-- ============================================================
+-- BARBERAPP · Migración 0009 · Servicios, barberos y horarios (Fase 4)
+-- Descansos semanales recurrentes de cada barbero (p. ej. almuerzo de 13:00 a 14:00)
+-- y datos de presentación del barbero en el panel y el marketplace.
+--
+-- Modelo de agenda resultante (todo en hora local de la sucursal salvo bloqueos):
+--   horarios_sucursales  horario comercial (el barbero nunca trabaja fuera de él)
+--   horarios_barberos    jornada semanal por tramos y sucursal
+--   descansos_barberos   descansos recurrentes dentro de la jornada
+--   bloqueos_agenda      excepciones puntuales en UTC: vacaciones, ausencias, feriados, bloqueos
+-- ============================================================
+
+CREATE TABLE descansos_barberos (
+    id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tenant_id      BIGINT UNSIGNED NOT NULL,
+    barbero_id     BIGINT UNSIGNED NOT NULL,
+    dia_semana     TINYINT UNSIGNED NOT NULL COMMENT 'ISO-8601: 1 = lunes … 7 = domingo',
+    hora_inicio    TIME            NOT NULL COMMENT 'Hora local de la sucursal donde trabaja ese día',
+    hora_fin       TIME            NOT NULL,
+    motivo         VARCHAR(80)     NULL COMMENT 'Texto interno, p. ej. "Almuerzo"',
+    created_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_descansos_barberos_tenant_id (tenant_id, id),
+    KEY idx_descansos_barberos_dia (tenant_id, barbero_id, dia_semana),
+    CONSTRAINT fk_descansos_barberos_barbero FOREIGN KEY (tenant_id, barbero_id) REFERENCES barberos (tenant_id, id) ON DELETE CASCADE,
+    CONSTRAINT ck_descansos_barberos_dia   CHECK (dia_semana BETWEEN 1 AND 7),
+    CONSTRAINT ck_descansos_barberos_rango CHECK (hora_fin > hora_inicio)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+  COMMENT='Descansos semanales recurrentes; se descuentan de la jornada al calcular disponibilidad';
+
+ALTER TABLE barberos
+    ADD COLUMN especialidad VARCHAR(120) NULL COMMENT 'Texto corto visible, p. ej. "Degradados y diseños"' AFTER nombre_publico,
+    ADD CONSTRAINT ck_barberos_nombre CHECK (CHAR_LENGTH(TRIM(nombre_publico)) >= 2);
+
+ALTER TABLE servicios
+    ADD CONSTRAINT ck_servicios_nombre CHECK (CHAR_LENGTH(TRIM(nombre)) >= 2);
+
+-- Bloqueos por rango: el listado del panel filtra por tenant + rango sin barbero concreto.
+ALTER TABLE bloqueos_agenda
+    ADD KEY idx_bloqueos_tenant_rango (tenant_id, inicio_utc, fin_utc);
+
 -- Registra las migraciones incluidas para que `php bin/console migrate` no las repita.
 INSERT INTO migraciones (migracion, checksum, lote) VALUES
     ('0001_nucleo_saas.sql', '09a74ba54a5988c50081099bd8610fdb78a2b380636abdb7b516239b05a7d194', 1),
@@ -817,4 +1010,7 @@ INSERT INTO migraciones (migracion, checksum, lote) VALUES
     ('0003_clientes.sql', '903e8009021f10b125571bc1dc09e40cf022f739a6eee2754e34eb798cb88696', 1),
     ('0004_reservas.sql', '4dbc2b30266dbb391cb18887d8c90548e4b38c976da974d406c0713cf30afe87', 1),
     ('0005_notificaciones.sql', '0414ab60959f3fd6196ca4f4741c3e751258327c1d63d3ee9620861ecd40b772', 1),
-    ('0006_sistema.sql', '611f9c0c55f5b38ce5499ed8c611655ee8c705fa86e4df32c9b7dcc28e50d903', 1);
+    ('0006_sistema.sql', '611f9c0c55f5b38ce5499ed8c611655ee8c705fa86e4df32c9b7dcc28e50d903', 1),
+    ('0007_autenticacion.sql', '5f36d58b4fd7bea3fe481696b0e74d21137fc8c1b5a1082e09e8120e6520d445', 1),
+    ('0008_marketplace.sql', '16af758ab0a8e00a30dad2149d230bffb3afda8e46397ae899db58a702ea3622', 1),
+    ('0009_agenda_barberos.sql', 'c9c5181d3dda834224d66e2cfd98374f33494024c55bb1d6c2816d2c6efec601', 1);

@@ -81,7 +81,7 @@ barberapp/
 1. Apache reescribe la URL a `public/index.php`.
 2. `bootstrap/app.php` carga `.env`, configuración y rutas.
 3. Middleware global: asigna `X-Request-Id`, agrega cabeceras de seguridad, aplica CORS restrictivo y valida el JSON de entrada.
-4. El router encuentra la ruta (404 / 405 con `Allow` si no) y ejecuta su middleware (autenticación y tenant desde la Fase 2).
+4. El router encuentra la ruta (404 / 405 con `Allow` si no) y ejecuta su middleware: `AuthMiddleware` (cookie + CSRF o Bearer), `TenantContextMiddleware` (barbería + membresía) y `PermissionMiddleware` (permiso del rol). Ver [AUTENTICACION.md](AUTENTICACION.md).
 5. El controlador valida con `Validator` (lista blanca de campos), delega en servicios y devuelve un `Response`.
 6. Cualquier excepción se convierte en JSON por `ExceptionHandler`; los errores 5xx se registran en `storage/logs` sin datos sensibles y sin detalles en producción.
 

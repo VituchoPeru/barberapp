@@ -51,9 +51,11 @@ final class Validator
                 continue;
             }
 
+            // Con la regla "string", min/max miden longitud aunque el texto sea numérico ("12345678").
+            $asText = in_array('string', $fieldRules, true);
             foreach ($fieldRules as $rule) {
                 [$name, $arg] = array_pad(explode(':', $rule, 2), 2, null);
-                $message = self::check($name, $arg, $value);
+                $message = self::check($name, $arg, $value, $asText);
                 if ($message !== null) {
                     $errors[$field][] = $message;
                     break;
@@ -72,7 +74,7 @@ final class Validator
     }
 
     /** @param mixed $value */
-    private static function check(string $rule, ?string $arg, $value): ?string
+    private static function check(string $rule, ?string $arg, $value, bool $asText = false): ?string
     {
         switch ($rule) {
             case 'required':
@@ -100,12 +102,12 @@ final class Validator
             case 'regex':
                 return is_string($value) && preg_match((string) $arg, $value) ? null : 'Formato inválido.';
             case 'min':
-                if (is_string($value) && !is_numeric($value)) {
+                if (is_string($value) && ($asText || !is_numeric($value))) {
                     return mb_strlen($value) >= (int) $arg ? null : "Debe tener al menos {$arg} caracteres.";
                 }
                 return is_numeric($value) && (float) $value >= (float) $arg ? null : "Debe ser mayor o igual a {$arg}.";
             case 'max':
-                if (is_string($value) && !is_numeric($value)) {
+                if (is_string($value) && ($asText || !is_numeric($value))) {
                     return mb_strlen($value) <= (int) $arg ? null : "Debe tener como máximo {$arg} caracteres.";
                 }
                 return is_numeric($value) && (float) $value <= (float) $arg ? null : "Debe ser menor o igual a {$arg}.";

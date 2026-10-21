@@ -1,6 +1,6 @@
 # Modelo entidad-relación
 
-32 tablas en 6 dominios (más la tabla técnica `migraciones`). El detalle de cada columna está en [DICCIONARIO_DATOS.md](DICCIONARIO_DATOS.md), generado desde la base real.
+38 tablas en 7 dominios (más la tabla técnica `migraciones`). El detalle de cada columna está en [DICCIONARIO_DATOS.md](DICCIONARIO_DATOS.md), generado desde la base real.
 
 GitHub muestra los diagramas Mermaid directamente. Para verlos en local: VS Code con la extensión *Markdown Preview Mermaid Support*, o pega el bloque en https://mermaid.live.
 
@@ -341,3 +341,37 @@ erDiagram
         json respuesta
     }
 ```
+
+## Marketplace (Fase 3)
+
+Migración `0008_marketplace.sql`. Las barberías nombran libremente sus servicios y los clasifican en un catálogo global (`tipos_servicio`) para que el marketplace pueda filtrar "barbería que hace barba" sin depender del nombre que cada una escribió. Las fotos son archivos reales subidos por la barbería; la base guarda solo la ruta relativa y sus dimensiones.
+
+```mermaid
+erDiagram
+    tipos_servicio |o--o{ servicios : "clasifica"
+    tenants ||--o{ tenant_fotos : "logo, portada, galería"
+    sucursales |o--o{ tenant_fotos : "foto de la sede"
+    usuarios |o--o{ tenant_fotos : "subida por"
+
+    tipos_servicio {
+        bigint id PK
+        varchar codigo UK
+        varchar nombre
+        smallint orden
+        bool activo
+    }
+    tenant_fotos {
+        bigint id PK
+        bigint tenant_id FK
+        bigint sucursal_id FK
+        enum tipo "logo, portada, galeria"
+        varchar ruta UK "tenants/{id}/{aleatorio}.webp"
+        smallint ancho
+        smallint alto
+        int bytes
+        varchar texto_alternativo
+        smallint orden
+    }
+```
+
+`tenants` gana `whatsapp`, `instagram`, `facebook`, `tiktok` y `sitio_web`, cada uno con una restricción `CHECK` de formato. `tenant_fotos.ruta` solo admite el patrón `tenants/{número}/{32 hex}.(webp|jpg|png)`, de modo que una ruta manipulada no puede apuntar fuera de la carpeta de medios.

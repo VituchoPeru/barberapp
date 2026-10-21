@@ -14,6 +14,9 @@ final class Response
     /** @var array<string, string> */
     private array $headers = [];
 
+    /** @var array<string, string> nombre => línea Set-Cookie completa */
+    private array $cookies = [];
+
     /**
      * @param array<string, string> $headers
      */
@@ -98,6 +101,46 @@ final class Response
         return $this->headers;
     }
 
+    /**
+     * Agrega una cabecera Set-Cookie.
+     *
+     * @param array{expires?:int, path?:string, domain?:string, secure?:bool, httponly?:bool, samesite?:string} $options
+     */
+    public function withCookie(string $name, string $value, array $options = []): self
+    {
+        if (!preg_match('/^[A-Za-z0-9_\-]+$/', $name)) {
+            throw new \InvalidArgumentException('Nombre de cookie inválido.');
+        }
+        $line = $name . '=' . rawurlencode($value);
+        if (isset($options['expires'])) {
+            $expires = (int) $options['expires'];
+            $line .= '; Expires=' . gmdate('D, d M Y H:i:s', $expires) . ' GMT';
+            $line .= '; Max-Age=' . max(0, $expires - time());
+        }
+        $line .= '; Path=' . ($options['path'] ?? '/');
+        if (!empty($options['domain'])) {
+            $line .= '; Domain=' . $options['domain'];
+        }
+        if (!empty($options['secure'])) {
+            $line .= '; Secure';
+        }
+        if ($options['httponly'] ?? true) {
+            $line .= '; HttpOnly';
+        }
+        $sameSite = ucfirst(strtolower((string) ($options['samesite'] ?? 'Lax')));
+        if (in_array($sameSite, ['Lax', 'Strict', 'None'], true)) {
+            $line .= '; SameSite=' . $sameSite;
+        }
+        $this->cookies[$name] = $line;
+        return $this;
+    }
+
+    /** @return array<string, string> */
+    public function cookies(): array
+    {
+        return $this->cookies;
+    }
+
     /** Agrega request_id dentro de meta para trazabilidad en respuestas JSON. */
     public function withRequestId(string $requestId): self
     {
@@ -120,6 +163,9 @@ final class Response
             http_response_code($this->status);
             foreach ($this->headers as $name => $value) {
                 header($name . ': ' . $value, true);
+            }
+            foreach ($this->cookies as $line) {
+                header('Set-Cookie: ' . $line, false);
             }
         }
         if ($withBody && $this->status !== 204) {

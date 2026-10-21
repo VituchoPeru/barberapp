@@ -57,7 +57,7 @@ final class SeedTest extends DatabaseTestCase
 
     public function testDemoDataIsConsistent(): void
     {
-        $this->assertSame(3, (int) $this->scalar("SELECT COUNT(*) FROM tenants WHERE slug LIKE 'demo-%'"));
+        $this->assertSame(5, (int) $this->scalar("SELECT COUNT(*) FROM tenants WHERE slug LIKE 'demo-%'"));
         // Todos los usuarios demo usan el dominio reservado .test
         $this->assertSame(0, (int) $this->scalar("SELECT COUNT(*) FROM usuarios WHERE email NOT LIKE '%@barberapp.test'"));
         // Contraseñas almacenadas con password_hash

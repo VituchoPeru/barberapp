@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Barbería · BARBERAPP</title>
+</head>
+<body class="app">
+  <main>
+    <div class="hero">
+      <div class="hero__bar">
+        <a class="icon-btn" href="inicio.html" data-back aria-label="Volver" data-icon="back"></a>
+        <div>
+          <button class="icon-btn" type="button" data-share aria-label="Compartir" data-icon="share"></button>
+          <button class="icon-btn" type="button" data-fav-hero aria-pressed="false" aria-label="Guardar en favoritas" data-icon="heart"></button>
+        </div>
+      </div>
+      <div class="hero__cover" data-cover><div class="sk" style="position:absolute;inset:0;border-radius:0"></div></div>
+    </div>
+    <div class="wrap">
+      <section class="hero__info" data-info aria-live="polite">
+        <span class="avatar avatar--lg sk" aria-hidden="true"></span>
+        <div class="sk sk--line" style="width:60%;height:28px"></div>
+        <div class="sk sk--line" style="width:40%"></div>
+      </section>
+
+      <div data-content hidden>
+        <nav class="tabs" role="tablist" aria-label="Información de la barbería">
+          <button role="tab" id="tab-servicios" aria-controls="panel-servicios" aria-selected="true">Servicios</button>
+          <button role="tab" id="tab-equipo" aria-controls="panel-equipo" aria-selected="false" tabindex="-1">Equipo</button>
+          <button role="tab" id="tab-fotos" aria-controls="panel-fotos" aria-selected="false" tabindex="-1">Fotos</button>
+          <button role="tab" id="tab-ubicacion" aria-controls="panel-ubicacion" aria-selected="false" tabindex="-1">Ubicación y contacto</button>
+        </nav>
+        <section class="tabpanel" role="tabpanel" id="panel-servicios" aria-labelledby="tab-servicios" tabindex="0" data-servicios></section>
+        <section class="tabpanel" role="tabpanel" id="panel-equipo" aria-labelledby="tab-equipo" tabindex="0" data-equipo hidden></section>
+        <section class="tabpanel" role="tabpanel" id="panel-fotos" aria-labelledby="tab-fotos" tabindex="0" data-fotos hidden></section>
+        <section class="tabpanel" role="tabpanel" id="panel-ubicacion" aria-labelledby="tab-ubicacion" tabindex="0" data-ubicacion hidden></section>
+      </div>
+      <div data-error hidden></div>
+    </div>
+  </main>
+
+  <dialog class="lightbox" data-lightbox aria-label="Foto ampliada">
+    <button class="icon-btn" type="button" data-close-lightbox aria-label="Cerrar" data-icon="close"></button>
+    <img alt="">
+  </dialog>
+  <dialog class="sheet" data-qr-dialog aria-labelledby="qr-title">
+    <div class="sheet__head">
+      <h2 id="qr-title">Código QR de la barbería</h2>
+      <button class="icon-btn" type="button" data-close-qr aria-label="Cerrar" data-icon="close"></button>
+    </div>
+    <div class="sheet__body qr-box" data-qr-body></div>
+  </dialog>
+  <script type="module" src="../js/pages/barberia.js"></script>
+</body>
+</html>

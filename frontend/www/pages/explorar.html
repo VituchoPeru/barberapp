@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Explorar barberías · BARBERAPP</title>
+</head>
+<body class="app">
+  <header class="topbar">
+    <a class="topbar__brand" href="inicio.html" aria-label="BARBERAPP, inicio">BARBER<span>APP</span></a>
+    <h1 class="topbar__title">Explorar</h1>
+  </header>
+  <main class="wrap">
+    <section class="section">
+      <form class="search" data-search role="search">
+        <label class="search__field">
+          <span class="sr-only">Buscar barbería, distrito o servicio</span>
+          <span data-icon="search"></span>
+          <input type="search" name="q" maxlength="80" placeholder="Barbería, distrito o servicio" autocomplete="off" enterkeyhint="search">
+        </label>
+        <button class="btn btn--ghost filter-btn" type="button" data-open-filters data-count="0" aria-haspopup="dialog">
+          <span data-icon="filter"></span><span>Filtros</span>
+        </button>
+      </form>
+      <div class="chip-row" data-active-filters aria-label="Filtros activos"></div>
+    </section>
+
+    <section class="section" aria-labelledby="results-title">
+      <div class="results-head">
+        <h2 class="sr-only" id="results-title">Resultados de búsqueda</h2>
+        <p data-count aria-live="polite">Buscando…</p>
+        <button class="pill" type="button" data-near aria-pressed="false"><span data-icon="locate"></span>Cerca de mí</button>
+      </div>
+      <div class="grid" data-results></div>
+      <div class="more" data-more hidden><button class="btn btn--ghost" type="button">Cargar más</button></div>
+    </section>
+  </main>
+
+  <dialog class="sheet" data-filters aria-labelledby="filters-title">
+    <form method="dialog" data-filter-form>
+      <div class="sheet__head">
+        <h2 id="filters-title">Filtros</h2>
+        <button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button>
+      </div>
+      <div class="sheet__body">
+        <div class="field">
+          <label for="f-distrito">Distrito</label>
+          <select id="f-distrito" name="distrito"><option value="">Todos los distritos</option></select>
+        </div>
+        <div class="field">
+          <label for="f-tipo">Servicio</label>
+          <select id="f-tipo" name="tipo"><option value="">Todos los servicios</option></select>
+        </div>
+        <fieldset class="fieldset">
+          <legend>Precio del servicio (S/)</legend>
+          <div class="row2">
+            <div class="field"><label for="f-min">Mínimo</label><input id="f-min" name="precio_min" type="number" inputmode="decimal" min="0" step="1"></div>
+            <div class="field"><label for="f-max">Máximo</label><input id="f-max" name="precio_max" type="number" inputmode="decimal" min="0" step="1"></div>
+          </div>
+          <p class="hint" data-price-hint></p>
+        </fieldset>
+        <div class="field">
+          <label for="f-radio">Distancia (requiere tu ubicación)</label>
+          <select id="f-radio" name="radio_km">
+            <option value="">Cualquier distancia</option>
+            <option value="2">Hasta 2 km</option>
+            <option value="5">Hasta 5 km</option>
+            <option value="10">Hasta 10 km</option>
+            <option value="20">Hasta 20 km</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-orden">Ordenar por</label>
+          <select id="f-orden" name="orden">
+            <option value="">Recomendado</option>
+            <option value="nombre">Nombre (A–Z)</option>
+            <option value="precio">Menor precio</option>
+            <option value="distancia">Más cercanas</option>
+            <option value="recientes">Recién llegadas</option>
+          </select>
+        </div>
+        <p class="alert" data-filter-alert role="alert" hidden></p>
+      </div>
+      <div class="sheet__foot">
+        <button class="btn btn--ghost" type="button" data-clear>Limpiar</button>
+        <button class="btn" type="submit" value="apply">Ver resultados</button>
+      </div>
+    </form>
+  </dialog>
+  <script type="module" src="../js/pages/explorar.js"></script>
+</body>
+</html>

@@ -63,6 +63,10 @@ final class Request
                 $headers[str_replace('_', '-', substr((string) $key, 5))] = (string) $value;
             }
         }
+        // Apache con mod_rewrite puede entregar Authorization como REDIRECT_HTTP_AUTHORIZATION.
+        if (!isset($headers['AUTHORIZATION']) && isset($server['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $headers['Authorization'] = (string) $server['REDIRECT_HTTP_AUTHORIZATION'];
+        }
         if (isset($server['CONTENT_TYPE'])) {
             $headers['Content-Type'] = (string) $server['CONTENT_TYPE'];
         }
@@ -156,6 +160,38 @@ final class Request
     public function input(string $key, $default = null)
     {
         return $this->json()[$key] ?? $default;
+    }
+
+    /** Valor de una cookie enviada por el navegador (cabecera Cookie). */
+    public function cookie(string $name): ?string
+    {
+        $header = $this->header('cookie');
+        if ($header === null || $header === '') {
+            return null;
+        }
+        foreach (explode(';', $header) as $pair) {
+            $parts = explode('=', trim($pair), 2);
+            if (count($parts) === 2 && $parts[0] === $name) {
+                return rawurldecode($parts[1]);
+            }
+        }
+        return null;
+    }
+
+    /** Token Bearer de la cabecera Authorization, si existe. */
+    public function bearerToken(): ?string
+    {
+        $header = (string) $this->header('authorization', '');
+        if (preg_match('/^Bearer\s+([A-Za-z0-9\-_.~+\/]+=*)$/', trim($header), $m)) {
+            return $m[1];
+        }
+        return null;
+    }
+
+    /** true para métodos que no modifican estado (no requieren CSRF). */
+    public function isSafeMethod(): bool
+    {
+        return in_array($this->method, ['GET', 'HEAD', 'OPTIONS'], true);
     }
 
     public function ip(): string

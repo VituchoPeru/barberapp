@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Inicio · BARBERAPP</title>
+</head>
+<body class="app">
+  <header class="topbar">
+    <a class="topbar__brand" href="inicio.html" aria-label="BARBERAPP, inicio">BARBER<span>APP</span></a>
+    <span class="topbar__spacer"></span>
+    <a class="icon-btn" href="explorar.html" data-icon="search" aria-label="Buscar barberías"></a>
+  </header>
+  <main class="wrap">
+    <section class="hello">
+      <p class="lead" data-greeting>Hola 👋</p>
+      <h1>¿Listo para tu <em>próximo corte</em>?</h1>
+    </section>
+
+    <section class="section" aria-label="Buscar">
+      <form class="search" action="explorar.html" role="search">
+        <label class="search__field">
+          <span class="sr-only">Buscar barbería, distrito o servicio</span>
+          <span data-icon="search"></span>
+          <input type="search" name="q" maxlength="80" placeholder="Barbería, distrito o servicio" autocomplete="off" enterkeyhint="search">
+        </label>
+        <a class="btn btn--ghost" href="explorar.html?cerca=1" data-near><span data-icon="locate"></span><span>Cerca</span></a>
+      </form>
+      <div class="chip-row" data-types aria-label="Servicios"></div>
+    </section>
+
+    <section class="section" data-favs-section hidden>
+      <div class="section__head">
+        <h2 class="section__title">Tus favoritas</h2>
+        <a class="section__link" href="favoritos.html">Ver todas</a>
+      </div>
+      <div class="hscroll" data-favs></div>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <h2 class="section__title">Explora por distrito</h2>
+      </div>
+      <div class="chip-row" data-districts></div>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <h2 class="section__title">Barberías en BARBERAPP</h2>
+        <a class="section__link" href="explorar.html">Ver todas</a>
+      </div>
+      <div class="grid" data-latest aria-live="polite"></div>
+    </section>
+  </main>
+  <script type="module" src="../js/pages/inicio.js"></script>
+</body>
+</html>

@@ -14,3 +14,7 @@ backend/.phpunit.result.cache
 Thumbs.db
 .idea/
 .vscode/
+backend/storage/mail/*.eml
+
+# Imágenes subidas por las barberías (Fase 3)
+backend/public/media/tenants/

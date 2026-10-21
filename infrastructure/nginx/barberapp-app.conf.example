@@ -1,0 +1,32 @@
+# BARBERAPP — frontend web con Nginx (referencia; el despliegue completo es la Fase 15).
+server {
+    listen 443 ssl http2;
+    server_name app.barberapp.pe;
+    root /var/www/barberapp/frontend/www;
+    index index.html;
+
+    # Enlace directo de cada barbería y destino de su código QR: /b/{slug}[?o=qr]
+    # Nginx conserva la query original (?o=qr) al redirigir.
+    location ~ "^/b/([a-z0-9]+(-[a-z0-9]+)*)/?$" {
+        return 302 /pages/barberia.html?slug=$1&$args;
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    ssl_certificate     /etc/letsencrypt/live/app.barberapp.pe/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/app.barberapp.pe/privkey.pem;
+}
+
+# En el server de api.barberapp.pe, las imágenes subidas se sirven como estáticos sin PHP:
+#   location ^~ /media/ {
+#       location ~ \.(php|phtml|phar)$ { deny all; }
+#       add_header X-Content-Type-Options "nosniff" always;
+#       add_header Content-Security-Policy "default-src 'none'; img-src 'self'; sandbox" always;
+#       expires 30d;
+#       try_files $uri =404;
+#   }

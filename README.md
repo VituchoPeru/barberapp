@@ -9,14 +9,19 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | Fase | Contenido | Estado |
 |---|---|---|
 | 1 | Estructura, base de datos, núcleo PHP, health check | ✅ Terminada |
-| 2 | Autenticación y multitenancy | Pendiente |
-| 3+ | Marketplace, agenda, reservas, paneles, notificaciones, apps… | Pendiente |
+| 2 | Autenticación, roles, permisos y multiempresa | ✅ Terminada |
+| 3 | Marketplace: explorar barberías, perfil público, favoritos, enlace directo y QR | ✅ Terminada |
+| 4 | Panel: sucursales, servicios, categorías, barberos, fotos, jornadas, descansos, vacaciones y bloqueos | ✅ Terminada |
+| 5+ | Agenda y reservas, notificaciones, apps… | Pendiente |
 
 ## Documentación
 
 - [Arquitectura](docs/ARQUITECTURA.md)
 - [Modelo entidad-relación](docs/MODELO_ER.md) (diagramas Mermaid; versiones SVG en `docs/diagramas/`)
 - [Diccionario de datos](docs/DICCIONARIO_DATOS.md) (generado desde la base)
+- [Autenticación, roles y multiempresa](docs/AUTENTICACION.md) (endpoints, sesiones, permisos)
+- [Marketplace, perfil público y QR](docs/MARKETPLACE.md)
+- [Servicios, barberos y horarios](docs/SERVICIOS_HORARIOS.md) (panel, reglas de jornada y bloqueos)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -28,7 +33,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 
 | Componente | Versión | Nota |
 |---|---|---|
-| XAMPP | con PHP **8.0 o superior** | Se usan su Apache y su PHP. Extensiones necesarias (activas por defecto): `pdo_mysql`, `mbstring`, `json`. |
+| XAMPP | con PHP **8.0 o superior** | Se usan su Apache y su PHP. Extensiones necesarias (activas por defecto): `pdo_mysql`, `mbstring`, `json`. Para subir fotos: `gd` (con soporte WebP/JPEG) y, opcional, `exif`. En XAMPP activa `extension=gd` en `php.ini`. |
 | MySQL Community Server | **8.0.16 o superior** | ⚠️ El "MySQL" que trae XAMPP es en realidad **MariaDB**, que no es compatible con este esquema (usa `REGEXP_LIKE`, colación `utf8mb4_0900_ai_ci` y restricciones `CHECK` de MySQL 8). La consola detecta MariaDB y se detiene con un aviso. |
 | Composer | 2.x | Opcional: solo para ejecutar las pruebas. |
 
@@ -69,6 +74,14 @@ DB_USERNAME=root
 DB_PASSWORD=tu_contraseña
 ```
 
+Genera la clave secreta que firma las sesiones (una sola vez):
+
+```bash
+php bin/console key:generate
+```
+
+En local los correos (verificación, recuperación de contraseña, invitaciones) no se envían: se guardan como archivos `.eml` en `backend/storage/mail/` y se abren con cualquier cliente de correo. Para enviarlos de verdad configura `MAIL_DRIVER=smtp` y los datos `MAIL_*` (ver `docs/AUTENTICACION.md`).
+
 ### 4. Crear la base de datos, migrar y cargar datos
 
 Usa el PHP de XAMPP (`C:\xampp\php\php.exe` en Windows si `php` no está en el PATH):
@@ -87,7 +100,10 @@ php bin/console migrate:status    # todas deben figurar como "aplicada"
 Inicia **Apache** en el panel de XAMPP y abre:
 
 - http://localhost/barberapp/backend/public/api/v1/health
-- http://localhost/barberapp/frontend/www/ (debe mostrar "API conectada")
+- http://localhost/barberapp/frontend/www/ (splash: comprueba la API y abre el marketplace)
+- http://localhost/barberapp/frontend/www/pages/explorar.html (buscar barberías demo)
+- http://localhost/barberapp/frontend/www/b/demo-centro (enlace directo; necesita `AllowOverride FileInfo` en Apache, activo por defecto en XAMPP para `htdocs`)
+- http://localhost/barberapp/frontend/www/pages/auth/login.html (inicia sesión con un usuario demo)
 
 Respuesta esperada de `/health`:
 
@@ -97,11 +113,11 @@ Respuesta esperada de `/health`:
   "data": {
     "status": "ok",
     "app": "BARBERAPP",
-    "version": "0.1.0",
+    "version": "0.3.0",
     "environment": "local",
     "checks": {
       "database": { "status": "ok", "latency_ms": 2.7, "session_time_zone": "+00:00" },
-      "migrations": { "aplicadas": 6, "pendientes": 0, "ultima": "0006_sistema.sql" }
+      "migrations": { "aplicadas": 8, "pendientes": 0, "ultima": "0008_marketplace.sql" }
     }
   },
   "meta": { "request_id": "…" }
@@ -129,12 +145,15 @@ Para usar `http://api.barberapp.local` en lugar de la ruta larga, sigue `infrast
 | `Access denied for user` | Revisa `DB_USERNAME` / `DB_PASSWORD` en `backend/.env`. |
 | 404 de Apache en `/api/v1/health` | Activa `mod_rewrite` y `AllowOverride All` en `httpd.conf` (XAMPP los trae activos por defecto). |
 | 403 al abrir `backend/` | Es intencional: solo `backend/public` es accesible por web. |
+| `APP_KEY no está configurada` | Ejecuta `php bin/console key:generate`. |
+| El login funciona pero `/me` responde 401 en el navegador | Con `http://` deja `SESSION_SECURE_COOKIE=false`; con HTTPS ponlo en `true`. |
+| `too_many_attempts` (429) | Límite de intentos; espera el tiempo indicado en `Retry-After` o, en local, `php bin/console migrate:fresh --demo`. |
 
 ---
 
 ## Usuarios de demostración
 
-Creados por `php bin/console db:seed --demo` (solo con `APP_ENV=local` o `testing`). Contraseña: el valor de `DEMO_PASSWORD` en `.env` (por defecto `Demo2026!`). El inicio de sesión se implementa en la Fase 2.
+Creados por `php bin/console db:seed --demo` (solo con `APP_ENV=local` o `testing`). Contraseña: el valor de `DEMO_PASSWORD` en `.env` (por defecto `Demo2026!`). Todos tienen el correo ya verificado.
 
 | Correo | Rol |
 |---|---|
@@ -147,7 +166,7 @@ Creados por `php bin/console db:seed --demo` (solo con `APP_ENV=local` o `testin
 | barbero1.norte@barberapp.test | Barbero en *Demo Norte* |
 | cliente1@barberapp.test, cliente2@barberapp.test | Clientes |
 
-Barberías: `demo-centro` (activa, plan Profesional), `demo-norte` (activa, en prueba), `demo-suspendida` (suspendida). Incluye sucursales, horarios con descanso, servicios (uno inactivo), reservas en varios estados, un recordatorio en cola y vacaciones de un barbero.
+Barberías: `demo-centro` (activa, plan Profesional), `demo-norte` (activa, en prueba), `demo-sur` (activa, sede sin coordenadas), `demo-privada` (activa, fuera del marketplace) y `demo-suspendida` (suspendida). Ver [MARKETPLACE.md](docs/MARKETPLACE.md#datos-demo). Incluye sucursales, horarios con descanso, servicios (uno inactivo), reservas en varios estados, un recordatorio en cola y vacaciones de un barbero.
 
 ## Comandos de consola
 
@@ -160,6 +179,14 @@ php bin/console db:seed [--demo]   Catálogo (roles, permisos, planes, plantilla
 php bin/console schema:build       Regenera database/schema.sql
 php bin/console docs:dictionary    Regenera docs/DICCIONARIO_DATOS.md
 php bin/console routes             Lista las rutas
+php bin/console key:generate       Genera APP_KEY en .env (--force para reemplazarla)
+php bin/console auth:purge         Borra sesiones, tokens y contadores vencidos
+```
+
+Programa `auth:purge` una vez al día (cron en Linux o el Programador de tareas de Windows):
+
+```cron
+15 3 * * * cd /ruta/barberapp/backend && php bin/console auth:purge >> storage/logs/cron.log 2>&1
 ```
 
 ## Pruebas
@@ -170,9 +197,17 @@ composer install
 vendor/bin/phpunit
 ```
 
-Las pruebas de integración crean y borran la base `DB_TEST_DATABASE` (por defecto `barberapp_test`); nunca tocan `DB_DATABASE`. Cubren: estructura del esquema, restricciones de integridad, aislamiento entre barberías (FK compuestas y middleware), catálogo de roles/permisos, datos demo, router, validador y el endpoint de salud (en proceso y por HTTP real).
+Las pruebas de integración crean y borran la base `DB_TEST_DATABASE` (por defecto `barberapp_test`); nunca tocan `DB_DATABASE`. Cubren: estructura del esquema, restricciones de integridad, aislamiento entre barberías (FK compuestas y middleware), catálogo de roles/permisos, datos demo, router, validador, el endpoint de salud y, desde la Fase 2, registro, login/logout web y móvil, CSRF, rotación y reutilización de refresh tokens, vencimiento por inactividad, recuperación de contraseña, verificación de correo, límites de intentos, permisos por rol, invitaciones de personal, acceso entre barberías y registro en auditoría de los intentos no autorizados.
+
+Desde la Fase 3 cubren también el marketplace: reglas de visibilidad, búsqueda y filtros (nombre sin tildes, distrito, tipo, precio, distancia), paginación, perfil público, favoritos, perfil público del panel con publicación condicionada, subida de fotos (tipo real, tamaño, reemplazo, límite de galería, aislamiento entre barberías) y el generador de QR, cuyos códigos se decodifican con `zbarimg` si está instalado (`apt-get install zbar-tools`). Las pruebas de fotos se omiten si PHP no tiene GD.
+
+Resultado al cerrar la Fase 3: **135 pruebas OK en PHP 8.3**; en **PHP 8.0.30** pasan 129 y se omiten 6 (la imagen de prueba no tenía GD ni zbar). Además se recorrieron todas las pantallas del marketplace en un navegador móvil emulado (Chromium, 390×844) con Playwright.
+
+Desde la Fase 4 cubren el panel: sucursales y horario de atención, servicios y categorías (duración y precio válidos, inactivos ocultos), barberos (foto, servicios con precio propio, cuentas vinculadas), jornada semanal con descansos (fuera de horario, dos sedes a la vez), jornada efectiva con bloqueos y zona horaria, y vacaciones/ausencias/bloqueos con conflicto de reservas y aprobación.
+
+Resultado al cerrar la Fase 4: **173 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 166 y se omiten 7 (sin GD ni zbar). Recorrido E2E del panel en Chromium móvil: 21/21 comprobaciones OK.
 
 ## Seguridad
 
 - Nunca subas `backend/.env` (está en `.gitignore`).
-- El servidor web debe apuntar a `backend/public`. En producción: `APP_ENV=production`, `APP_DEBUG=false`, `FORCE_HTTPS=true`.
+- El servidor web debe apuntar a `backend/public`. En producción: `APP_ENV=production`, `APP_DEBUG=false`, `FORCE_HTTPS=true`, `SESSION_SECURE_COOKIE=true` y una `APP_KEY` propia.

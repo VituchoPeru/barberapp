@@ -18,7 +18,10 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
         $response->setHeader('X-Frame-Options', 'DENY');
         $response->setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
-        $response->setHeader('Cache-Control', 'no-store');
+        // Las respuestas pueden declarar su propia caché (p. ej. imágenes QR públicas).
+        if ($response->header('Cache-Control') === null) {
+            $response->setHeader('Cache-Control', 'no-store');
+        }
         if (Config::get('app.force_https', false)) {
             $response->setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }

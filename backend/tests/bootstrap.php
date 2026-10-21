@@ -23,6 +23,9 @@ Env::load($base . '/.env');
 Config::loadDirectory($base . '/config');
 Config::set('app.env', 'testing');
 Config::set('app.log_path', sys_get_temp_dir() . '/barberapp-test-logs');
+// Pruebas: correo en memoria y clave de firma propia (nunca la de .env).
+Config::set('mail.driver', 'array');
+Config::set('auth.key', 'base64:' . base64_encode(str_repeat('k', 32)));
 date_default_timezone_set('UTC');
 
 $testDb = (string) (Env::get('DB_TEST_DATABASE') ?: 'barberapp_test');
