@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Mis citas · BARBERAPP</title>
+</head>
+<body class="app">
+  <header class="topbar">
+    <a class="topbar__brand" href="inicio.html" aria-label="BARBERAPP, inicio">BARBER<span>APP</span></a>
+    <h1 class="topbar__title">Mis citas</h1>
+  </header>
+  <main class="wrap">
+    <div class="tabs" role="tablist" aria-label="Citas">
+      <button type="button" role="tab" id="tab-proximas" aria-controls="panel-citas" aria-selected="true" data-tipo="proximas">Próximas</button>
+      <button type="button" role="tab" id="tab-pasadas" aria-controls="panel-citas" aria-selected="false" data-tipo="pasadas" tabindex="-1">Historial</button>
+    </div>
+    <section class="tabpanel" id="panel-citas" role="tabpanel" aria-labelledby="tab-proximas" tabindex="0">
+      <div class="booking-list" data-list aria-live="polite"></div>
+      <div class="more" data-more hidden><button class="btn btn--ghost" type="button">Ver más</button></div>
+    </section>
+  </main>
+  <script type="module" src="../js/pages/mis-citas.js"></script>
+</body>
+</html>

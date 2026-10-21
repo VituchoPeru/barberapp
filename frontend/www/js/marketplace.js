@@ -162,6 +162,7 @@ export function mountTabbar(active) {
     ['inicio', 'Inicio', 'home', page('inicio.html')],
     ['explorar', 'Explorar', 'compass', page('explorar.html')],
     ['favoritos', 'Favoritas', 'heart', page('favoritos.html')],
+    ['citas', 'Citas', 'calendar', page('mis-citas.html')],
     ['cuenta', 'Cuenta', 'user', page('auth/cuenta.html')],
   ];
   const nav = document.createElement('nav');

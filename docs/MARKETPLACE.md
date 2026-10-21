@@ -14,7 +14,7 @@ Todas están en `frontend/www/` y funcionan en el navegador del móvil (diseño 
 | Explorar / resultados | `pages/explorar.html` | Búsqueda por nombre, filtros por distrito, tipo de servicio, rango de precio y orden. El estado vive en la URL (se puede compartir y el botón Atrás funciona). Paginación con "Cargar más". |
 | Perfil de barbería | `pages/barberia.html?slug=…` | Portada, logo, estado abierto/cerrado según el horario real, pestañas Servicios, Equipo, Fotos y Ubicación y contacto. Botones Reservar, favorito, compartir y QR. |
 | Favoritos | `pages/favoritos.html` | Barberías guardadas. Pide iniciar sesión y vuelve a la misma pantalla tras el login. |
-| Reservar | `pages/reservar.html?slug=…` | Elige sede, servicios (solo combinaciones que un mismo barbero realiza) y barbero o "cualquiera". La fecha y hora se habilitan en la Fase 5: la pantalla lo dice y ofrece WhatsApp o llamada. |
+| Reservar | `pages/reservar.html?slug=…` | Elige sede, servicios (solo combinaciones que un mismo barbero realiza) y barbero o "cualquiera". Desde la Fase 5 continúa con fecha, hora, resumen y confirmación (ver [RESERVAS.md](RESERVAS.md)). |
 | Perfil público (panel) | `pages/panel/perfil-publico.html` | Para el propietario: requisitos para publicar, interruptor de visibilidad, enlace y QR, logo, portada, galería y datos de contacto. Se llega desde "Mi cuenta". |
 
 ## Reglas de visibilidad

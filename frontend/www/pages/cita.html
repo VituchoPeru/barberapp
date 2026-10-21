@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Tu cita · BARBERAPP</title>
+</head>
+<body class="app">
+  <header class="topbar">
+    <a class="icon-btn" href="mis-citas.html" aria-label="Volver a mis citas" data-icon="back"></a>
+    <h1 class="topbar__title">Tu cita</h1>
+  </header>
+  <main class="wrap">
+    <div class="section" data-root aria-live="polite">
+      <div class="sk" style="height:220px"></div>
+      <div class="sk" style="height:160px"></div>
+    </div>
+  </main>
+
+  <dialog class="sheet" data-cancel-dialog aria-labelledby="cancel-title">
+    <form method="dialog" data-cancel-form>
+      <div class="sheet__head">
+        <h2 id="cancel-title">¿Cancelar esta cita?</h2>
+        <button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button>
+      </div>
+      <div class="sheet__body">
+        <p data-cancel-text></p>
+        <div class="field"><label for="motivo">Motivo <small>(opcional, lo verá la barbería)</small></label>
+          <textarea id="motivo" name="motivo" maxlength="255" rows="2"></textarea></div>
+        <p class="alert" data-form-alert role="alert" hidden></p>
+      </div>
+      <div class="sheet__foot">
+        <button class="btn btn--ghost" type="button" data-close>Volver</button>
+        <button class="btn btn--danger" type="submit" data-loading="Cancelando…">Sí, cancelar cita</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet" data-resched-dialog aria-labelledby="resched-title">
+    <div class="sheet__head">
+      <h2 id="resched-title">Reprogramar cita</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button>
+    </div>
+    <div class="sheet__body" data-resched-body></div>
+    <div class="sheet__foot">
+      <button class="btn btn--ghost" type="button" data-close>Volver</button>
+      <button class="btn" type="button" data-resched-confirm disabled data-loading="Reprogramando…">Elige una hora</button>
+    </div>
+  </dialog>
+  <script type="module" src="../js/pages/cita.js"></script>
+</body>
+</html>

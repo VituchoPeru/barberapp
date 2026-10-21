@@ -333,16 +333,17 @@ final class DemoSeeder
 
         $id = $this->insert(
             "INSERT INTO reservas (tenant_id, codigo, sucursal_id, barbero_id, cliente_id, estado, inicio_utc, fin_utc, zona_horaria,
-                                   duracion_total_minutos, precio_total, canal, confirmada_en, cancelada_en, cancelada_por, motivo_cancelacion,
+                                   duracion_total_minutos, precio_total, canal, confirmada_en, cancelada_en, cancelada_por, cancelada_por_tipo, motivo_cancelacion,
                                    atencion_iniciada_en, atencion_finalizada_en, creado_por)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $tenant, Codes::reserva(), $sucursal, $barbero, $cliente, $estado, $this->utc($inicio), $this->utc($fin), self::TZ,
                 $total, $precio, $canal,
                 in_array($estado, ['confirmada', 'completada'], true) ? gmdate('Y-m-d H:i:s') : null,
                 $estado === 'cancelada' ? gmdate('Y-m-d H:i:s') : null,
                 $estado === 'cancelada' ? $actor : null,
-                $estado === 'cancelada' ? 'Cancelada por el cliente (demo)' : null,
+                $estado === 'cancelada' ? ($canal === 'panel' ? 'personal' : 'cliente') : null,
+                $estado === 'cancelada' ? ($canal === 'panel' ? 'Cancelada desde el panel (demo)' : 'Cancelada por el cliente (demo)') : null,
                 $estado === 'completada' ? $this->utc($inicio) : null,
                 $estado === 'completada' ? $this->utc($fin) : null,
                 $actor,

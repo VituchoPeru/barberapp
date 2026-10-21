@@ -514,6 +514,7 @@ Historial inmutable: solo INSERT
 | `atencion_finalizada_en` | datetime | sí |  |  |  |
 | `cancelada_en` | datetime | sí |  |  |  |
 | `cancelada_por` | bigint unsigned | sí |  | MUL |  |
+| `cancelada_por_tipo` | enum('cliente','personal','sistema') | sí |  |  | Origen de la cancelación (para reportes) |
 | `motivo_cancelacion` | varchar(255) | sí |  |  |  |
 | `reprogramaciones` | tinyint unsigned | no | `0` |  |  |
 | `version` | int unsigned | no | `1` |  | Control de concurrencia optimista |

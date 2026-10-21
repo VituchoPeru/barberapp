@@ -186,5 +186,5 @@ En `frontend/www/pages/auth/`: `login.html`, `registro.html` (cliente o propieta
 - La aprobación de barberías pendientes y el bloqueo de usuarios se harán desde el panel de superadministrador (Fase 9); hoy se cambian en la base.
 - El registro no crea la suscripción de prueba: se hará con los planes en la Fase 10.
 - El cambio de correo y de contraseña desde la cuenta (con la sesión iniciada) no está incluido; la contraseña se cambia con "¿Olvidaste tu contraseña?".
-- Los clientes registrados en mostrador sin cuenta (`clientes.usuario_id = NULL`) no se vinculan automáticamente al crear una cuenta con el mismo correo; se resolverá en la Fase 5 con verificación del correo.
+- Los clientes registrados en mostrador sin cuenta (`clientes.usuario_id = NULL`) no se vinculan al crear la cuenta; desde la Fase 5 se vinculan al reservar o abrir "Mis citas" si el correo está verificado y hay un único registro sin dueño con ese correo (decisión 043).
 - Los proxies de confianza (para leer la IP real detrás de un balanceador) se configurarán en el despliegue (Fase 15); hoy se usa `REMOTE_ADDR`.
