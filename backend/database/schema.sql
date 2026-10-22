@@ -1100,6 +1100,30 @@ INSERT IGNORE INTO rol_permisos (rol_id, permiso_id)
 SELECT r.id, p.id FROM roles r JOIN permisos p ON p.codigo = 'reservas.cobrar'
  WHERE r.codigo IN ('propietario', 'administrador');
 
+-- ============================================================
+-- BARBERAPP · Migración 0012 · Panel del barbero (Fase 7)
+--
+--   - bloqueos_agenda: respuesta del encargado al aprobar o rechazar una solicitud del
+--     barbero (p. ej. "Ese sábado hay mucha demanda") y fecha de esa respuesta. Así el
+--     barbero sabe por qué se rechazó y cuándo se atendió su pedido.
+--   - Índice para las solicitudes pendientes de la barbería (aviso en el panel) y
+--     para "mis solicitudes" del barbero.
+--   - Los ajustes del equipo (si las ausencias de los barberos requieren aprobación y si
+--     el barbero puede editar su propia jornada) se guardan en `configuraciones` por
+--     barbería; sin fila se aplican los valores seguros por defecto (requiere aprobación,
+--     no edita su jornada). No necesitan columnas nuevas.
+-- ============================================================
+
+ALTER TABLE bloqueos_agenda
+    ADD COLUMN respuesta     VARCHAR(255) NULL COMMENT 'Comentario de quien aprobó o rechazó la solicitud' AFTER aprobado_por,
+    ADD COLUMN respondido_en DATETIME     NULL COMMENT 'UTC; cuándo se aprobó o rechazó la solicitud' AFTER respuesta,
+    ADD KEY idx_bloqueos_estado (tenant_id, estado, inicio_utc),
+    ADD KEY idx_bloqueos_solicitante (tenant_id, creado_por, estado);
+
+-- Las solicitudes ya atendidas antes de esta migración toman su fecha de la última actualización.
+UPDATE bloqueos_agenda SET respondido_en = updated_at
+ WHERE estado IN ('aprobado', 'rechazado') AND aprobado_por IS NOT NULL AND respondido_en IS NULL;
+
 -- Registra las migraciones incluidas para que `php bin/console migrate` no las repita.
 INSERT INTO migraciones (migracion, checksum, lote) VALUES
     ('0001_nucleo_saas.sql', '09a74ba54a5988c50081099bd8610fdb78a2b380636abdb7b516239b05a7d194', 1),
@@ -1112,4 +1136,5 @@ INSERT INTO migraciones (migracion, checksum, lote) VALUES
     ('0008_marketplace.sql', '16af758ab0a8e00a30dad2149d230bffb3afda8e46397ae899db58a702ea3622', 1),
     ('0009_agenda_barberos.sql', 'c9c5181d3dda834224d66e2cfd98374f33494024c55bb1d6c2816d2c6efec601', 1),
     ('0010_motor_reservas.sql', 'd17d1dc90d9e56a12daa5df871d5ef13fff651106bf6ad3cca6a54d238e057ab', 1),
-    ('0011_panel_barberia.sql', 'ea38f5b4e6919acf85d3766cfce5e77fe64ab1496677f5954f6037a45792b2d5', 1);
+    ('0011_panel_barberia.sql', 'ea38f5b4e6919acf85d3766cfce5e77fe64ab1496677f5954f6037a45792b2d5', 1),
+    ('0012_panel_barbero.sql', 'cdf7c9cbf29cc41fcee648c7b1f016e678010c34b097e9ba6db6ebb1d02438a5', 1);

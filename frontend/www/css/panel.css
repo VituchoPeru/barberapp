@@ -63,6 +63,9 @@
 /* Editor semanal: un bloque por día con sus tramos y descansos */
 .week { display: grid; gap: var(--space-2); }
 .day { display: grid; grid-template-columns: 110px 1fr; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--bg); border: 1px solid #2A2A2E; border-radius: var(--radius-md); }
+/* .day también es el selector de fecha del cliente (app.css): aquí se anula su ancho fijo. */
+.week .day { width: auto; justify-items: stretch; cursor: default; }
+.week .day:active { transform: none; }
 @media (max-width: 560px) { .day { grid-template-columns: 1fr; } }
 .day__name { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; }
 .day__name input { width: 20px; height: 20px; accent-color: var(--accent); }

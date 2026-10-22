@@ -94,6 +94,45 @@ final class AgendaRepository extends TenantScopedRepository
     }
 
     /**
+     * Historial de un barbero (Fase 7): citas que ya empezaron dentro del rango UTC, de la más
+     * reciente a la más antigua, con totales por estado del mismo rango.
+     *
+     * @return array{items: list<array<string, mixed>>, total: int, por_estado: array<string, int>}
+     */
+    public function barberHistory(int $barberoId, string $desdeUtc, string $hastaUtc, ?string $estado, int $limit, int $offset): array
+    {
+        $cond = 'r.tenant_id = :t AND r.barbero_id = :b AND r.inicio_utc >= :desde AND r.inicio_utc < :hasta';
+        $params = ['t' => $this->tenantId, 'b' => $barberoId, 'desde' => $desdeUtc, 'hasta' => $hastaUtc];
+        $porEstado = ['pendiente' => 0, 'confirmada' => 0, 'completada' => 0, 'cancelada' => 0, 'no_asistio' => 0];
+        foreach ($this->fetchAll("SELECT r.estado, COUNT(*) AS n FROM reservas r WHERE {$cond} GROUP BY r.estado", $params) as $row) {
+            $porEstado[(string) $row['estado']] = (int) $row['n'];
+        }
+        if ($estado !== null) {
+            $cond .= ' AND r.estado = :e';
+            $params['e'] = $estado;
+        }
+        $total = $estado !== null ? ($porEstado[$estado] ?? 0) : array_sum($porEstado);
+        $items = $this->fetchAll(self::SELECT . " WHERE {$cond} ORDER BY r.inicio_utc DESC, r.id DESC LIMIT " . max(1, $limit) . ' OFFSET ' . max(0, $offset), $params);
+        return ['items' => $items, 'total' => $total, 'por_estado' => $porEstado];
+    }
+
+    /**
+     * Visitas anteriores de un cliente CON ESTE barbero (lo que el barbero está autorizado a ver
+     * del historial del cliente): citas que empezaron antes de $antesUtc, más recientes primero.
+     *
+     * @return array{items: list<array<string, mixed>>, atendidas: int}
+     */
+    public function clientVisitsWithBarber(int $clienteId, int $barberoId, string $antesUtc, int $limit = 5): array
+    {
+        $params = ['t' => $this->tenantId, 'c' => $clienteId, 'b' => $barberoId, 'antes' => $antesUtc];
+        $where = 'r.tenant_id = :t AND r.cliente_id = :c AND r.barbero_id = :b AND r.inicio_utc < :antes';
+        $atendidas = (int) ($this->fetchOne("SELECT COUNT(*) AS n FROM reservas r WHERE {$where} AND r.estado = 'completada'", $params)['n'] ?? 0);
+        $items = $this->fetchAll(self::SELECT . " WHERE {$where} AND r.estado IN ('completada', 'no_asistio')
+            ORDER BY r.inicio_utc DESC, r.id DESC LIMIT " . max(1, $limit), $params);
+        return ['items' => $items, 'atendidas' => $atendidas];
+    }
+
+    /**
      * Servicios de varias reservas, agrupados por reserva.
      *
      * @param list<int> $ids

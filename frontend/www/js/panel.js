@@ -77,7 +77,9 @@ export async function bootPanel(active) {
     const nav = $('[data-panel-nav]');
     if (nav) {
       nav.innerHTML = MODULES.filter(([, , , perm]) => can(ctx, perm)).map(([key, label, ic]) =>
-        `<a href="${key}.html${q}"${key === active ? ' aria-current="page"' : ''}>${icon(ic)}<span>${label}</span></a>`).join('');
+        `<a href="${key}.html${q}"${key === active ? ' aria-current="page"' : ''}>${icon(ic)}<span>${label}</span></a>`).join('')
+        // Panel propio del barbero (Fase 7) si la cuenta tiene ficha de barbero.
+        + (ctx.barbero ? `<a href="../barbero/index.html${q}">${icon('scissors')}<span>Mi agenda</span></a>` : '');
     }
     return ctx;
   } catch (e) {
@@ -116,6 +118,29 @@ export function confirmAction(message, { ok = 'Confirmar', danger = false } = {}
   dlg.returnValue = '';
   dlg.showModal();
   return new Promise((resolve) => dlg.addEventListener('close', () => resolve(dlg.returnValue === 'si'), { once: true }));
+}
+
+/**
+ * Pide un texto en un diálogo accesible (p. ej. el comentario al rechazar una solicitud).
+ * Devuelve el texto (puede ser '') o null si se canceló.
+ */
+export function askText(message, { label = 'Comentario', ok = 'Enviar', danger = false, required = false, max = 255 } = {}) {
+  let dlg = document.getElementById('ask-dialog');
+  if (!dlg) {
+    dlg = document.createElement('dialog');
+    dlg.id = 'ask-dialog';
+    dlg.className = 'sheet sheet--confirm';
+    dlg.setAttribute('aria-labelledby', 'ask-text');
+    document.body.appendChild(dlg);
+  }
+  dlg.innerHTML = `<form method="dialog" class="sheet__body">
+      <p id="ask-text" class="confirm-text">${escapeHtml(message)}</p>
+      <div class="field"><label for="ask-input">${escapeHtml(label)}</label><textarea id="ask-input" rows="3" maxlength="${max}"${required ? ' required' : ''}></textarea></div>
+      <div class="sheet__actions"><button class="btn btn--ghost" value="no" formnovalidate>Cancelar</button>
+      <button class="btn${danger ? ' btn--danger' : ''}" value="si">${escapeHtml(ok)}</button></div></form>`;
+  dlg.returnValue = '';
+  dlg.showModal();
+  return new Promise((resolve) => dlg.addEventListener('close', () => resolve(dlg.returnValue === 'si' ? dlg.querySelector('textarea').value.trim() : null), { once: true }));
 }
 
 /** Errores 422 con claves anidadas (tramos.2) → mensajes legibles en lista. */

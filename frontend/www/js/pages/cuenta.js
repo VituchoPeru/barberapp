@@ -54,7 +54,11 @@ async function renderMemberships(me) {
     const links = [];
     if (m.roles.length) {
       // Inicio redirige al primer módulo permitido; el menú del panel muestra el resto según permisos.
-      links.push(`<a class="btn btn--sm" href="../panel/inicio.html${qs}">Abrir panel</a>`, `<a class="btn btn--ghost btn--sm" href="../panel/agenda.html${qs}">Agenda</a>`);
+      links.push(`<a class="btn btn--sm" href="../panel/inicio.html${qs}">Abrir panel</a>`);
+      // El barbero tiene su agenda móvil (Fase 7); el resto, la agenda de la barbería.
+      links.push(m.roles.includes('barbero')
+        ? `<a class="btn btn--ghost btn--sm" href="../barbero/index.html${qs}">Mi agenda</a>`
+        : `<a class="btn btn--ghost btn--sm" href="../panel/agenda.html${qs}">Agenda</a>`);
     }
     const perfil = links.join('');
     return `<li class="item" data-current="${t.id === current}">

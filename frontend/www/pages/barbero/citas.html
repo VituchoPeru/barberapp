@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <link rel="stylesheet" href="../../css/barbero.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Citas · Mi agenda BARBERAPP</title>
+</head>
+<body class="app bb">
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Mis citas <span class="muted bb-tenant" data-tenant-name></span></h1>
+    <a class="btn btn--ghost btn--sm" data-full-panel hidden href="../panel/inicio.html">Panel</a>
+  </header>
+  <main class="wrap bb-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <div class="ag-seg bb-seg" role="tablist" aria-label="Ver">
+      <button type="button" role="tab" data-tab="proximas" aria-selected="true" aria-pressed="true">Próximas</button>
+      <button type="button" role="tab" data-tab="historial" aria-selected="false" aria-pressed="false">Historial</button>
+    </div>
+    <div data-loading><div class="skeleton"></div><div class="skeleton" style="margin-top:12px"></div></div>
+
+    <section data-panel="proximas" hidden aria-label="Próximas citas">
+      <div class="bb-sechead"><p class="muted" data-up-summary></p>
+        <div class="field bb-inline"><label for="f-dias">Mostrar</label><select id="f-dias" data-dias><option value="7">7 días</option><option value="14" selected>14 días</option><option value="31">31 días</option></select></div></div>
+      <div data-upcoming></div>
+    </section>
+
+    <section data-panel="historial" hidden aria-label="Historial de citas">
+      <div class="bb-filters">
+        <div class="field"><label for="f-rango">Periodo</label><select id="f-rango" data-rango><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="365">Último año</option></select></div>
+        <div class="field"><label for="f-estado">Estado</label><select id="f-estado" data-estado><option value="">Todos</option><option value="completada">Atendidas</option><option value="no_asistio">No asistió</option><option value="cancelada">Canceladas</option></select></div>
+      </div>
+      <div class="bb-stats" data-hist-stats></div>
+      <div class="bb-list" data-history></div>
+      <div class="center"><button class="btn btn--ghost btn--sm" type="button" data-more hidden>Ver más</button></div>
+    </section>
+  </main>
+  <dialog class="sheet" data-detail aria-labelledby="det-title">
+    <div class="sheet__head"><h2 id="det-title" data-det-title>Cita</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+    <div class="sheet__body" data-det-body></div>
+  </dialog>
+  <script type="module" src="../../js/pages/barbero-citas.js"></script>
+</body>
+</html>

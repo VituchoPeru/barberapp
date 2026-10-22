@@ -12,8 +12,8 @@ use App\Services\Schedule\AgendaBlockService;
  * Vacaciones, ausencias, feriados y bloqueos de agenda (Fase 4, permiso bloqueos.gestionar).
  *   GET    /api/v1/panel/bloqueos                 Filtros: desde, hasta, barbero_id, sucursal_id, estado, tipo
  *   POST   /api/v1/panel/bloqueos                 Registrar (queda aprobado)
- *   POST   /api/v1/panel/bloqueos/{id}/aprobar    Aprobar una solicitud de un barbero
- *   POST   /api/v1/panel/bloqueos/{id}/rechazar   Rechazar una solicitud
+ *   POST   /api/v1/panel/bloqueos/{id}/aprobar    Aprobar una solicitud de un barbero ({respuesta?})
+ *   POST   /api/v1/panel/bloqueos/{id}/rechazar   Rechazar una solicitud ({respuesta?}: el barbero la ve)
  *   DELETE /api/v1/panel/bloqueos/{id}            Eliminar (el intervalo vuelve a ofrecerse)
  */
 final class AgendaBlocksController extends BaseController
@@ -30,12 +30,12 @@ final class AgendaBlocksController extends BaseController
 
     public function approve(Request $request): Response
     {
-        return $this->ok($this->service($request)->approve((int) $request->param('id'), $request));
+        return $this->ok($this->service($request)->approve((int) $request->param('id'), $request, $request->json()));
     }
 
     public function reject(Request $request): Response
     {
-        return $this->ok($this->service($request)->reject((int) $request->param('id'), $request));
+        return $this->ok($this->service($request)->reject((int) $request->param('id'), $request, $request->json()));
     }
 
     public function destroy(Request $request): Response

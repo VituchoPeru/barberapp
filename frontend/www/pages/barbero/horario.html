@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <link rel="stylesheet" href="../../css/barbero.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Horario · Mi agenda BARBERAPP</title>
+</head>
+<body class="app bb">
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Mi horario <span class="muted bb-tenant" data-tenant-name></span></h1>
+    <a class="btn btn--ghost btn--sm" data-full-panel hidden href="../panel/inicio.html">Panel</a>
+  </header>
+  <main class="wrap bb-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <div data-loading><div class="skeleton" style="height:220px"></div></div>
+    <section class="card-box" aria-labelledby="h-semana" data-week-box hidden>
+      <div class="bb-sechead"><h3 id="h-semana">Tu jornada semanal</h3>
+        <button class="btn btn--sm" type="button" data-edit hidden>Editar jornada</button></div>
+      <p class="hint" data-week-hint></p>
+      <ul class="bb-week" data-week></ul>
+    </section>
+    <section class="card-box" aria-labelledby="h-proximos" data-next-box hidden>
+      <div class="bb-sechead"><h3 id="h-proximos">Próximos 14 días</h3><span class="muted" data-total></span></div>
+      <p class="hint">Tiempo en que se te pueden reservar citas: tu jornada dentro del horario de cada sede, sin descansos ni ausencias aprobadas.</p>
+      <div class="timeline" data-days></div>
+      <div class="tl-scale" aria-hidden="true"><span>06:00</span><span>10:00</span><span>14:00</span><span>18:00</span><span>22:00</span></div>
+    </section>
+    <section class="card-box" aria-labelledby="h-bloq" data-blocks-box hidden>
+      <div class="bb-sechead"><h3 id="h-bloq">Ausencias y feriados</h3><a class="btn btn--ghost btn--sm" href="ausencias.html">Solicitar</a></div>
+      <ul class="rows" data-blocks></ul>
+    </section>
+  </main>
+
+  <dialog class="sheet bb-sheet--wide" data-edit-sheet aria-labelledby="edit-title">
+    <form class="form" data-edit-form novalidate>
+      <div class="sheet__head"><h2 id="edit-title">Editar mi jornada</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+      <div class="sheet__body">
+        <p class="alert" data-form-alert role="alert" hidden></p>
+        <p class="hint">Marca los días que trabajas. Cada tramo debe estar dentro del horario de atención de su sede, y no puedes estar en dos sedes a la vez. Las citas ya reservadas se respetan.</p>
+        <div class="week" data-editor></div>
+      </div>
+      <div class="sheet__foot"><button class="btn btn--ghost" type="button" data-close>Cancelar</button><button class="btn" type="submit" data-loading="Guardando…">Guardar jornada</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="../../js/pages/barbero-horario.js"></script>
+</body>
+</html>

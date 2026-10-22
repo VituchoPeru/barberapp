@@ -66,6 +66,15 @@
       </form>
     </section>
 
+    <section class="card-box" aria-labelledby="h-equipo" data-team hidden>
+      <h3 id="h-equipo">Equipo: panel del barbero</h3>
+      <p class="hint">Cada barbero ve su agenda en su propio panel. Decide qué puede cambiar por su cuenta.</p>
+      <form class="form" data-team-form novalidate>
+        <label class="switch"><span><strong>Las ausencias de los barberos requieren aprobación</strong><br><small class="muted">Si la desactivas, sus vacaciones y bloqueos se aplican al instante (nunca encima de citas ya reservadas).</small></span><input type="checkbox" role="switch" name="ausencias_requieren_aprobacion"></label>
+        <label class="switch"><span><strong>Los barberos pueden cambiar su jornada semanal</strong><br><small class="muted">Siempre dentro del horario de atención de cada sede. Las citas ya tomadas se respetan.</small></span><input type="checkbox" role="switch" name="barbero_edita_horario"></label>
+      </form>
+    </section>
+
     <section class="card-box" aria-labelledby="h-accesos">
       <h3 id="h-accesos">Sucursales, horarios y equipo</h3>
       <div class="link-row" data-shortcuts></div>
