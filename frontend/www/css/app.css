@@ -324,9 +324,9 @@ dialog.lightbox .icon-btn { position: fixed; top: 12px; right: 12px; background:
 .onboarding__actions { display: grid; gap: var(--space-3); }
 
 /* ---------- Panel: perfil público ---------- */
-/* WebKit no recorta el contenido interno de los campos de fecha y hora: si el campo se
-   encoge, el texto se salía de la caja y ensanchaba la página (Safari, Fase 14). */
-input[type="date"], input[type="time"] { overflow: hidden; }
+/* WebKit cuenta el texto interno de los campos y listas como desborde de la página: un nombre
+   largo en un <select> o un campo estrecho ensanchaba la agenda en Safari (Fase 14). */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select { overflow: hidden; }
 /* minmax(0, 1fr): la columna no crece con el contenido más ancho (WebKit medía de más los campos de fecha y hora). */
 .panel-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); padding: var(--space-6) 0 var(--space-8); }
 .req { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
