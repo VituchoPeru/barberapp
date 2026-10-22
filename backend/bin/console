@@ -24,6 +24,8 @@ declare(strict_types=1);
  *                                      Resumen de la cola y de los envíos de las últimas 24 h
  *   php bin/console notificaciones:purge
  *                                      Borra avisos resueltos más antiguos que NOTIFY_RETENTION_DAYS (cron diario)
+ *   php bin/console suscripciones:vencer
+ *                                      Marca como vencidas las suscripciones cuyo periodo terminó (cron cada hora)
  *   php bin/console push:probar correo@dominio
  *                                      Envía un push de prueba a los dispositivos de esa cuenta (verifica FCM)
  */
@@ -269,6 +271,11 @@ try {
             $d = $pdo->prepare('DELETE FROM dispositivos_push WHERE activo = 0 AND desactivado_en < UTC_TIMESTAMP() - INTERVAL ? DAY');
             $d->execute([$dias]);
             out("Eliminados: {$total} avisos de más de {$dias} días (con su registro de envíos) y {$d->rowCount()} dispositivos desactivados.");
+            break;
+
+        case 'suscripciones:vencer':
+            $n = App\Core\Database::transaction(static fn (): int => (new App\Services\Platform\SubscriptionService())->expireDue());
+            out(gmdate('Y-m-d H:i:s') . " UTC Suscripciones vencidas: {$n}");
             break;
 
         case 'push:probar':

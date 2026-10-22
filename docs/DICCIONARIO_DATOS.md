@@ -666,6 +666,31 @@ Sesiones autenticadas; revocables individualmente
 
 **Claves foráneas:** (tenant_id) → `tenants`(id)
 
+## `suscripcion_eventos`
+
+Historial de cambios de cada suscripción SaaS
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `tenant_id` | bigint unsigned | no |  | MUL |  |
+| `suscripcion_id` | bigint unsigned | no |  |  |  |
+| `tipo` | enum('alta','cambio_plan','renovacion','pago','suspension','reactivacion','cancelacion','vencimiento') | no |  | MUL |  |
+| `estado_anterior` | varchar(20) | sí |  |  |  |
+| `estado_nuevo` | varchar(20) | sí |  |  |  |
+| `plan_anterior_id` | bigint unsigned | sí |  |  |  |
+| `plan_nuevo_id` | bigint unsigned | sí |  |  |  |
+| `precio_anterior` | decimal(10,2) | sí |  |  |  |
+| `precio_nuevo` | decimal(10,2) | sí |  |  |  |
+| `periodo_fin_anterior` | datetime | sí |  |  |  |
+| `periodo_fin_nuevo` | datetime | sí |  |  |  |
+| `pago_id` | bigint unsigned | sí |  | MUL |  |
+| `usuario_id` | bigint unsigned | sí |  | MUL | Quién lo hizo; NULL = proceso automático |
+| `notas` | varchar(500) | sí |  |  |  |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (pago_id) → `pagos_saas`(id); (tenant_id,suscripcion_id) → `suscripciones`(tenant_id,id); (usuario_id) → `usuarios`(id)
+
 ## `suscripciones`
 
 | Columna | Tipo | Nulo | Defecto | Clave | Descripción |
@@ -681,6 +706,7 @@ Sesiones autenticadas; revocables individualmente
 | `periodo_fin_en` | datetime | no |  |  | Fin del periodo pagado o de la prueba |
 | `prueba_fin_en` | datetime | sí |  |  |  |
 | `cancelada_en` | datetime | sí |  |  |  |
+| `terminada_en` | datetime | sí |  |  | UTC; cuándo dejó de estar vigente (vencida, suspendida o cancelada) |
 | `renovacion_automatica` | tinyint(1) | no | `0` |  |  |
 | `notas` | varchar(500) | sí |  |  |  |
 | `tenant_vigente` | bigint unsigned VIRTUAL GENERATED | sí |  | UNI |  |
@@ -736,11 +762,13 @@ Cada barbería es un tenant
 | `zona_horaria` | varchar(64) | no | `America/Lima` |  |  |
 | `estado` | enum('pendiente','activo','suspendido','cancelado') | no | `pendiente` | MUL |  |
 | `publicado_marketplace` | tinyint(1) | no | `0` |  |  |
+| `es_demo` | tinyint(1) | no | `0` | MUL | 1 = barbería de demostración (los indicadores la marcan o la excluyen) |
 | `propietario_usuario_id` | bigint unsigned | sí |  | MUL |  |
 | `aprobado_en` | datetime | sí |  |  |  |
 | `suspendido_en` | datetime | sí |  |  |  |
 | `motivo_suspension` | varchar(255) | sí |  |  |  |
-| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+| `nota_interna` | varchar(500) | sí |  |  | Nota del equipo de BARBERAPP; no se muestra a la barbería |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` | MUL |  |
 | `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
 | `deleted_at` | datetime | sí |  |  |  |
 
@@ -807,6 +835,8 @@ Cuenta única por persona; los roles por barbería están en membresias
 | `avatar_url` | varchar(500) | sí |  |  |  |
 | `rol_plataforma_id` | bigint unsigned | sí |  | MUL | Solo personal de BARBERAPP (superadmin) |
 | `estado` | enum('activo','bloqueado','eliminado') | no | `activo` |  |  |
+| `bloqueado_en` | datetime | sí |  |  | UTC; cuándo se bloqueó la cuenta |
+| `motivo_bloqueo` | varchar(255) | sí |  |  |  |
 | `email_verificado_en` | datetime | sí |  |  |  |
 | `ultimo_login_en` | datetime | sí |  |  |  |
 | `acepto_terminos_en` | datetime | sí |  |  |  |

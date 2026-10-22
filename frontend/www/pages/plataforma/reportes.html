@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <link rel="stylesheet" href="../../css/plataforma.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Reportes · Plataforma BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Reportes <span class="muted" data-role-name></span></h1>
+    <span class="pl-topbar-tag">Plataforma</span>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos de la plataforma"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+
+    <div class="panel-head">
+      <div><h2>Reportes globales</h2><p>Evolución mensual de altas, suscripciones, ingresos y reservas en la zona horaria de la plataforma.</p></div>
+      <div class="toolbar">
+        <div class="field"><label for="f-meses">Periodo</label><select id="f-meses" data-meses><option value="6">Últimos 6 meses</option><option value="12" selected>Últimos 12 meses</option><option value="24">Últimos 24 meses</option></select></div>
+        <div data-demo-toggle></div>
+        <button class="btn btn--ghost btn--sm" type="button" data-csv>Descargar CSV</button>
+      </div>
+    </div>
+    <p class="demo-banner" data-demo-banner hidden></p>
+    <div data-loading><div class="skeleton"></div></div>
+    <div class="kpis" data-kpis></div>
+    <div class="grid-2">
+      <section class="card-box" aria-labelledby="h-ing"><h3 id="h-ing">Ingresos confirmados por mes</h3><div data-ch-ingresos></div></section>
+      <section class="card-box" aria-labelledby="h-vig"><h3 id="h-vig">Barberías con suscripción vigente (fin de mes)</h3><div data-ch-vigentes></div></section>
+      <section class="card-box" aria-labelledby="h-alt"><h3 id="h-alt">Altas de barberías por mes</h3><div data-ch-altas></div></section>
+      <section class="card-box" aria-labelledby="h-res"><h3 id="h-res">Reservas creadas por mes</h3><div data-ch-reservas></div></section>
+    </div>
+    <section class="card-box" aria-labelledby="h-tab"><h3 id="h-tab">Detalle mensual</h3><div class="table-wrap" data-table></div></section>
+    <section class="card-box" aria-labelledby="h-top"><h3 id="h-top">Barberías con más reservas en el periodo</h3>
+      <p class="hint">Solo totales por barbería; no incluye datos de clientes.</p><ul class="hbars" data-top></ul></section>
+  </main>
+
+  <script type="module" src="../../js/pages/plataforma-reportes.js"></script>
+</body>
+</html>

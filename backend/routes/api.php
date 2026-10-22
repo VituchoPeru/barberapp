@@ -20,18 +20,23 @@ use App\Controllers\PanelAgendaController;
 use App\Controllers\PanelClientsController;
 use App\Controllers\PanelNotificationsController;
 use App\Controllers\PanelReportsController;
+use App\Controllers\PlatformBillingController;
+use App\Controllers\PlatformController;
+use App\Controllers\PlatformTenantsController;
+use App\Controllers\PlatformUsersController;
 use App\Controllers\PublicProfileController;
 use App\Controllers\ServicesController;
 use App\Controllers\StaffController;
 use App\Core\Router;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\PermissionMiddleware;
+use App\Middleware\PlatformMiddleware;
 use App\Middleware\TenantContextMiddleware;
 use App\Middleware\VerifiedEmailMiddleware;
 
 /*
  * Rutas de la API REST v1.
- * Las fases siguientes agregan sus grupos aquí (reservas, panel, plataforma).
+ * Cada fase agrega su grupo: auth, me, marketplace, reservas, panel, barbero y plataforma (Fase 9).
  */
 return static function (Router $router): void {
     $router->group('/api/v1', static function (Router $r): void {
@@ -235,5 +240,70 @@ return static function (Router $router): void {
             $r->post('/ausencias', [BarberPanelController::class, 'requestBlock'], [$ausencias], 'barber.blocks.request');
             $r->delete('/ausencias/{id:\d+}', [BarberPanelController::class, 'withdrawBlock'], [$ausencias], 'barber.blocks.withdraw');
         }, [new AuthMiddleware(), new TenantContextMiddleware(true, true)]);
+
+        // ---------------- Panel del superadministrador SaaS (Fase 9): solo el equipo de BARBERAPP.
+        // Nunca expone clientes ni reservas individuales de las barberías: solo cifras agregadas.
+        $r->group('/plataforma', static function (Router $r): void {
+            $reportes = new PermissionMiddleware('plataforma.reportes.ver');
+            $r->get('/contexto', [PlatformController::class, 'context'], [], 'platform.context');
+            $r->get('/dashboard', [PlatformController::class, 'dashboard'], [$reportes], 'platform.dashboard');
+            $r->get('/reportes', [PlatformController::class, 'report'], [$reportes], 'platform.reports');
+            $r->get('/sistema', [PlatformController::class, 'system'], [$reportes], 'platform.system');
+
+            $tenants = new PermissionMiddleware('plataforma.tenants.gestionar');
+            $r->get('/barberias', [PlatformTenantsController::class, 'index'], [$tenants], 'platform.tenants');
+            $r->get('/barberias/{id:\d+}', [PlatformTenantsController::class, 'show'], [$tenants], 'platform.tenants.show');
+            $r->put('/barberias/{id:\d+}', [PlatformTenantsController::class, 'update'], [$tenants], 'platform.tenants.update');
+            $r->post('/barberias/{id:\d+}/aprobar', [PlatformTenantsController::class, 'approve'], [$tenants], 'platform.tenants.approve');
+            $r->post('/barberias/{id:\d+}/rechazar', [PlatformTenantsController::class, 'reject'], [$tenants], 'platform.tenants.reject');
+            $r->post('/barberias/{id:\d+}/suspender', [PlatformTenantsController::class, 'suspend'], [$tenants], 'platform.tenants.suspend');
+            $r->post('/barberias/{id:\d+}/reactivar', [PlatformTenantsController::class, 'reactivate'], [$tenants], 'platform.tenants.reactivate');
+
+            $planes = new PermissionMiddleware('plataforma.planes.gestionar');
+            $verPlanes = PermissionMiddleware::any('plataforma.planes.gestionar', 'plataforma.suscripciones.gestionar');
+            $r->get('/planes', [PlatformBillingController::class, 'plans'], [$verPlanes], 'platform.plans');
+            $r->post('/planes', [PlatformBillingController::class, 'storePlan'], [$planes], 'platform.plans.store');
+            $r->put('/planes/{id:\d+}', [PlatformBillingController::class, 'updatePlan'], [$planes], 'platform.plans.update');
+
+            $subs = new PermissionMiddleware('plataforma.suscripciones.gestionar');
+            $r->get('/suscripciones', [PlatformBillingController::class, 'subscriptions'], [$subs], 'platform.subscriptions');
+            $r->post('/suscripciones', [PlatformBillingController::class, 'storeSubscription'], [$subs], 'platform.subscriptions.store');
+            $r->get('/suscripciones/{id:\d+}', [PlatformBillingController::class, 'showSubscription'], [$subs], 'platform.subscriptions.show');
+            $r->post('/suscripciones/{id:\d+}/cambiar-plan', [PlatformBillingController::class, 'changePlan'], [$subs], 'platform.subscriptions.change_plan');
+            $r->post('/suscripciones/{id:\d+}/renovar', [PlatformBillingController::class, 'renew'], [$subs], 'platform.subscriptions.renew');
+            $r->post('/suscripciones/{id:\d+}/suspender', [PlatformBillingController::class, 'suspend'], [$subs], 'platform.subscriptions.suspend');
+            $r->post('/suscripciones/{id:\d+}/reactivar', [PlatformBillingController::class, 'reactivate'], [$subs], 'platform.subscriptions.reactivate');
+            $r->post('/suscripciones/{id:\d+}/cancelar', [PlatformBillingController::class, 'cancel'], [$subs], 'platform.subscriptions.cancel');
+
+            $pagos = new PermissionMiddleware('plataforma.pagos.gestionar');
+            $r->get('/pagos', [PlatformBillingController::class, 'payments'], [$pagos], 'platform.payments');
+            $r->post('/suscripciones/{id:\d+}/pagos', [PlatformBillingController::class, 'storePayment'], [$pagos], 'platform.payments.store');
+            $r->post('/pagos/{id:\d+}/confirmar', [PlatformBillingController::class, 'confirmPayment'], [$pagos], 'platform.payments.confirm');
+            $r->post('/pagos/{id:\d+}/rechazar', [PlatformBillingController::class, 'rejectPayment'], [$pagos], 'platform.payments.reject');
+            $r->post('/pagos/{id:\d+}/reembolsar', [PlatformBillingController::class, 'refundPayment'], [$pagos], 'platform.payments.refund');
+
+            $usuarios = new PermissionMiddleware('plataforma.usuarios.gestionar');
+            $r->get('/usuarios', [PlatformUsersController::class, 'team'], [$usuarios], 'platform.users');
+            $r->get('/usuarios/buscar', [PlatformUsersController::class, 'search'], [$usuarios], 'platform.users.search');
+            $r->get('/usuarios/{id:\d+}', [PlatformUsersController::class, 'show'], [$usuarios], 'platform.users.show');
+            $r->post('/usuarios/{id:\d+}/bloquear', [PlatformUsersController::class, 'block'], [$usuarios], 'platform.users.block');
+            $r->post('/usuarios/{id:\d+}/desbloquear', [PlatformUsersController::class, 'unblock'], [$usuarios], 'platform.users.unblock');
+            $r->put('/usuarios/{id:\d+}/rol', [PlatformUsersController::class, 'role'], [$usuarios], 'platform.users.role');
+
+            $plantillas = new PermissionMiddleware('plataforma.plantillas.gestionar');
+            $tpl = '/plantillas/{codigo:[a-z_]{3,60}}/{canal:push|email}';
+            $r->get('/plantillas', [PlatformController::class, 'templates'], [$plantillas], 'platform.templates');
+            $r->put($tpl, [PlatformController::class, 'saveTemplate'], [$plantillas], 'platform.templates.save');
+            $r->delete($tpl, [PlatformController::class, 'restoreTemplate'], [$plantillas], 'platform.templates.restore');
+            $r->post($tpl . '/vista-previa', [PlatformController::class, 'previewTemplate'], [$plantillas], 'platform.templates.preview');
+
+            $auditoria = new PermissionMiddleware('plataforma.auditoria.ver');
+            $r->get('/auditoria', [PlatformController::class, 'audit'], [$auditoria], 'platform.audit');
+            $r->get('/auditoria/acciones', [PlatformController::class, 'auditActions'], [$auditoria], 'platform.audit.actions');
+
+            $config = new PermissionMiddleware('plataforma.configuracion.gestionar');
+            $r->get('/configuracion', [PlatformController::class, 'settings'], [$config], 'platform.settings');
+            $r->put('/configuracion', [PlatformController::class, 'updateSettings'], [$config], 'platform.settings.update');
+        }, [new AuthMiddleware(), new PlatformMiddleware()]);
     });
 };

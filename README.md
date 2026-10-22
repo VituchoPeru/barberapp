@@ -16,7 +16,8 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | 6 | Panel administrativo: inicio, agenda diaria/semanal, alta manual, asistencia, cobros, clientes, reportes y configuración | ✅ Terminada |
 | 7 | Panel del barbero: agenda del día, siguiente cliente, atención, historial, horario y solicitudes de ausencia con aprobación | ✅ Terminada |
 | 8 | Recordatorios automáticos: cola persistente, worker por cron, push FCM, correo, bandeja, preferencias, confirmar asistencia y métricas | ✅ Terminada |
-| 9+ | Superadministrador, planes, apps… | Pendiente |
+| 9 | Superadministrador SaaS: dashboard con MRR y churn reales, barberías, planes, suscripciones, pagos, usuarios, avisos, auditoría, configuración y reportes | ✅ Terminada |
+| 10+ | Pasarela de pago, límites por plan, apps… | Pendiente |
 
 ## Documentación
 
@@ -30,6 +31,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Panel administrativo](docs/PANEL.md) (agenda, cobros, clientes, reportes, permisos y cálculo de métricas)
 - [Panel del barbero](docs/PANEL_BARBERO.md) (agenda propia, atención, horario, ausencias y ajustes del equipo)
 - [Avisos y recordatorios](docs/RECORDATORIOS.md) (cola, worker y cron, FCM, preferencias, confirmar asistencia y métricas)
+- [Panel del superadministrador SaaS](docs/SUPERADMIN.md) (módulos, privacidad, cálculo de indicadores, ciclo de vida de suscripciones)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -166,6 +168,8 @@ Creados por `php bin/console db:seed --demo` (solo con `APP_ENV=local` o `testin
 | Correo | Rol |
 |---|---|
 | superadmin@barberapp.test | Superadministrador de la plataforma |
+| operador@barberapp.test | Operador de la plataforma (soporte y cobranza) |
+| propietario.pendiente@barberapp.test | Propietario de *Demo Pendiente* (por aprobar) |
 | propietario.centro@barberapp.test | Propietario de *Barbería Demo Centro* |
 | admin.centro@barberapp.test | Administrador de *Demo Centro* |
 | barbero1.centro@barberapp.test | Barbero en *Demo Centro* |
@@ -174,7 +178,7 @@ Creados por `php bin/console db:seed --demo` (solo con `APP_ENV=local` o `testin
 | barbero1.norte@barberapp.test | Barbero en *Demo Norte* |
 | cliente1@barberapp.test, cliente2@barberapp.test | Clientes |
 
-Barberías: `demo-centro` (activa, plan Profesional), `demo-norte` (activa, en prueba), `demo-sur` (activa, sede sin coordenadas), `demo-privada` (activa, fuera del marketplace) y `demo-suspendida` (suspendida). Ver [MARKETPLACE.md](docs/MARKETPLACE.md#datos-demo). Incluye sucursales, horarios con descanso, servicios (uno inactivo), reservas en varios estados, un recordatorio en cola y vacaciones de un barbero.
+Barberías: `demo-centro` (activa, plan Profesional), `demo-norte` (activa, en prueba), `demo-sur` (activa, sede sin coordenadas), `demo-privada` (activa, fuera del marketplace) `demo-suspendida` (suspendida) y `demo-pendiente` (esperando aprobación). Todas están marcadas como demostración (`es_demo`): el panel de la plataforma lo avisa y permite excluirlas de los indicadores. Ver [MARKETPLACE.md](docs/MARKETPLACE.md#datos-demo). Incluye sucursales, horarios con descanso, servicios (uno inactivo), reservas en varios estados, un recordatorio en cola y vacaciones de un barbero.
 
 ## Comandos de consola
 
@@ -194,6 +198,7 @@ php bin/console notificaciones:procesar   Envía los avisos pendientes (cron cad
 php bin/console notificaciones:estado     Cola por estado y canal, atrasados y errores de las últimas 24 h
 php bin/console notificaciones:purge      Borra avisos terminados antiguos (NOTIFY_RETENTION_DAYS)
 php bin/console push:probar correo        Push de prueba a los teléfonos de esa cuenta
+php bin/console suscripciones:vencer      Marca como vencidas las suscripciones cuyo periodo terminó (cron cada hora)
 ```
 
 Programa `auth:purge` y `reservas:purge` una vez al día (cron en Linux o el Programador de tareas de Windows):
@@ -208,6 +213,7 @@ Programa `auth:purge` y `reservas:purge` una vez al día (cron en Linux o el Pro
 
 ```cron
 * * * * * cd /ruta/barberapp/backend && php bin/console notificaciones:procesar >> storage/logs/cron.log 2>&1
+5 * * * * cd /ruta/barberapp/backend && php bin/console suscripciones:vencer >> storage/logs/cron.log 2>&1
 ```
 
 ## Pruebas
@@ -244,7 +250,13 @@ Desde la Fase 8 cubren los avisos y recordatorios: programación a las horas con
 
 Resultado al cerrar la Fase 8: **252 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 245 y se omiten 7 (sin GD ni zbar). La migración 0013 se probó sobre una base en 0012 con preferencias existentes. Recorrido E2E en Chromium (móvil 390×844 y escritorio): worker → bandeja y campana → confirmar asistencia desde el enlace → preferencias → reglas y métricas del panel, sin errores de consola ni desbordes.
 
-> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) y `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría). `db:seed` no es necesario. Luego programa el cron de `notificaciones:procesar`.
+Desde la Fase 9 cubren el panel del superadministrador: acceso por rol de plataforma sin permisos sobre los datos de las barberías, aprobar/rechazar/suspender/reactivar con avisos y auditoría, suscripciones y pagos manuales, métricas contra valores calculados a mano (MRR, churn, meses en la zona horaria, exclusión de demo, CSV), bloqueo de cuentas y roles, plantillas, configuración y auditoría. Ver [SUPERADMIN.md](docs/SUPERADMIN.md#pruebas).
+
+Resultado al cerrar la Fase 9: **282 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 275 y se omiten 7 (sin GD ni zbar). La migración 0014 se probó sobre una base de la Fase 8 con datos demo. Recorrido E2E en Chromium (escritorio y móvil 390×844) de los 10 módulos con superadmin, operador y cliente, sin errores de consola ni desbordes.
+
+> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría) y `0014_superadmin_saas.sql` (barberías demo, bloqueo de cuentas, historial de suscripciones). Desde la Fase 9 ejecuta también `php bin/console db:seed` (agrega el rol `operador`; es idempotente). Programa el cron de `notificaciones:procesar` y el de `suscripciones:vencer`.
+
+**Panel de la plataforma:** el equipo de BARBERAPP entra desde *Mi cuenta → Abrir panel de la plataforma* (`pages/plataforma/index.html`). Con los datos demo: `superadmin@barberapp.test` u `operador@barberapp.test`.
 
 **Panel del barbero:** cada barbero entra con su cuenta en *Mi cuenta → Mi agenda* (`pages/barbero/index.html?tenant=slug`). Su cuenta debe estar vinculada a su ficha en *Panel → Barberos*. Con los datos demo: `barbero1.centro@barberapp.test`.
 

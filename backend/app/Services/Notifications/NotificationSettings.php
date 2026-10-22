@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Notifications;
 
+use App\Core\Database;
 use App\Core\Exceptions\ValidationException;
 use App\Repositories\TenantScopedRepository;
 
@@ -81,6 +82,29 @@ final class NotificationSettings extends TenantScopedRepository
     public function update(array $input, int $usuarioId): array
     {
         $before = $this->all();
+        $changes = self::clean($input, $before);
+        foreach ($changes as $k => $v) {
+            $this->execute(
+                'INSERT INTO configuraciones (tenant_id, clave, valor, descripcion, es_publica, actualizado_por)
+                 VALUES (:t, :c, :v, :d, 0, :u)
+                 ON DUPLICATE KEY UPDATE valor = VALUES(valor), actualizado_por = VALUES(actualizado_por)',
+                ['t' => $this->tenantId, 'c' => 'notificaciones.' . $k, 'v' => json_encode($v), 'd' => self::AJUSTES[$k][1], 'u' => $usuarioId]
+            );
+        }
+        unset(self::$cache[$this->tenantId]);
+        return [array_intersect_key($before, $changes), $changes];
+    }
+
+    /**
+     * Valida un cambio de reglas contra los valores actuales y devuelve solo las claves que cambian.
+     * Lo usan el panel de la barbería y los valores globales del superadministrador (Fase 9).
+     *
+     * @param array<string, mixed> $input
+     * @param array<string, mixed> $before
+     * @return array<string, mixed>
+     */
+    public static function clean(array $input, array $before): array
+    {
         $changes = [];
         $errors = [];
         foreach (self::AJUSTES as $k => $_) {
@@ -118,23 +142,35 @@ final class NotificationSettings extends TenantScopedRepository
                 }
                 $v = (bool) $v;
             }
-            if ($v !== $before[$k]) {
+            if ($v !== ($before[$k] ?? null)) {
                 $changes[$k] = $v;
             }
         }
         if ($errors !== []) {
             throw new ValidationException($errors);
         }
-        foreach ($changes as $k => $v) {
-            $this->execute(
-                'INSERT INTO configuraciones (tenant_id, clave, valor, descripcion, es_publica, actualizado_por)
-                 VALUES (:t, :c, :v, :d, 0, :u)
-                 ON DUPLICATE KEY UPDATE valor = VALUES(valor), actualizado_por = VALUES(actualizado_por)',
-                ['t' => $this->tenantId, 'c' => 'notificaciones.' . $k, 'v' => json_encode($v), 'd' => self::AJUSTES[$k][1], 'u' => $usuarioId]
-            );
+        return $changes;
+    }
+
+    /**
+     * Valores globales de la plataforma (tenant_id NULL), que usa toda barbería sin regla propia.
+     *
+     * @return array<string, mixed>
+     */
+    public static function globalDefaults(): array
+    {
+        $out = array_map(static fn (array $a) => $a[0], self::AJUSTES);
+        $rows = Database::connection()
+            ->query("SELECT clave, valor FROM configuraciones WHERE tenant_id IS NULL AND clave LIKE 'notificaciones.%'")
+            ->fetchAll();
+        foreach ($rows as $r) {
+            $k = substr((string) $r['clave'], 15);
+            if (array_key_exists($k, $out)) {
+                $v = json_decode((string) $r['valor'], true);
+                $out[$k] = $k === 'recordatorios_horas' ? self::normalizeHours($v) : (bool) $v;
+            }
         }
-        unset(self::$cache[$this->tenantId]);
-        return [array_intersect_key($before, $changes), $changes];
+        return $out;
     }
 
     /** Limpia la caché (pruebas y worker de larga duración). */

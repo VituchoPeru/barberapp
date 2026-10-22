@@ -47,7 +47,7 @@ final class DemoSeeder
         }
 
         $this->roles = $this->db->query('SELECT codigo, id FROM roles')->fetchAll(PDO::FETCH_KEY_PAIR);
-        if (count($this->roles) < 5) {
+        if (count($this->roles) < 6) {
             throw new RuntimeException('Ejecute primero el CatalogSeeder (php bin/console db:seed).');
         }
         $planes = $this->db->query('SELECT codigo, id FROM planes')->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -67,6 +67,9 @@ final class DemoSeeder
             $barb3User = $this->usuario('barbero1.norte@barberapp.test', $hash, 'Barbero Tres', 'Demo');
             $clienteUser = $this->usuario('cliente1@barberapp.test', $hash, 'Cliente Uno', 'Demo');
             $cliente2User = $this->usuario('cliente2@barberapp.test', $hash, 'Cliente Dos', 'Demo');
+            // Fase 9: operador de plataforma (acceso parcial) y propietario de una barbería por aprobar.
+            $this->usuario('operador@barberapp.test', $hash, 'Operador', 'Demo', (int) $this->roles['operador']);
+            $propPendiente = $this->usuario('propietario.pendiente@barberapp.test', $hash, 'Propietario', 'Demo Pendiente');
 
             // ---------- Tenants ----------
             $centro = $this->tenant('demo-centro', 'Barbería Demo Centro', 'activo', $propCentro, true);
@@ -76,6 +79,8 @@ final class DemoSeeder
             $sur = $this->tenant('demo-sur', 'Barbería Demo Sur', 'activo', null, true);
             // Activa pero NO publicada: solo accesible por su enlace directo o QR.
             $privada = $this->tenant('demo-privada', 'Barbería Demo Privada', 'activo', null, false);
+            // Recién registrada, esperando la aprobación del superadministrador (Fase 9).
+            $pendiente = $this->tenant('demo-pendiente', 'Barbería Demo Pendiente', 'pendiente', $propPendiente, false);
             $this->exec(
                 "UPDATE tenants SET descripcion = ?, telefono = '+51900000010', whatsapp = '+51900000010' WHERE id = ?",
                 ['Barbería de demostración con dos sedes en Lima. Cortes clásicos, barba y atención para niños.', $centro]
@@ -91,6 +96,7 @@ final class DemoSeeder
             $this->membresia($norte, $propNorte, 'propietario');
             $this->membresia($norte, $barb3User, 'barbero');
             $this->membresia($norte, $barb2User, 'administrador');
+            $this->membresia($pendiente, $propPendiente, 'propietario');
 
             // ---------- Suscripciones y pagos ----------
             $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
@@ -121,7 +127,7 @@ final class DemoSeeder
             }
 
             // ---------- Políticas de reserva ----------
-            foreach ([$centro, $norte, $suspendida, $sur, $privada] as $t) {
+            foreach ([$centro, $norte, $suspendida, $sur, $privada, $pendiente] as $t) {
                 $this->exec(
                     "INSERT INTO politicas_reserva (tenant_id, texto_politica_cancelacion) VALUES (?, 'Puedes cancelar o reprogramar sin costo hasta 2 horas antes de tu cita.')",
                     [$t]
@@ -249,8 +255,8 @@ final class DemoSeeder
 
             $this->exec(
                 "INSERT INTO auditoria (tenant_id, usuario_id, accion, entidad, entidad_id, resultado, datos_nuevos)
-                 VALUES (NULL, ?, 'seed.demo', 'tenants', NULL, 'exito', JSON_OBJECT('tenants', JSON_ARRAY(?, ?, ?, ?, ?)))",
-                [$superadmin, $centro, $norte, $suspendida, $sur, $privada]
+                 VALUES (NULL, ?, 'seed.demo', 'tenants', NULL, 'exito', JSON_OBJECT('tenants', JSON_ARRAY(?, ?, ?, ?, ?, ?)))",
+                [$superadmin, $centro, $norte, $suspendida, $sur, $privada, $pendiente]
             );
 
             $this->db->commit();
@@ -259,8 +265,8 @@ final class DemoSeeder
             throw $e;
         }
 
-        $this->summary[] = 'Tenants: demo-centro y demo-norte (activos, en el marketplace), demo-sur (activo, sede sin coordenadas), demo-privada (activo, solo por enlace /b/demo-privada), demo-suspendida (suspendido)';
-        $this->summary[] = 'Usuarios (*@barberapp.test): superadmin, propietario.centro, admin.centro, barbero1.centro, barbero2.centro, propietario.norte, barbero1.norte, cliente1, cliente2';
+        $this->summary[] = 'Tenants: demo-centro y demo-norte (activos, en el marketplace), demo-sur (activo, sede sin coordenadas), demo-privada (activo, solo por enlace /b/demo-privada), demo-suspendida (suspendido), demo-pendiente (por aprobar). Todas marcadas es_demo = 1';
+        $this->summary[] = 'Usuarios (*@barberapp.test): superadmin, propietario.centro, admin.centro, barbero1.centro, barbero2.centro, propietario.norte, barbero1.norte, cliente1, cliente2, operador (plataforma), propietario.pendiente';
         $this->summary[] = 'Contraseña de todos los usuarios demo: valor de DEMO_PASSWORD en .env';
         $this->summary[] = "Reservas: 5 (ids {$r1}, {$r2}, {$r3}, {$r4} en demo-centro y 1 en demo-norte)";
         return $this->summary;
@@ -293,8 +299,8 @@ final class DemoSeeder
     private function tenant(string $slug, string $nombre, string $estado, ?int $propietario, bool $marketplace): int
     {
         return $this->insert(
-            "INSERT INTO tenants (slug, nombre_comercial, email, descripcion, estado, publicado_marketplace, propietario_usuario_id, aprobado_en, suspendido_en, motivo_suspension)
-             VALUES (?, ?, ?, ?, ?, ?, ?, IF(? = 'activo', UTC_TIMESTAMP(), NULL), IF(? = 'suspendido', UTC_TIMESTAMP(), NULL), IF(? = 'suspendido', 'Suspensión de demostración', NULL))",
+            "INSERT INTO tenants (slug, nombre_comercial, email, descripcion, estado, publicado_marketplace, es_demo, propietario_usuario_id, aprobado_en, suspendido_en, motivo_suspension)
+             VALUES (?, ?, ?, ?, ?, ?, 1, ?, IF(? = 'activo', UTC_TIMESTAMP(), NULL), IF(? = 'suspendido', UTC_TIMESTAMP(), NULL), IF(? = 'suspendido', 'Suspensión de demostración', NULL))",
             [$slug, $nombre, $slug . '@barberapp.test', 'Barbería de demostración para pruebas de BARBERAPP.', $estado, $marketplace ? 1 : 0, $propietario, $estado, $estado, $estado]
         );
     }
@@ -309,10 +315,17 @@ final class DemoSeeder
 
     private function suscripcion(int $tenant, int $plan, string $estado, string $precio, DateTimeImmutable $inicio, DateTimeImmutable $fin): int
     {
-        return $this->insert(
-            'INSERT INTO suscripciones (tenant_id, plan_id, estado, precio_pactado, inicio_en, periodo_fin_en, prueba_fin_en) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [$tenant, $plan, $estado, $precio, $inicio->format('Y-m-d H:i:s'), $fin->format('Y-m-d H:i:s'), $estado === 'prueba' ? $fin->format('Y-m-d H:i:s') : null]
+        $terminada = in_array($estado, ['vencida', 'suspendida', 'cancelada'], true) ? $fin->format('Y-m-d H:i:s') : null;
+        $id = $this->insert(
+            'INSERT INTO suscripciones (tenant_id, plan_id, estado, precio_pactado, inicio_en, periodo_fin_en, prueba_fin_en, terminada_en) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [$tenant, $plan, $estado, $precio, $inicio->format('Y-m-d H:i:s'), $fin->format('Y-m-d H:i:s'), $estado === 'prueba' ? $fin->format('Y-m-d H:i:s') : null, $terminada]
         );
+        $this->exec(
+            "INSERT INTO suscripcion_eventos (tenant_id, suscripcion_id, tipo, estado_nuevo, plan_nuevo_id, precio_nuevo, periodo_fin_nuevo, notas, created_at)
+             VALUES (?, ?, 'alta', ?, ?, ?, ?, 'Suscripción de demostración', ?)",
+            [$tenant, $id, $estado, $plan, $precio, $fin->format('Y-m-d H:i:s'), $inicio->format('Y-m-d H:i:s')]
+        );
+        return $id;
     }
 
     private function sucursal(int $tenant, string $nombre, string $slug, string $direccion, string $distrito, bool $principal, ?float $lat = null, ?float $lng = null): int
