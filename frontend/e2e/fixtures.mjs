@@ -83,23 +83,24 @@ export async function revisarPantalla(page, nombre) {
       });
     const scroll = Math.max(doc.scrollWidth, window.innerWidth);
     if (scroll > vista + 1 && anchos.length === 0) {
-      // El desborde no es de una caja (texto o contenido interno de un control): se busca
-      // ocultando ramas hasta dar con el elemento cuyo retiro lo elimina.
-      let rama = document.body;
-      const ruta = [];
-      for (let nivel = 0; nivel < 25; nivel++) {
-        const hijo = [...rama.children].find((h) => {
-          const antes = h.style.display;
-          h.style.display = 'none';
-          const ok = doc.scrollWidth <= vista + 1;
-          h.style.display = antes;
-          return ok;
-        });
-        if (!hijo) break;
-        ruta.push(nombreDe(hijo));
-        rama = hijo;
+      // Ninguna caja se sale: se busca texto o contenido interno (controles de formulario) que
+      // desborde su caja, fuera de contenedores con scroll.
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let t = walker.nextNode(); t && anchos.length < 4; t = walker.nextNode()) {
+        const el = t.parentElement;
+        if (!el || !t.textContent.trim() || recortado(el) || el.closest('[hidden],dialog:not([open])')) continue;
+        const r = document.createRange();
+        r.selectNodeContents(t);
+        const der = Math.max(0, ...[...r.getClientRects()].map((x) => x.right));
+        if (der > vista + 1) anchos.push(`texto «${t.textContent.trim().slice(0, 30)}» en ${nombreDe(el)} [→${Math.round(der)}px]`);
       }
-      anchos.push(`ruta: ${ruta.join(' > ') || '(no aislado)'}`);
+      for (const el of document.querySelectorAll('body *')) {
+        if (anchos.length >= 6) break;
+        if (recortado(el) || getComputedStyle(el).overflowX !== 'visible' || el.closest('[hidden],dialog:not([open])') || el.scrollWidth <= el.clientWidth + 1 || el.clientWidth === 0) continue;
+        const r = el.getBoundingClientRect();
+        if (r.left + el.scrollWidth > vista + 1) anchos.push(`contenido de ${nombreDe(el)} [${Math.round(r.left)}+${el.scrollWidth}px, caja ${el.clientWidth}px]`);
+      }
+      if (anchos.length === 0) anchos.push(`innerWidth ${window.innerWidth}, scrollWidth ${doc.scrollWidth}, body ${document.body.scrollWidth}`);
     }
     return { scroll, vista, anchos };
   }, vista);
