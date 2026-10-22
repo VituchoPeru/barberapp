@@ -15,6 +15,7 @@ final class CatalogSeeder
 {
     public const ROLES = [
         ['superadmin', 'Superadministrador', 'Operador de la plataforma BARBERAPP', 'plataforma'],
+        ['operador', 'Operador de plataforma', 'Equipo de BARBERAPP: barberías, suscripciones y pagos', 'plataforma'],
         ['propietario', 'Propietario de barbería', 'Dueño del negocio; control total de su barbería', 'tenant'],
         ['administrador', 'Administrador de barbería', 'Gestiona agenda, clientes y operación diaria', 'tenant'],
         ['barbero', 'Barbero', 'Atiende citas y gestiona su propia agenda', 'tenant'],
@@ -66,6 +67,11 @@ final class CatalogSeeder
 
     public const ROL_PERMISOS = [
         'superadmin' => ['plataforma.*'],
+        // Equipo de BARBERAPP con acceso parcial (Fase 9): no toca planes, plantillas, configuración ni usuarios.
+        'operador' => [
+            'plataforma.tenants.gestionar', 'plataforma.suscripciones.gestionar', 'plataforma.pagos.gestionar',
+            'plataforma.reportes.ver', 'plataforma.auditoria.ver',
+        ],
         'propietario' => [
             'negocio.*', 'sucursales.*', 'personal.*', 'barberos.*', 'servicios.*', 'horarios.gestionar',
             'bloqueos.gestionar', 'politicas.*', 'reservas.*', 'clientes.*', 'reportes.*', 'notificaciones.*',
@@ -164,13 +170,13 @@ final class CatalogSeeder
     private function plantillas(): void
     {
         // Textos por defecto de la Fase 8 (los mismos que usa Templates si falta la fila).
-        $vars = json_encode(Templates::VARIABLES);
         $stmt = $this->db->prepare(
             "INSERT INTO plantillas_notificacion (tenant_id, codigo, canal, idioma, asunto, cuerpo, variables)
              VALUES (NULL, ?, ?, 'es-PE', ?, ?, ?)
              ON DUPLICATE KEY UPDATE id = id"
         );
         foreach (Templates::DEFAULTS as $codigo => $canales) {
+            $vars = json_encode(Templates::variablesFor($codigo));
             foreach ($canales as $canal => [$asunto, $cuerpo]) {
                 $stmt->execute([$codigo, $canal, $asunto, $cuerpo, $vars]);
             }
@@ -184,6 +190,7 @@ final class CatalogSeeder
             ['plataforma.moneda', 'PEN', 'Moneda por defecto', 1],
             ['plataforma.zona_horaria', 'America/Lima', 'Zona horaria por defecto para nuevas barberías', 1],
             ['plataforma.aprobacion_manual_tenants', true, 'Las nuevas barberías requieren aprobación del superadministrador', 0],
+            ['plataforma.soporte_email', '', 'Correo de soporte que se muestra a las barberías (vacío = sin configurar)', 1],
             ['notificaciones.recordatorios_horas', [24, 2], 'Horas antes de la cita para enviar recordatorios', 0],
             ['notificaciones.reintentos_max', 5, 'Reintentos máximos de envío', 0],
         ];

@@ -25,10 +25,14 @@ async function renderProfile(me) {
     <p class="item__meta">${escapeHtml(u.email)}${u.telefono ? ' · ' + escapeHtml(u.telefono) : ''}</p>
     <div class="chips">
       ${me.es_cliente ? '<span class="chip">Cliente</span>' : ''}
-      ${me.plataforma ? '<span class="chip">Superadministrador</span>' : ''}
+      ${me.plataforma ? `<span class="chip">${me.plataforma.rol === 'operador' ? 'Equipo BARBERAPP' : 'Superadministrador'}</span>` : ''}
       ${u.email_verificado ? '<span class="chip">Correo verificado</span>' : '<span class="chip chip--warn">Correo sin verificar</span>'}
     </div>`;
   $('[data-verify]').hidden = u.email_verificado;
+  // Panel del SaaS (Fase 9): solo cuentas del equipo de BARBERAPP. El backend vuelve a verificarlo.
+  if (me.plataforma) {
+    $('[data-profile]').insertAdjacentHTML('beforeend', '<div class="item__actions" style="margin-top:12px"><a class="btn btn--sm" href="../plataforma/index.html">Abrir panel de la plataforma</a></div>');
+  }
 }
 
 async function renderMemberships(me) {

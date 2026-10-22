@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <link rel="stylesheet" href="../../css/plataforma.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Usuarios · Plataforma BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Usuarios <span class="muted" data-role-name></span></h1>
+    <span class="pl-topbar-tag">Plataforma</span>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos de la plataforma"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+
+    <div class="panel-head">
+      <div><h2>Usuarios de plataforma</h2><p>Equipo de BARBERAPP y búsqueda de cuentas para soporte: bloquear, desbloquear o asignar un rol de plataforma.</p></div>
+    </div>
+    <section class="card-box" aria-labelledby="h-team"><h3 id="h-team">Equipo de BARBERAPP</h3>
+      <p class="hint">Superadministrador: acceso completo al panel. Operador: barberías, suscripciones, pagos, reportes y auditoría.</p>
+      <div data-loading><div class="skeleton"></div></div>
+      <ul class="rows" data-team></ul></section>
+    <section class="card-box" aria-labelledby="h-search"><h3 id="h-search">Buscar una cuenta</h3>
+      <form class="filters" data-search role="search">
+        <div class="field field--grow"><label for="f-q">Correo o nombre</label><input id="f-q" name="q" type="search" minlength="3" autocomplete="off" placeholder="Al menos 3 caracteres"></div>
+        <button class="btn btn--sm" type="submit">Buscar</button>
+      </form>
+      <p class="privacy" style="margin-top:8px"><span data-icon="check"></span><span>Cada búsqueda queda en la auditoría. Se muestran como máximo 20 cuentas, sin teléfonos ni citas.</span></p>
+      <ul class="rows" data-results style="margin-top:12px"></ul></section>
+  </main>
+
+  <dialog class="sheet" data-detail aria-labelledby="det-title">
+    <div class="sheet__head"><h2 id="det-title" data-det-title>Cuenta</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+    <div class="sheet__body" data-det-body></div>
+  </dialog>
+  <script type="module" src="../../js/pages/plataforma-usuarios.js"></script>
+</body>
+</html>

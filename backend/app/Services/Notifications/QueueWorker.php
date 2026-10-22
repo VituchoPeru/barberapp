@@ -321,7 +321,14 @@ final class QueueWorker
         }
         $prefs = BookingMessages::frontend('pages/auth/cuenta.html#avisos');
         $nota = 'Recibes este correo por tu cita en BARBERAPP. Puedes elegir qué avisos recibir en Mi cuenta → Avisos.';
-        $text = $cuerpo . ($url !== null ? "\n\n{$boton}: {$url}" : '') . "\n\n{$nota}\n{$prefs}\n\nBARBERAPP";
+        if ($booking === null && str_starts_with((string) $n['tipo'], 'barberia_')) {
+            // Aviso de la plataforma sobre la cuenta de la barbería (Fase 9): no es de una cita.
+            $boton = 'Abrir mi panel';
+            $url = BookingMessages::frontend((string) ($datos['url'] ?? 'pages/auth/cuenta.html'));
+            $nota = 'Recibes este correo porque eres propietario de una barbería en BARBERAPP.';
+            $prefs = '';
+        }
+        $text = $cuerpo . ($url !== null ? "\n\n{$boton}: {$url}" : '') . "\n\n{$nota}" . ($prefs !== '' ? "\n{$prefs}" : '') . "\n\nBARBERAPP";
         $html = EmailLayout::render($asunto, $cuerpo, $boton, $url, $nota);
         try {
             $msg = new MailMessage($to, str_replace(["\r", "\n"], ' ', $asunto), $text, $html);

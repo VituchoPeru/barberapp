@@ -83,6 +83,7 @@ export async function bootPanel(active) {
         // Panel propio del barbero (Fase 7) si la cuenta tiene ficha de barbero.
         + (ctx.barbero ? `<a href="../barbero/index.html${q}">${icon('scissors')}<span>Mi agenda</span></a>` : '');
     }
+    showStateNotice(ctx.aviso_estado);
     mountBell(ctx.tenant.slug);
     return ctx;
   } catch (e) {
@@ -94,6 +95,28 @@ export async function bootPanel(active) {
     if (n) notice(n, e.status === 404 ? 'No perteneces a esta barbería o no existe. Elige una desde Mi cuenta.' : e.message, 'error');
     return null;
   }
+}
+
+const AVISOS_ESTADO = {
+  pendiente: 'Tu barbería está pendiente de aprobación por BARBERAPP. Puedes preparar servicios, barberos y horarios; aún no aparece en el marketplace.',
+  suspendido: 'Tu barbería está suspendida: no aparece en el marketplace ni recibe reservas nuevas. Las citas ya registradas se mantienen.',
+  cancelado: 'Tu barbería fue dada de baja en BARBERAPP y no recibe reservas.',
+};
+
+/** Aviso fijo cuando la barbería no está activa (Fase 9): motivo y contacto de soporte. */
+function showStateNotice(aviso) {
+  if (!aviso || document.querySelector('[data-state-notice]')) return;
+  const main = document.querySelector('main');
+  if (!main) return;
+  const p = document.createElement('p');
+  p.className = 'alert';
+  p.dataset.type = aviso.estado === 'pendiente' ? 'info' : 'error';
+  p.dataset.stateNotice = '';
+  p.setAttribute('role', 'status');
+  p.innerHTML = escapeHtml(AVISOS_ESTADO[aviso.estado] || 'Tu barbería no está activa.')
+    + (aviso.motivo ? ` <strong>Motivo:</strong> ${escapeHtml(aviso.motivo)}` : '')
+    + (aviso.soporte_email ? ` Escríbenos a <a href="mailto:${escapeHtml(aviso.soporte_email)}">${escapeHtml(aviso.soporte_email)}</a>.` : '');
+  main.prepend(p);
 }
 
 /** Abre una hoja modal y devuelve una promesa que se resuelve al cerrarla. */

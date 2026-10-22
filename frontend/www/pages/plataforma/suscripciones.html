@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <link rel="stylesheet" href="../../css/plataforma.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Suscripciones · Plataforma BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Suscripciones <span class="muted" data-role-name></span></h1>
+    <span class="pl-topbar-tag">Plataforma</span>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos de la plataforma"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+
+    <div class="panel-head">
+      <div><h2>Suscripciones</h2><p>Plan, periodo y estado de cada barbería. Por defecto se muestra la suscripción más reciente de cada una.</p></div>
+      <div class="toolbar"><button class="btn btn--sm" type="button" data-new hidden>Nueva suscripción</button></div>
+    </div>
+    <form class="filters" data-filters role="search">
+      <div class="field field--grow"><label for="f-q">Buscar barbería</label><input id="f-q" name="q" type="search" autocomplete="off" placeholder="Nombre o slug"></div>
+      <div class="field"><label for="f-estado">Estado</label><select id="f-estado" name="estado"><option value="">Todos</option><option value="prueba">En prueba</option><option value="activa">Activa</option><option value="vencida">Vencida</option><option value="suspendida">Suspendida</option><option value="cancelada">Cancelada</option></select></div>
+      <div class="field"><label for="f-plan">Plan</label><select id="f-plan" name="plan"><option value="">Todos</option></select></div>
+      <div class="field"><label for="f-vence">Vence en</label><select id="f-vence" name="vence_en_dias"><option value="">Cualquier fecha</option><option value="7">7 días</option><option value="15">15 días</option><option value="30">30 días</option></select></div>
+      <div class="field"><label for="f-hist">Mostrar</label><select id="f-hist" name="historial"><option value="">Solo la más reciente</option><option value="1">Todo el historial</option></select></div>
+    </form>
+    <p class="muted" data-count aria-live="polite"></p>
+    <div data-loading><div class="skeleton"></div></div>
+    <ul class="rows" data-list></ul>
+    <div class="pager" data-pager hidden></div>
+  </main>
+
+  <dialog class="sheet" data-detail aria-labelledby="det-title">
+    <div class="sheet__head"><h2 id="det-title" data-det-title>Suscripción</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+    <div class="sheet__body" data-det-body></div>
+  </dialog>
+  <script type="module" src="../../js/pages/plataforma-suscripciones.js"></script>
+</body>
+</html>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
 use App\Helpers\Media;
@@ -13,6 +14,7 @@ use App\Repositories\BarberRepository;
 use App\Repositories\MembershipRepository;
 use App\Repositories\TeamSettingsRepository;
 use App\Services\Audit;
+use App\Services\Platform\PlatformSettings;
 use App\Services\Auth\Gate;
 use App\Services\StaffService;
 
@@ -37,12 +39,23 @@ final class StaffController extends BaseController
         $barbero = $barberoId !== null ? (new BarberRepository((int) $tenant['id']))->find($barberoId) : null;
         return $this->ok([
             'tenant' => $tenant,
+            // Fase 9: la barbería pendiente, suspendida o rechazada ve por qué y a quién escribir.
+            'aviso_estado' => $tenant['estado'] === 'activo' ? null : self::stateNotice((int) $tenant['id'], (string) $tenant['estado']),
             'roles' => $membership['roles'],
             'permisos' => Gate::rolePermissions($membership['roles']),
             'barbero' => $barbero === null ? null : [
                 'id' => (int) $barbero['id'], 'nombre' => (string) $barbero['nombre_publico'], 'foto_url' => Media::url($barbero['foto_url']),
             ],
         ]);
+    }
+
+    /** @return array{estado:string, motivo:?string, soporte_email:?string} */
+    private static function stateNotice(int $tenantId, string $estado): array
+    {
+        $stmt = Database::connection()->prepare('SELECT motivo_suspension FROM tenants WHERE id = ?');
+        $stmt->execute([$tenantId]);
+        $soporte = (string) PlatformSettings::all()['plataforma.soporte_email'];
+        return ['estado' => $estado, 'motivo' => ($m = $stmt->fetchColumn()) ? (string) $m : null, 'soporte_email' => $soporte !== '' ? $soporte : null];
     }
 
     public function teamSettings(Request $request): Response
