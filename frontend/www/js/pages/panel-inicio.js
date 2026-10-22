@@ -77,6 +77,8 @@ async function load() {
   ctx = await bootPanel('inicio');
   if (!ctx) return;
   if (!can(ctx, ['reservas.ver_todas', 'reportes.operativos'])) {
+    // El barbero tiene su propio panel móvil (Fase 7).
+    if (ctx.barbero) { location.replace(`../barbero/index.html${q}`); return; }
     const home = homeModule(ctx);
     if (home && home !== 'inicio') { location.replace(`${home}.html${q}`); return; }
     notice(noticeEl, 'Tu rol no tiene acceso al resumen de la barbería.', 'error');

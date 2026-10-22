@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Controllers\AgendaBlocksController;
 use App\Controllers\AuthController;
+use App\Controllers\BarberPanelController;
 use App\Controllers\BarbersController;
 use App\Controllers\BookingPolicyController;
 use App\Controllers\BookingsController;
@@ -92,6 +93,9 @@ return static function (Router $router): void {
             $r->get('/personal', [StaffController::class, 'index'], [new PermissionMiddleware('personal.gestionar')], 'panel.staff');
             $r->post('/personal', [StaffController::class, 'invite'], [new PermissionMiddleware('personal.gestionar'), new VerifiedEmailMiddleware()], 'panel.staff.invite');
             $r->delete('/personal/{id:\d+}', [StaffController::class, 'revoke'], [new PermissionMiddleware('personal.gestionar')], 'panel.staff.revoke');
+            // Ajustes del equipo (Fase 7): aprobación de ausencias y jornada editable por el barbero
+            $r->get('/equipo/ajustes', [StaffController::class, 'teamSettings'], [new PermissionMiddleware('personal.gestionar')], 'panel.team_settings');
+            $r->put('/equipo/ajustes', [StaffController::class, 'updateTeamSettings'], [new PermissionMiddleware('personal.gestionar')], 'panel.team_settings.update');
 
             // Perfil público en el marketplace, fotos, enlace y QR (Fase 3)
             $r->get('/perfil-publico', [PublicProfileController::class, 'show'], [new PermissionMiddleware('negocio.perfil.gestionar')], 'panel.public_profile');
@@ -180,6 +184,31 @@ return static function (Router $router): void {
             $negocio = new PermissionMiddleware('negocio.perfil.gestionar');
             $r->get('/negocio', [BusinessController::class, 'show'], [$negocio], 'panel.business');
             $r->put('/negocio', [BusinessController::class, 'update'], [$negocio], 'panel.business.update');
+        }, [new AuthMiddleware(), new TenantContextMiddleware(true, true)]);
+
+        // ---------------- Panel del barbero (Fase 7): solo la agenda del barbero vinculado a la cuenta.
+        // Sin ficha de barbero vinculada responde 403 no_barber_profile.
+        $r->group('/barbero', static function (Router $r): void {
+            $ver = PermissionMiddleware::any('reservas.ver_propias', 'reservas.ver_todas');
+            $asistencia = new PermissionMiddleware('reservas.asistencia');
+            $r->get('/hoy', [BarberPanelController::class, 'day'], [$ver], 'barber.day');
+            $r->get('/proximas', [BarberPanelController::class, 'upcoming'], [$ver], 'barber.upcoming');
+            $r->get('/historial', [BarberPanelController::class, 'history'], [$ver], 'barber.history');
+            $r->get('/citas/{id:\d+}', [BarberPanelController::class, 'show'], [$ver], 'barber.bookings.show');
+            $r->post('/citas/{id:\d+}/confirmar', [BarberPanelController::class, 'confirm'], [$ver, PermissionMiddleware::any('reservas.crear', 'reservas.asistencia')], 'barber.bookings.confirm');
+            $r->post('/citas/{id:\d+}/iniciar', [BarberPanelController::class, 'start'], [$ver, $asistencia], 'barber.bookings.start');
+            $r->post('/citas/{id:\d+}/completar', [BarberPanelController::class, 'complete'], [$ver, $asistencia], 'barber.bookings.complete');
+            $r->post('/citas/{id:\d+}/no-asistio', [BarberPanelController::class, 'noShow'], [$ver, $asistencia], 'barber.bookings.no_show');
+            $r->put('/citas/{id:\d+}/notas', [BarberPanelController::class, 'notes'], [$ver, PermissionMiddleware::any('reservas.crear', 'reservas.asistencia')], 'barber.bookings.notes');
+
+            $horario = PermissionMiddleware::any('reservas.ver_propias', 'reservas.ver_todas', 'horarios.propios', 'horarios.gestionar');
+            $r->get('/horario', [BarberPanelController::class, 'schedule'], [$horario], 'barber.schedule');
+            $r->put('/horario', [BarberPanelController::class, 'updateSchedule'], [PermissionMiddleware::any('horarios.propios', 'horarios.gestionar')], 'barber.schedule.update');
+
+            $ausencias = PermissionMiddleware::any('bloqueos.solicitar', 'bloqueos.gestionar');
+            $r->get('/ausencias', [BarberPanelController::class, 'blocks'], [$horario], 'barber.blocks');
+            $r->post('/ausencias', [BarberPanelController::class, 'requestBlock'], [$ausencias], 'barber.blocks.request');
+            $r->delete('/ausencias/{id:\d+}', [BarberPanelController::class, 'withdrawBlock'], [$ausencias], 'barber.blocks.withdraw');
         }, [new AuthMiddleware(), new TenantContextMiddleware(true, true)]);
     });
 };

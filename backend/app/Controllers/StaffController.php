@@ -6,7 +6,13 @@ namespace App\Controllers;
 
 use App\Core\Request;
 use App\Core\Response;
+use App\Helpers\Media;
+use App\Helpers\Validator;
+use App\Repositories\AgendaRepository;
+use App\Repositories\BarberRepository;
 use App\Repositories\MembershipRepository;
+use App\Repositories\TeamSettingsRepository;
+use App\Services\Audit;
 use App\Services\Auth\Gate;
 use App\Services\StaffService;
 
@@ -16,17 +22,52 @@ use App\Services\StaffService;
  *   GET    /api/v1/panel/personal            Equipo de la barbería          (personal.gestionar)
  *   POST   /api/v1/panel/personal            Invitar administrador/barbero  (personal.gestionar)
  *   DELETE /api/v1/panel/personal/{id}       Revocar acceso                 (personal.gestionar)
+ *   GET    /api/v1/panel/equipo/ajustes      Ajustes del equipo (Fase 7)    (personal.gestionar)
+ *   PUT    /api/v1/panel/equipo/ajustes      ausencias_requieren_aprobacion, barbero_edita_horario
  */
 final class StaffController extends BaseController
 {
     public function context(Request $request): Response
     {
         $membership = (array) $request->attribute('membership');
+        $tenant = $this->tenant($request);
+        $user = (array) $request->attribute('auth_user');
+        // Ficha de barbero vinculada a la cuenta (Fase 7): habilita el panel del barbero.
+        $barberoId = (new AgendaRepository((int) $tenant['id']))->barberIdForUser((int) $user['id']);
+        $barbero = $barberoId !== null ? (new BarberRepository((int) $tenant['id']))->find($barberoId) : null;
         return $this->ok([
-            'tenant' => $this->tenant($request),
+            'tenant' => $tenant,
             'roles' => $membership['roles'],
             'permisos' => Gate::rolePermissions($membership['roles']),
+            'barbero' => $barbero === null ? null : [
+                'id' => (int) $barbero['id'], 'nombre' => (string) $barbero['nombre_publico'], 'foto_url' => Media::url($barbero['foto_url']),
+            ],
         ]);
+    }
+
+    public function teamSettings(Request $request): Response
+    {
+        return $this->ok((new TeamSettingsRepository((int) $this->tenant($request)['id']))->all());
+    }
+
+    public function updateTeamSettings(Request $request): Response
+    {
+        $data = Validator::validate($request->json(), array_map(static fn (): string => 'nullable|boolean', TeamSettingsRepository::AJUSTES));
+        $tenantId = (int) $this->tenant($request)['id'];
+        $repo = new TeamSettingsRepository($tenantId);
+        $before = $repo->all();
+        $userId = (int) ((array) $request->attribute('auth_user'))['id'];
+        $changed = [];
+        foreach ($data as $k => $v) {
+            if ($v !== null && (bool) $v !== $before[$k]) {
+                $repo->set($k, (bool) $v, $userId);
+                $changed[$k] = (bool) $v;
+            }
+        }
+        if ($changed !== []) {
+            Audit::record('equipo.ajustes_actualizados', 'exito', $request, $userId, $tenantId, 'configuraciones', null, $changed, array_intersect_key($before, $changed));
+        }
+        return $this->ok($repo->all());
     }
 
     public function index(Request $request): Response

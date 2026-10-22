@@ -14,7 +14,8 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | 4 | Panel: sucursales, servicios, categorías, barberos, fotos, jornadas, descansos, vacaciones y bloqueos | ✅ Terminada |
 | 5 | Motor de reservas: disponibilidad, reservar, comprobante, mis citas, cancelar y reprogramar sin doble reserva | ✅ Terminada |
 | 6 | Panel administrativo: inicio, agenda diaria/semanal, alta manual, asistencia, cobros, clientes, reportes y configuración | ✅ Terminada |
-| 7+ | Panel del barbero, notificaciones, apps… | Pendiente |
+| 7 | Panel del barbero: agenda del día, siguiente cliente, atención, historial, horario y solicitudes de ausencia con aprobación | ✅ Terminada |
+| 8+ | Notificaciones, superadministrador, planes, apps… | Pendiente |
 
 ## Documentación
 
@@ -26,6 +27,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Servicios, barberos y horarios](docs/SERVICIOS_HORARIOS.md) (panel, reglas de jornada y bloqueos)
 - [Motor de reservas](docs/RESERVAS.md) (disponibilidad, endpoints, concurrencia, idempotencia y política)
 - [Panel administrativo](docs/PANEL.md) (agenda, cobros, clientes, reportes, permisos y cálculo de métricas)
+- [Panel del barbero](docs/PANEL_BARBERO.md) (agenda propia, atención, horario, ausencias y ajustes del equipo)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -221,7 +223,13 @@ Desde la Fase 6 cubren el panel administrativo: agenda por barbero y por barber�
 
 Resultado al cerrar la Fase 6: **217 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 210 y se omiten 7 (sin GD ni zbar), con `php -l` limpio en todos los archivos. Recorrido E2E del panel en Chromium (escritorio y móvil 390×844) sin errores de consola ni desbordes.
 
-> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate` (aplica `0011_panel_barberia.sql`: cobros y permiso `reservas.cobrar`). La migración ya asigna el permiso a propietarios y administradores; `db:seed` no es necesario.
+Desde la Fase 7 cubren el panel del barbero: agenda propia sin datos de caja, siguiente cliente y en atención, atención y correcciones, citas ajenas inaccesibles, historial y visitas anteriores autorizadas, horario editable solo si la barbería lo permite, y solicitudes de ausencia con aprobación, comentario, retiro y avisos. Ver [PANEL_BARBERO.md](docs/PANEL_BARBERO.md#pruebas).
+
+Resultado al cerrar la Fase 7: **228 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 221 y se omiten 7 (sin GD ni zbar). Recorrido E2E del panel del barbero en Chromium (móvil 390×844 y escritorio) sin errores de consola ni desbordes.
+
+> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores) y `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia). `db:seed` no es necesario.
+
+**Panel del barbero:** cada barbero entra con su cuenta en *Mi cuenta → Mi agenda* (`pages/barbero/index.html?tenant=slug`). Su cuenta debe estar vinculada a su ficha en *Panel → Barberos*. Con los datos demo: `barbero1.centro@barberapp.test`.
 
 ## Seguridad
 

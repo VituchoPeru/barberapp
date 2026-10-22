@@ -1,6 +1,6 @@
 import { $, clearErrors, showErrors, withLoading, escapeHtml, notice } from '../ui.js';
 import { icon } from '../icons.js';
-import { bootPanel, papi, openSheet, confirmAction, toast, today, fmtDate, noticeList } from '../panel.js';
+import { bootPanel, papi, openSheet, confirmAction, askText, toast, today, fmtDate, noticeList } from '../panel.js';
 
 /** Panel: vacaciones, ausencias, feriados y bloqueos de agenda; aprobación de solicitudes (Fase 4). */
 const params = new URLSearchParams(location.search);
@@ -32,7 +32,8 @@ function row(b) {
   return `<li class="row" data-inactive="${b.estado === 'rechazado'}"><span class="thumb">${icon('calendar')}</span>
     <div class="row__main"><p class="row__title">${TIPOS[b.tipo]} · ${quien}</p>
       <p class="row__meta"><span>${escapeHtml(when(b))}</span><span class="badge ${cls}">${estado}</span>
-      ${b.motivo ? `<span>${escapeHtml(b.motivo)}</span>` : ''}${b.creado_por && b.estado === 'solicitado' ? `<span>Pidió: ${escapeHtml(b.creado_por)}</span>` : ''}</p></div>
+      ${b.motivo ? `<span>${escapeHtml(b.motivo)}</span>` : ''}${b.creado_por && b.estado === 'solicitado' ? `<span>Pidió: ${escapeHtml(b.creado_por)}</span>` : ''}
+      ${b.respuesta ? `<span>Respuesta: ${escapeHtml(b.respuesta)}</span>` : ''}</p></div>
     <div class="row__actions">${actions}</div></li>`;
 }
 
@@ -101,7 +102,11 @@ document.addEventListener('click', async (e) => {
   const rj = e.target.closest('[data-reject]');
   const del = e.target.closest('[data-delete]');
   if (ap) act(() => papi(`/panel/bloqueos/${ap.dataset.approve}/aprobar`, { method: 'POST' }), 'Solicitud aprobada');
-  if (rj) act(() => papi(`/panel/bloqueos/${rj.dataset.reject}/rechazar`, { method: 'POST' }), 'Solicitud rechazada');
+  if (rj) {
+    // El comentario es opcional y lo ve el barbero en su panel.
+    const respuesta = await askText('¿Rechazar esta solicitud? Puedes explicarle el motivo al barbero.', { label: 'Comentario para el barbero (opcional)', ok: 'Rechazar', danger: true });
+    if (respuesta !== null) act(() => papi(`/panel/bloqueos/${rj.dataset.reject}/rechazar`, { method: 'POST', body: { respuesta } }), 'Solicitud rechazada');
+  }
   if (del && await confirmAction('¿Eliminar este registro? Ese tiempo volverá a estar disponible para reservas.', { ok: 'Eliminar', danger: true })) {
     act(() => papi(`/panel/bloqueos/${del.dataset.delete}`, { method: 'DELETE' }), 'Eliminado');
   }

@@ -145,6 +145,27 @@ $('[data-policy-reset]').addEventListener('click', async () => {
   } catch (err) { toast(err.message, 'error'); }
 });
 
+// ======================================================================= equipo (Fase 7)
+
+const tForm = $('[data-team-form]');
+async function loadTeam() {
+  const t = await papi('/panel/equipo/ajustes');
+  Object.entries(t).forEach(([k, v]) => { if (tForm[k]) tForm[k].checked = v; });
+  $('[data-team]').hidden = false;
+}
+tForm.addEventListener('change', async (e) => {
+  const input = e.target;
+  input.disabled = true;
+  try {
+    const t = await papi('/panel/equipo/ajustes', { method: 'PUT', body: { [input.name]: input.checked } });
+    input.checked = t[input.name];
+    toast('Ajuste del equipo guardado');
+  } catch (err) {
+    input.checked = !input.checked;
+    toast(err.message, 'error');
+  } finally { input.disabled = false; }
+});
+
 // ======================================================================= accesos
 
 function shortcuts() {
@@ -168,6 +189,7 @@ function shortcuts() {
   const jobs = [];
   if (can(ctx, 'negocio.perfil.gestionar')) jobs.push(loadBusiness());
   if (can(ctx, 'politicas.gestionar')) jobs.push(loadPolicies());
+  if (can(ctx, 'personal.gestionar')) jobs.push(loadTeam());
   const results = await Promise.allSettled(jobs);
   const failed = results.find((r) => r.status === 'rejected');
   if (failed) notice(noticeEl, failed.reason.message, 'error');

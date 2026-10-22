@@ -96,6 +96,7 @@ final class AgendaBlockService
             'tipo' => $data['tipo'], 'barbero_id' => $barberoId, 'sucursal_id' => $sucursalId,
             'inicio_utc' => $ini, 'fin_utc' => $fin, 'motivo' => $data['motivo'] ?? null,
             'estado' => 'aprobado', 'creado_por' => (int) $user['id'], 'aprobado_por' => (int) $user['id'],
+            'respondido_en' => Clock::nowSql(),
         ];
         $id = Database::transaction(function () use ($row): int {
             $this->lockAndCheck($row['barbero_id'], $row['sucursal_id'], $row['inicio_utc'], $row['fin_utc']);
@@ -105,32 +106,225 @@ final class AgendaBlockService
         return $this->presented($id);
     }
 
-    /** @return array<string, mixed> */
-    public function approve(int $id, Request $request): array
+    /**
+     * Aprueba una solicitud. Toma el candado de la solicitud y de las agendas afectadas y
+     * vuelve a comprobar que no haya reservas activas en el rango.
+     *
+     * @param array<string, mixed> $input respuesta (opcional)
+     * @return array<string, mixed>
+     */
+    public function approve(int $id, Request $request, array $input = []): array
     {
+        $respuesta = $this->answerText($input);
         $user = (array) $request->attribute('auth_user');
-        Database::transaction(function () use ($id, $user): void {
-            $b = $this->find($id);
-            if ($b['estado'] !== 'solicitado') {
-                throw new HttpException(409, 'block_not_pending', 'Esta solicitud ya fue atendida.');
-            }
+        $b = Database::transaction(function () use ($id, $user, $respuesta): array {
+            $b = $this->lockPending($id);
             $this->lockAndCheck($b['barbero_id'] === null ? null : (int) $b['barbero_id'], $b['sucursal_id'] === null ? null : (int) $b['sucursal_id'], (string) $b['inicio_utc'], (string) $b['fin_utc']);
-            $this->repo->setEstado($id, 'aprobado', (int) $user['id']);
+            $this->repo->respond($id, 'aprobado', (int) $user['id'], $respuesta, Clock::nowSql());
+            return $b;
         });
-        Audit::record('bloqueo.aprobado', 'exito', $request, null, $this->tenantId, 'bloqueos_agenda', $id);
-        return $this->presented($id);
+        Audit::record('bloqueo.aprobado', 'exito', $request, null, $this->tenantId, 'bloqueos_agenda', $id, $respuesta !== null ? ['respuesta' => $respuesta] : null);
+        $out = $this->presented($id);
+        $this->notifyAnswer($b, $out, true, $respuesta);
+        return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $input respuesta (opcional): se muestra al barbero
+     * @return array<string, mixed>
+     */
+    public function reject(int $id, Request $request, array $input = []): array
+    {
+        $respuesta = $this->answerText($input);
+        $user = (array) $request->attribute('auth_user');
+        $b = Database::transaction(function () use ($id, $user, $respuesta): array {
+            $b = $this->lockPending($id);
+            $this->repo->respond($id, 'rechazado', (int) $user['id'], $respuesta, Clock::nowSql());
+            return $b;
+        });
+        Audit::record('bloqueo.rechazado', 'exito', $request, null, $this->tenantId, 'bloqueos_agenda', $id, $respuesta !== null ? ['respuesta' => $respuesta] : null);
+        $out = $this->presented($id);
+        $this->notifyAnswer($b, $out, false, $respuesta);
+        return $out;
+    }
+
+    // ================================================================== solicitudes del barbero (Fase 7)
+
+    /** Tipos que un barbero puede pedir para su propia agenda (los feriados los define la barbería). */
+    public const TIPOS_BARBERO = ['vacaciones', 'ausencia', 'descanso', 'bloqueo'];
+
+    /** Máximo de solicitudes vigentes sin atender por barbero (evita llenar la bandeja del encargado). */
+    public const MAX_PENDIENTES = 10;
+
+    /**
+     * Un barbero pide bloquear SU agenda. Si la barbería exige aprobación (o quien pide no puede
+     * aprobar), queda "solicitado" y no cambia la disponibilidad hasta que se apruebe; se avisa a
+     * quienes pueden aprobar y se informan (sin bloquear) las citas que ya tiene en ese rango.
+     * Si no requiere aprobación, se registra aprobado con las mismas reglas que en el panel
+     * (409 si pisa reservas activas).
+     *
+     * @param array<string, mixed> $input tipo, sucursal_id?, dia_completo, fecha_inicio, fecha_fin, inicio, fin, motivo
+     * @return array<string, mixed> bloqueo + advertencias
+     */
+    public function requestForBarber(int $barberoId, array $input, Request $request, bool $requiereAprobacion): array
+    {
+        $data = Validator::validate($input, [
+            'tipo' => 'required|in:' . implode(',', self::TIPOS_BARBERO),
+            'sucursal_id' => 'nullable|integer|min:1',
+            'dia_completo' => 'nullable|boolean',
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin' => 'nullable|date',
+            'inicio' => 'nullable|regex:/^\d{4}-\d{2}-\d{2}[T ][0-2]\d:[0-5]\d$/',
+            'fin' => 'nullable|regex:/^\d{4}-\d{2}-\d{2}[T ][0-2]\d:[0-5]\d$/',
+            'motivo' => 'nullable|string|max:255',
+        ]);
+        $sucursalId = isset($data['sucursal_id']) ? (int) $data['sucursal_id'] : null;
+        if ($sucursalId !== null && (new BranchRepository($this->tenantId))->find($sucursalId) === null) {
+            throw new ValidationException(['sucursal_id' => ['Sucursal no encontrada.']]);
+        }
+        $motivo = isset($data['motivo']) && trim((string) $data['motivo']) !== '' ? trim((string) $data['motivo']) : null;
+        if ($requiereAprobacion && $motivo === null) {
+            throw new ValidationException(['motivo' => ['Cuéntale al encargado el motivo de tu solicitud.']]);
+        }
+        [$ini, $fin] = $this->range($data, $this->timezoneFor($barberoId, $sucursalId));
+
+        $user = (array) $request->attribute('auth_user');
+        $userId = (int) $user['id'];
+        $now = Clock::nowSql();
+        $row = [
+            'tipo' => $data['tipo'], 'barbero_id' => $barberoId, 'sucursal_id' => $sucursalId,
+            'inicio_utc' => $ini, 'fin_utc' => $fin, 'motivo' => $motivo,
+            'estado' => $requiereAprobacion ? 'solicitado' : 'aprobado', 'creado_por' => $userId,
+            'aprobado_por' => $requiereAprobacion ? null : $userId, 'respondido_en' => $requiereAprobacion ? null : $now,
+        ];
+        $barbers = new BarberRepository($this->tenantId);
+        $conflictos = [];
+        $id = Database::transaction(function () use ($row, $barberoId, $requiereAprobacion, $barbers, $ini, $fin, $now, &$conflictos): int {
+            // Candado de la agenda del barbero: serializa sus solicitudes y las reservas que la tocan.
+            if (!$barbers->lock($barberoId)) {
+                throw new NotFoundException('Barbero no encontrado.');
+            }
+            $solapes = $this->repo->overlappingForBarber($barberoId, $ini, $fin);
+            if ($solapes !== []) {
+                $pend = count(array_filter($solapes, static fn (array $s): bool => $s['estado'] === 'solicitado'));
+                throw new HttpException(409, 'block_overlaps', $pend > 0
+                    ? 'Ya tienes una solicitud pendiente que se cruza con esas fechas. Espera la respuesta o retírala.'
+                    : 'Esas fechas ya están bloqueadas en tu agenda.');
+            }
+            if ($requiereAprobacion) {
+                if ($this->repo->pendingCountForBarber($barberoId, $now) >= self::MAX_PENDIENTES) {
+                    throw new HttpException(429, 'too_many_requests', 'Tienes ' . self::MAX_PENDIENTES . ' solicitudes sin respuesta. Espera a que el encargado las revise.');
+                }
+                $conflictos = $this->repo->conflictingBookings($barberoId, $row['sucursal_id'], $ini, $fin);
+            } else {
+                $this->lockAndCheck($barberoId, $row['sucursal_id'], $ini, $fin);
+            }
+            return $this->repo->create($row);
+        });
+
+        Audit::record($requiereAprobacion ? 'bloqueo.solicitado' : 'bloqueo.creado', 'exito', $request, $userId, $this->tenantId, 'bloqueos_agenda', $id, $row);
+        $out = $this->presented($id);
+        if ($requiereAprobacion) {
+            $barbero = (array) $barbers->find($barberoId);
+            $destinos = array_values(array_filter($this->repo->approverUserIds(), static fn (int $u): bool => $u !== $userId));
+            (new BlockNotifier($this->tenantId))->requested($id, $destinos, (string) ($barbero['nombre_publico'] ?? 'Un barbero'), self::describe($out));
+        }
+        $tz = (string) $out['zona_horaria'];
+        $out['advertencias'] = [
+            // Citas que ya tiene en ese rango: el encargado deberá reprogramarlas antes de aprobar.
+            'reservas_en_conflicto' => array_map(static fn (array $r): array => [
+                'codigo' => $r['codigo'],
+                'inicio' => Clock::utcToLocal((string) $r['inicio_utc'], $tz)->format('Y-m-d H:i'),
+                'fin' => Clock::utcToLocal((string) $r['fin_utc'], $tz)->format('Y-m-d H:i'),
+            ], $conflictos),
+        ];
+        return $out;
+    }
+
+    /** El barbero retira una solicitud suya que aún no fue atendida. */
+    public function withdrawForBarber(int $barberoId, int $id, Request $request): void
+    {
+        $b = Database::transaction(function () use ($barberoId, $id): array {
+            $b = $this->repo->lockRow($id);
+            if ($b === null || $b['barbero_id'] === null || (int) $b['barbero_id'] !== $barberoId) {
+                throw new NotFoundException('Solicitud no encontrada.');
+            }
+            if ($b['estado'] !== 'solicitado') {
+                throw new HttpException(409, 'block_not_pending', 'Esta solicitud ya fue atendida: pide al encargado que la modifique.');
+            }
+            $this->repo->delete($id);
+            return $b;
+        });
+        Audit::record('bloqueo.retirado', 'exito', $request, null, $this->tenantId, 'bloqueos_agenda', $id, null, $b);
+    }
+
+    /**
+     * Bloqueos que ve el barbero: los suyos (cualquier estado) y los generales aprobados
+     * (feriados, cierres de sede) que también lo afectan, desde hace 30 días.
+     *
+     * @param array<string, mixed> $query estado?
+     * @return list<array<string, mixed>>
+     */
+    public function listForBarber(int $barberoId, array $query): array
+    {
+        $f = Validator::validate($query, ['estado' => 'nullable|in:' . implode(',', AgendaBlockRepository::ESTADOS)]);
+        $desde = Clock::nowUtc()->modify('-30 days')->format('Y-m-d H:i:s');
+        $rows = $this->repo->search(['barbero_id' => $barberoId, 'desde' => $desde, 'estado' => $f['estado'] ?? null], 300);
+        $rows = array_values(array_filter($rows, static fn (array $b): bool => $b['barbero_id'] !== null || $b['estado'] === 'aprobado'));
+        return array_map(fn (array $b): array => CatalogPresenter::block($b, $this->timezoneFor($b['barbero_id'] === null ? null : (int) $b['barbero_id'], $b['sucursal_id'] === null ? null : (int) $b['sucursal_id'])), $rows);
+    }
+
+    /** Texto corto del rango de un bloqueo presentado (para avisos). @param array<string, mixed> $b */
+    public static function describe(array $b): string
+    {
+        $d = static fn (string $ymd): string => substr($ymd, 8, 2) . '/' . substr($ymd, 5, 2);
+        if ($b['dia_completo']) {
+            return $b['fecha_inicio'] === $b['fecha_fin']
+                ? 'el ' . $d((string) $b['fecha_inicio']) . ' (todo el día)'
+                : 'del ' . $d((string) $b['fecha_inicio']) . ' al ' . $d((string) $b['fecha_fin']);
+        }
+        [$fi, $hi] = explode('T', (string) $b['inicio_local']);
+        [$ff, $hf] = explode('T', (string) $b['fin_local']);
+        return $fi === $ff ? 'el ' . $d($fi) . " de {$hi} a {$hf}" : 'del ' . $d($fi) . " {$hi} al " . $d($ff) . " {$hf}";
     }
 
     /** @return array<string, mixed> */
-    public function reject(int $id, Request $request): array
+    private function lockPending(int $id): array
     {
-        $b = $this->find($id);
+        $b = $this->repo->lockRow($id);
+        if ($b === null) {
+            throw new NotFoundException('Bloqueo no encontrado.');
+        }
         if ($b['estado'] !== 'solicitado') {
             throw new HttpException(409, 'block_not_pending', 'Esta solicitud ya fue atendida.');
         }
-        $this->repo->setEstado($id, 'rechazado', (int) ((array) $request->attribute('auth_user'))['id']);
-        Audit::record('bloqueo.rechazado', 'exito', $request, null, $this->tenantId, 'bloqueos_agenda', $id);
-        return $this->presented($id);
+        return $b;
+    }
+
+    /** @param array<string, mixed> $input */
+    private function answerText(array $input): ?string
+    {
+        $data = Validator::validate($input, ['respuesta' => 'nullable|string|max:255']);
+        $r = isset($data['respuesta']) ? trim((string) $data['respuesta']) : '';
+        return $r === '' ? null : $r;
+    }
+
+    /**
+     * Avisa al barbero que pidió la ausencia (si su ficha está vinculada a una cuenta).
+     *
+     * @param array<string, mixed> $row
+     * @param array<string, mixed> $presented
+     */
+    private function notifyAnswer(array $row, array $presented, bool $aprobado, ?string $respuesta): void
+    {
+        if ($row['barbero_id'] === null) {
+            return;
+        }
+        $barbero = (new BarberRepository($this->tenantId))->find((int) $row['barbero_id']);
+        if ($barbero === null || $barbero['usuario_id'] === null) {
+            return;
+        }
+        (new BlockNotifier($this->tenantId))->answered((int) $row['id'], (int) $barbero['usuario_id'], $aprobado, self::describe($presented), $respuesta);
     }
 
     public function delete(int $id, Request $request): void

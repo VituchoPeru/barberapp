@@ -79,6 +79,8 @@ Excepciones a la jornada: vacaciones, ausencias, feriados, bloqueos puntuales
 | `estado` | enum('solicitado','aprobado','rechazado') | no | `aprobado` |  |  |
 | `creado_por` | bigint unsigned | sí |  | MUL |  |
 | `aprobado_por` | bigint unsigned | sí |  | MUL |  |
+| `respuesta` | varchar(255) | sí |  |  | Comentario de quien aprobó o rechazó la solicitud |
+| `respondido_en` | datetime | sí |  |  | UTC; cuándo se aprobó o rechazó la solicitud |
 | `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
 | `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
 

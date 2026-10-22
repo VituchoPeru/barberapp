@@ -10,7 +10,7 @@ Pantallas del panel (`frontend/www/pages/panel/`) y la API que las alimenta (`/a
 | Reportes | `reportes.html` | Reservas por día, servicios más solicitados, ocupación, cancelaciones, inasistencias, ingresos registrados, evolución mensual y CSV |
 | Configuración | `configuracion.html` | Nombre comercial y colores, enlace de reservas, reglas de reserva y política de cancelación (general o por sucursal), accesos a sucursales, horarios, equipo, logo y QR |
 
-Barberos, servicios, sucursales, ausencias y perfil público existen desde la Fase 4 y se enlazan desde el mismo menú. El menú solo muestra los módulos que permite el rol; *Mi cuenta* tiene los botones **Abrir panel** y **Agenda**.
+Barberos, servicios, sucursales, ausencias y perfil público existen desde la Fase 4 y se enlazan desde el mismo menú. Desde la Fase 7 cada barbero tiene su propio panel móvil ([PANEL_BARBERO.md](PANEL_BARBERO.md)); en *Ausencias* las solicitudes se aprueban o rechazan con un comentario opcional que el barbero ve, y en *Configuración* el propietario decide si esas solicitudes requieren aprobación y si el barbero puede editar su jornada. El menú solo muestra los módulos que permite el rol; *Mi cuenta* tiene los botones **Abrir panel** y **Agenda**.
 
 ## Permisos
 

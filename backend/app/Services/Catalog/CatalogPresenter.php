@@ -151,6 +151,8 @@ final class CatalogPresenter
             'motivo' => $b['motivo'],
             'creado_por' => $b['creado_por_nombre'] ?? null,
             'aprobado_por' => $b['aprobado_por_nombre'] ?? null,
+            'respuesta' => $b['respuesta'] ?? null,
+            'respondido_en' => !empty($b['respondido_en']) ? str_replace(' ', 'T', (string) $b['respondido_en']) . 'Z' : null,
         ];
     }
 }

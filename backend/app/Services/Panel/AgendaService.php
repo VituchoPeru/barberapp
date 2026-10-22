@@ -40,8 +40,12 @@ final class AgendaService
 
     private AgendaRepository $repo;
 
-    /** @param list<string> $perms permisos de quien opera */
-    public function __construct(private int $tenantId, private array $perms, private int $userId)
+    /**
+     * @param list<string> $perms      permisos de quien opera
+     * @param int|null     $barberOnly fija el alcance a un barbero aunque tenga reservas.ver_todas
+     *                                 (panel del barbero, Fase 7: el propietario que también atiende ve solo lo suyo)
+     */
+    public function __construct(private int $tenantId, private array $perms, private int $userId, private ?int $barberOnly = null)
     {
         $this->repo = new AgendaRepository($tenantId);
     }
@@ -62,6 +66,9 @@ final class AgendaService
      */
     public function ownBarberScope(): ?int
     {
+        if ($this->barberOnly !== null) {
+            return $this->barberOnly;
+        }
         if ($this->can('reservas.ver_todas')) {
             return null;
         }
