@@ -116,6 +116,7 @@ Problemas que encontraron estas pruebas y quedaron corregidos:
 3. **Accesibilidad**: la página de una barbería inexistente no tenía título principal (`h1`) para lectores de pantalla.
 4. **Respuesta engañosa**: borrar la política de reserva de una sucursal de **otra** barbería respondía 204 (sin efecto, pero como si hubiera funcionado). Ahora responde 404.
 5. **Defensa adicional**: las respuestas JSON ya no contienen `<` ni `>` literales (`JSON_HEX_TAG`).
+6. **Safari en iPhone y iPad** (solo lo vio la CI con WebKit): la agenda y la ficha del barbero quedaban más anchas que la pantalla. Safari suma al ancho de la página el texto interno de un `<select>` o un `<input>` (la opción más larga, un valor largo) aunque el control lo recorte. Cada `.field` y cada tramo de la jornada recortan ahora en horizontal (`overflow-x: clip`). La prueba E2E, si vuelve a pasar, nombra el elemento cuyo contenido desborda.
 
 ## 4. Qué no cubren (y cómo cubrirlo)
 
