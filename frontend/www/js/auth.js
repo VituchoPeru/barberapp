@@ -58,5 +58,5 @@ export async function currentUser() {
 /** Ruta a la que volver tras iniciar sesión (solo rutas internas, evita redirecciones abiertas). */
 export function nextUrl(fallback = 'cuenta.html') {
   const next = new URLSearchParams(location.search).get('next');
-  return next && /^[a-z0-9_\-/.]+\.html(\?[\w=&%-]*)?$/i.test(next) && !next.startsWith('//') ? next : fallback;
+  return next && /^[a-z0-9_\-/.]+\.html(\?[\w=&%-]*)?(#[\w-]*)?$/i.test(next) && !next.startsWith('//') ? next : fallback;
 }

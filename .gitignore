@@ -25,3 +25,10 @@ backend/storage/cache/*.json
 backend/storage/cache/*.lock
 # Cuentas de servicio de Firebase: nunca al repositorio
 *firebase-adminsdk*.json
+
+# Copias de seguridad de la base (Fase 13): contienen datos personales, nunca al repositorio
+backend/storage/backups/*
+!backend/storage/backups/.gitkeep
+!backend/storage/backups/.htaccess
+*.sql.gz
+*.sql.gz.enc

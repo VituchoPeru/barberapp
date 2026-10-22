@@ -57,3 +57,9 @@ me().then((user) => {
   hello(user);
   return loadFavorites(user);
 }).catch(() => hello(null));
+
+// Tras eliminar la cuenta (Mi cuenta → Eliminar), Fase 13.
+if (new URLSearchParams(location.search).get('cuenta_eliminada') === '1') {
+  history.replaceState(null, '', location.pathname);
+  toast('Tu cuenta fue eliminada. Te enviamos la constancia por correo.');
+}

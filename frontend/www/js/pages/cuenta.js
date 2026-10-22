@@ -1,8 +1,8 @@
-import { api } from '../api.js';
-import { currentUser, logout } from '../auth.js';
-import { $, withLoading, notice, escapeHtml } from '../ui.js';
+import { api, apiFile, clearSession } from '../api.js';
+import { currentUser, logout, nextUrl } from '../auth.js';
+import { $, withLoading, notice, escapeHtml, clearErrors, showErrors, bindPasswordToggles } from '../ui.js';
 import { mountTabbar } from '../marketplace.js';
-import { isNative } from '../native.js';
+import { isNative, saveFile } from '../native.js';
 import { isInstalled } from '../shell.js';
 
 mountTabbar('cuenta');
@@ -31,6 +31,14 @@ async function renderProfile(me) {
       ${u.email_verificado ? '<span class="chip">Correo verificado</span>' : '<span class="chip chip--warn">Correo sin verificar</span>'}
     </div>`;
   $('[data-verify]').hidden = u.email_verificado;
+  // Formulario de rectificación con los datos actuales (sin pisar lo que se esté escribiendo).
+  const f = $('[data-form="perfil"]');
+  if (!f.contains(document.activeElement)) {
+    f.nombres.value = u.nombres || '';
+    f.apellidos.value = u.apellidos || '';
+    f.telefono.value = u.telefono || '';
+  }
+  legalGate(u);
   // Panel del SaaS (Fase 9): solo cuentas del equipo de BARBERAPP. El backend vuelve a verificarlo.
   if (me.plataforma) {
     $('[data-profile]').insertAdjacentHTML('beforeend', '<div class="item__actions" style="margin-top:12px"><a class="btn btn--sm" href="../plataforma/index.html">Abrir panel de la plataforma</a></div>');
@@ -76,6 +84,7 @@ async function renderMemberships(me) {
 
 async function renderSessions() {
   const sessions = await api('/me/sessions');
+  $('[data-close-others]').hidden = sessions.filter((x) => !x.actual).length < 2;
   $('[data-sessions]').innerHTML = sessions.map((s) => `
     <li class="item" data-current="${s.actual}">
       <div><p class="item__title">${escapeHtml(deviceLabel(s))}</p>
@@ -142,9 +151,126 @@ document.addEventListener('change', async (event) => {
   }
 });
 
+
+// ======================================================================= privacidad (Fase 13)
+
+const SOLICITUD_ESTADOS = { recibida: 'Recibida', en_proceso: 'En proceso', atendida: 'Atendida', rechazada: 'Rechazada' };
+const fmtDate = (ymd) => new Date(`${ymd}T12:00:00Z`).toLocaleDateString('es-PE', { dateStyle: 'medium', timeZone: 'UTC' });
+
+async function renderRequests() {
+  const items = await api('/me/solicitudes-datos');
+  const el = $('[data-requests]');
+  if (!items.length) {
+    el.innerHTML = '<li class="muted">No has hecho solicitudes sobre tus datos.</li>';
+    return;
+  }
+  el.innerHTML = items.map((r) => {
+    const abierta = r.estado === 'recibida' || r.estado === 'en_proceso';
+    const meta = abierta ? `Respuesta a más tardar el ${fmtDate(r.plazo_vence_en)}` : (r.atendida_en ? `Respondida el ${fmt(r.atendida_en)}` : '');
+    return `<li class="item"><div>
+        <p class="item__title">${escapeHtml(r.tipo_nombre)} · ${escapeHtml(r.codigo)}</p>
+        <p class="item__meta">${r.origen === 'autoservicio' ? 'Desde la app · ' : ''}${fmt(r.creada_en)}${meta ? ' · ' + meta : ''}</p>
+        <div class="chips"><span class="chip${abierta ? ' chip--warn' : ''}">${SOLICITUD_ESTADOS[r.estado] || escapeHtml(r.estado)}</span></div>
+        ${r.respuesta ? `<p class="request__answer">${escapeHtml(r.respuesta)}</p>` : ''}
+      </div></li>`;
+  }).join('');
+}
+
+async function renderDeletion() {
+  const p = await api('/me/eliminacion');
+  const box = $('[data-deletion]');
+  const form = $('[data-form="eliminar"]');
+  const bloqueos = p.bloqueos || [];
+  box.innerHTML = `
+    <p>Se borran tu nombre, correo, teléfono, contraseña, favoritos, avisos y sesiones. Esto no se puede deshacer.
+      <a href="../legal/eliminar-cuenta.html">Qué se borra y qué se conserva</a>.</p>
+    ${p.citas_futuras ? `<p class="alert" data-type="info">Tienes ${p.citas_futuras} cita(s) próxima(s): se cancelarán y avisaremos a la barbería.</p>` : ''}
+    ${p.barberias_equipo ? `<p class="alert" data-type="info">Dejarás de formar parte del equipo de ${p.barberias_equipo} barbería(s).</p>` : ''}
+    ${bloqueos.map((b) => `<p class="alert" data-type="error">${escapeHtml(b.mensaje)}</p>`).join('')}`;
+  form.hidden = bloqueos.length > 0;
+}
+
+/** Textos legales nuevos pendientes de aceptar: se pide antes de seguir. */
+function legalGate(u) {
+  const dialog = $('[data-legal-dialog]');
+  if (!u.legal_pendiente || !u.legal_pendiente.length || dialog.open) return;
+  if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+}
+$('[data-legal-dialog]').addEventListener('cancel', (e) => e.preventDefault()); // no se cierra con Esc
+
+const FORMS = {
+  async perfil(f) {
+    await api('/me/perfil', { method: 'PUT', body: { nombres: f.nombres.value.trim(), apellidos: f.apellidos.value.trim(), telefono: f.telefono.value.trim() } });
+    f.closest('details').open = false;
+    return 'Tus datos se actualizaron.';
+  },
+  async email(f) {
+    const d = await api('/me/email', { method: 'POST', body: { email: f.email.value.trim(), password: f.password.value } });
+    f.reset();
+    f.closest('details').open = false;
+    return d.mensaje;
+  },
+  async password(f) {
+    const d = await api('/me/password', { method: 'POST', body: { password_actual: f.password_actual.value, password_nueva: f.password_nueva.value } });
+    f.reset();
+    f.closest('details').open = false;
+    return d.mensaje;
+  },
+  async exportar(f) {
+    const { blob, filename } = await apiFile('/me/datos/exportar', { method: 'POST', body: { password: f.password.value }, accept: 'application/json', fallbackName: 'barberapp-mis-datos.json' });
+    f.reset();
+    const r = await saveFile(blob, filename, 'Mis datos de BARBERAPP');
+    return r === 'cancelado' ? null : 'Listo: descargaste una copia de tus datos.';
+  },
+  async solicitud(f) {
+    const d = await api('/me/solicitudes-datos', { method: 'POST', body: { tipo: f.tipo.value, detalle: f.detalle.value.trim() } });
+    f.reset();
+    f.closest('details').open = false;
+    return `Recibimos tu solicitud ${d.codigo}. Te responderemos a más tardar el ${fmtDate(d.plazo_vence_en)}.`;
+  },
+  async legal(f) {
+    if (!f.acepta.checked) throw Object.assign(new Error('Marca la casilla para aceptar.'), { status: 422, fields: { acepta: ['Marca la casilla para aceptar.'] } });
+    await api('/me/legal/aceptar', { method: 'POST', body: { acepta: true } });
+    $('[data-legal-dialog]').close();
+    const next = new URLSearchParams(location.search).get('next');
+    if (next) { location.assign(nextUrl()); return null; }
+    return 'Gracias. Aceptaste los textos vigentes.';
+  },
+  async eliminar(f) {
+    if (f.confirmacion.value.trim().toUpperCase() !== 'ELIMINAR') {
+      throw Object.assign(new Error('Escribe ELIMINAR para confirmar.'), { status: 422, fields: { confirmacion: ['Escribe ELIMINAR para confirmar.'] } });
+    }
+    await api('/me/eliminar', { method: 'POST', body: { password: f.password.value, confirmacion: 'ELIMINAR' } });
+    // La cuenta ya no existe: se limpia este dispositivo (avisos push y sesión local).
+    if (isNative()) {
+      try { await (await import('../push.js')).unregisterPush(); } catch { /* nada */ }
+    }
+    await clearSession();
+    location.replace('../inicio.html?cuenta_eliminada=1');
+    return null;
+  },
+};
+
+document.addEventListener('submit', async (event) => {
+  const f = event.target.closest('form[data-form]');
+  if (!f || !FORMS[f.dataset.form]) return;
+  event.preventDefault();
+  clearErrors(f);
+  try {
+    const msg = await withLoading(f.querySelector('[type=submit]'), () => FORMS[f.dataset.form](f));
+    if (msg) notice(noticeEl, msg, 'ok');
+    if (f.dataset.form !== 'eliminar' && f.dataset.form !== 'exportar') await load();
+  } catch (e) {
+    f.querySelectorAll('input[type=password]').forEach((i) => { i.value = ''; });
+    showErrors(f, e);
+  }
+});
+bindPasswordToggles(document);
+
 // Enlace a la pantalla de instalación cuando se usa desde el navegador (Fase 12).
 $('[data-install-link]').hidden = isInstalled();
 
+let scrolled = false;
 async function load() {
   const me = await currentUser();
   if (!me) {
@@ -152,8 +278,11 @@ async function load() {
     return;
   }
   await renderProfile(me);
-  await Promise.all([renderMemberships(me), renderPrefs(), renderDevices(), renderSessions(), renderPushHere().catch(() => {})]);
-  if (location.hash === '#avisos') $('#avisos').scrollIntoView();
+  await Promise.all([renderMemberships(me), renderPrefs(), renderDevices(), renderSessions(), renderRequests(), renderDeletion(), renderPushHere().catch(() => {})]);
+  if (['#avisos', '#privacidad', '#eliminar'].includes(location.hash) && !scrolled) {
+    scrolled = true;
+    $(location.hash).scrollIntoView();
+  }
 }
 
 async function run(button, fn, ok) {
@@ -172,7 +301,10 @@ document.addEventListener('click', (event) => {
   if (b.dataset.context) run(b, () => api('/me/context', { method: 'POST', body: { tenant: b.dataset.context } }), 'Barbería seleccionada.');
   else if (b.dataset.accept) run(b, () => api(`/me/memberships/${b.dataset.accept}/aceptar`, { method: 'POST', body: {} }), 'Invitación aceptada. ¡Bienvenido al equipo!');
   else if (b.dataset.reject) run(b, () => api(`/me/memberships/${b.dataset.reject}/rechazar`, { method: 'POST', body: {} }), 'Invitación rechazada.');
-  else if (b.dataset.revoke) run(b, () => api(`/me/sessions/${b.dataset.revoke}`, { method: 'DELETE' }), 'Sesión cerrada.');
+  else if (b.hasAttribute('data-close-others')) {
+    if (!confirm('¿Cerrar sesión en todos tus otros dispositivos? Esta sesión seguirá abierta.')) return;
+    run(b, () => api('/me/sessions/cerrar-otras', { method: 'POST', body: {} }), 'Cerramos tus otras sesiones.');
+  } else if (b.dataset.revoke) run(b, () => api(`/me/sessions/${b.dataset.revoke}`, { method: 'DELETE' }), 'Sesión cerrada.');
   else if (b.hasAttribute('data-push-enable')) {
     run(b, async () => {
       const { enablePush } = await import('../push.js');

@@ -20,7 +20,8 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | 10 | Planes y monetización: límites por plan, prueba gratuita automática, pago en línea con Mercado Pago (y simulador local), webhooks firmados, vencimientos, avisos y restricción | ✅ Terminada |
 | 11 | Reportes y analítica: confirmación, demanda por hora, productividad, recurrencia, previsto frente a cobrado y exportaciones | ✅ Terminada |
 | 12 | PWA, Android e iOS: instalación, service worker, modo sin conexión, app con Capacitor (sesión segura, push, descargas, enlaces directos) y guía de compilación y tiendas | ✅ Terminada |
-| 13+ | Seguridad y protección de datos, pruebas, despliegue… | Pendiente |
+| 13 | Seguridad y protección de datos: HTTPS, CORS y CSP, límites, eliminar cuenta, descargar mis datos, derechos ARCO, textos legales, copias cifradas con restauración probada y retención (Ley 29733) | ✅ Terminada |
+| 14+ | Pruebas, despliegue… | Pendiente |
 
 ## Documentación
 
@@ -28,6 +29,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Modelo entidad-relación](docs/MODELO_ER.md) (diagramas Mermaid; versiones SVG en `docs/diagramas/`)
 - [Diccionario de datos](docs/DICCIONARIO_DATOS.md) (generado desde la base)
 - [Autenticación, roles y multiempresa](docs/AUTENTICACION.md) (endpoints, sesiones, permisos)
+- [Seguridad y protección de datos](docs/SEGURIDAD.md) (Ley 29733, derechos ARCO, eliminar cuenta, copias, incidentes)
 - [Marketplace, perfil público y QR](docs/MARKETPLACE.md)
 - [Servicios, barberos y horarios](docs/SERVICIOS_HORARIOS.md) (panel, reglas de jornada y bloqueos)
 - [Motor de reservas](docs/RESERVAS.md) (disponibilidad, endpoints, concurrencia, idempotencia y política)
@@ -272,7 +274,11 @@ Desde la Fase 12 cubren el PDF de reportes generado en el servidor (estructura, 
 
 Resultado al cerrar la Fase 12: **330 pruebas OK en PHP 8.3** (1 omitida); en **PHP 8.0** pasan todas y se omiten 8 (sin GD, zbar ni zip). `npm run verificar` sin problemas. Recorrido E2E en Chromium con la PWA y con Capacitor simulado: 46/46 comprobaciones. **El APK/AAB y el proyecto de iOS no se compilaron en este entorno** (sin Android SDK ni Xcode); ver la guía.
 
-> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría) `0014_superadmin_saas.sql` (barberías demo, bloqueo de cuentas, historial de suscripciones) y `0015_planes_monetizacion.sql` (órdenes de pago, cambios programados, restricción y permiso `negocio.suscripcion.gestionar`). Para el pago en línea configura `PAYMENT_DRIVER` y las claves de Mercado Pago (ver [MONETIZACION.md](docs/MONETIZACION.md#configuración-backendenv)). Desde la Fase 9 ejecuta también `php bin/console db:seed` (agrega el rol `operador`; es idempotente). Programa el cron de `notificaciones:procesar` y el de `suscripciones:vencer`.
+Desde la Fase 13 cubren seguridad y protección de datos: HTTPS forzado, proxies de confianza, origen no autorizado, límite general de escrituras, eliminación de cuenta (citas canceladas, anonimización, bloqueos), descarga de datos, rectificación, cambio de correo y contraseña, solicitudes ARCO con plazos en días hábiles, retención y copias cifradas (alteración detectada, restauración idéntica, verificación). Ver [SEGURIDAD.md](docs/SEGURIDAD.md#11-pruebas).
+
+Resultado al cerrar la Fase 13: **362 pruebas OK en PHP 8.3** (1 omitida); en **PHP 8.0** pasan todas y se omiten 8 (sin GD, zbar ni zip). La migración 0016 se probó sobre una base de la Fase 12 con datos demo. Recorrido E2E en Chromium (web móvil y app con Capacitor simulado): páginas legales, datos legales del panel, perfil y XSS, contraseña, correo, descarga de datos, solicitudes y respuesta del equipo, aceptación de textos nuevos, bloqueo del único propietario y eliminación de la cuenta; 49/49 comprobaciones sin errores de consola.
+
+> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría) `0014_superadmin_saas.sql` (barberías demo, bloqueo de cuentas, historial de suscripciones) `0015_planes_monetizacion.sql` (órdenes de pago, cambios programados, restricción y permiso `negocio.suscripcion.gestionar`) y `0016_seguridad_datos.sql` (solicitudes de derechos ARCO, versión de los textos aceptados, cambio de correo y permiso `plataforma.privacidad.gestionar`). Para el pago en línea configura `PAYMENT_DRIVER` y las claves de Mercado Pago (ver [MONETIZACION.md](docs/MONETIZACION.md#configuración-backendenv)). Desde la Fase 9 ejecuta también `php bin/console db:seed` (agrega el rol `operador`; es idempotente). Programa el cron de `notificaciones:procesar`, `suscripciones:vencer` y, desde la Fase 13, `backup:crear`, `backup:verificar` y `privacidad:retencion` (ver [SEGURIDAD.md](docs/SEGURIDAD.md#7-copias-de-seguridad)).
 
 **Panel de la plataforma:** el equipo de BARBERAPP entra desde *Mi cuenta → Abrir panel de la plataforma* (`pages/plataforma/index.html`). Con los datos demo: `superadmin@barberapp.test` u `operador@barberapp.test`.
 
@@ -282,3 +288,4 @@ Resultado al cerrar la Fase 12: **330 pruebas OK en PHP 8.3** (1 omitida); en **
 
 - Nunca subas `backend/.env` (está en `.gitignore`).
 - El servidor web debe apuntar a `backend/public`. En producción: `APP_ENV=production`, `APP_DEBUG=false`, `FORCE_HTTPS=true`, `SESSION_SECURE_COOKIE=true` y una `APP_KEY` propia.
+- Antes de publicar ejecuta `php bin/console seguridad:revisar` y sigue la lista de [SEGURIDAD.md](docs/SEGURIDAD.md#1-lista-de-verificación-antes-de-publicar): `TRUSTED_PROXIES`, `BACKUP_KEY`, cron de copias y retención, datos legales del titular e inscripción del banco de datos.

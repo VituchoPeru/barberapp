@@ -29,6 +29,20 @@ declare(strict_types=1);
  *                                      tras la gracia, avisos de vencimiento y órdenes de pago expiradas
  *   php bin/console push:probar correo@dominio
  *                                      Envía un push de prueba a los dispositivos de esa cuenta (verifica FCM)
+ *
+ *   Seguridad y protección de datos (Fase 13)
+ *   php bin/console seguridad:revisar  Revisa la configuración (HTTPS, claves, CORS, copias…); código 1 si hay errores
+ *   php bin/console privacidad:retencion
+ *                                      Aplica la política de retención de datos (cron diario)
+ *   php bin/console backup:clave       Genera BACKUP_KEY en .env (cifrado de las copias; --force para reemplazarla)
+ *   php bin/console backup:crear       Copia cifrada de la base (cron diario); conserva BACKUP_KEEP copias
+ *   php bin/console backup:listar      Lista las copias guardadas
+ *   php bin/console backup:verificar [archivo]
+ *                                      Prueba de restauración en una base temporal (cron semanal)
+ *   php bin/console backup:restaurar <archivo> --base=<nombre> [--sobrescribir]
+ *                                      Restaura en otra base; sobre DB_DATABASE solo con --sobrescribir
+ *   php bin/console backup:restaurar <archivo> --solo-descifrar=<destino.sql.gz>
+ *                                      Descifra la copia para restaurarla a mano (gunzip | mysql)
  */
 
 use App\Core\Config;
@@ -308,6 +322,115 @@ try {
                 ]);
                 out(sprintf('  %s %s → %s%s', $dev['plataforma'], $dev['modelo'] ?? '', $res->status, $res->code ? " ({$res->code})" : '') . ($res->detail ? ': ' . $res->detail : ''));
             }
+            break;
+
+        case 'seguridad:revisar':
+            $errores = 0;
+            foreach (App\Services\Security\SecurityCheck::run($base) as $item) {
+                $marca = ['ok' => '  ✔', 'aviso' => '  !', 'error' => '  ✖'][$item['nivel']];
+                $errores += $item['nivel'] === 'error' ? 1 : 0;
+                out("{$marca} {$item['tema']}: {$item['mensaje']}");
+            }
+            out($errores === 0 ? 'Sin errores críticos.' : "{$errores} error(es) crítico(s): corrígelos antes de publicar.");
+            if ($errores > 0) {
+                exit(1);
+            }
+            break;
+
+        case 'privacidad:retencion':
+            $r = (new App\Services\Privacy\Retention())->run();
+            out("Retención aplicada: {$r['auditoria']} registros de auditoría, {$r['webhooks']} webhooks, {$r['solicitudes']} solicitudes cerradas "
+                . "y {$r['cuentas_sin_verificar']} cuentas sin verificar eliminadas.");
+            break;
+
+        case 'backup:clave':
+            $envFile = $base . '/.env';
+            if (!is_file($envFile)) {
+                fail('No existe backend/.env. Cópielo desde .env.example primero.');
+            }
+            $content = (string) file_get_contents($envFile);
+            if (preg_match('/^BACKUP_KEY=(.+)$/m', $content, $m) && trim($m[1]) !== '' && !in_array('--force', $flags, true)) {
+                out('BACKUP_KEY ya existe. Use --force para reemplazarla (las copias anteriores solo se restauran con la clave anterior).');
+                break;
+            }
+            $key = App\Services\Backup\BackupCipher::generateKey();
+            $content = preg_match('/^BACKUP_KEY=.*$/m', $content)
+                ? (string) preg_replace('/^BACKUP_KEY=.*$/m', 'BACKUP_KEY=' . $key, $content)
+                : rtrim($content) . PHP_EOL . 'BACKUP_KEY=' . $key . PHP_EOL;
+            file_put_contents($envFile, $content);
+            out('BACKUP_KEY generada en backend/.env. Guarda una copia de esta clave FUERA del servidor (gestor de contraseñas):');
+            out('  ' . $key);
+            out('Sin ella no se pueden restaurar las copias.');
+            break;
+
+        case 'backup:crear':
+            $r = (new App\Services\Backup\BackupService())->create();
+            out(sprintf('Copia creada: %s (%s, %.1f MB, %d tablas, %d filas).', $r['archivo'], $r['cifrado'] ? 'cifrada' : 'SIN CIFRAR', $r['bytes'] / 1048576, $r['tablas'], $r['filas']));
+            out('SHA-256: ' . $r['sha256']);
+            foreach ($r['borradas'] as $old) {
+                out("  borrada copia antigua {$old}");
+            }
+            if (!$r['cifrado']) {
+                out('Aviso: sin BACKUP_KEY la copia no está cifrada (solo se permite en local).');
+            }
+            break;
+
+        case 'backup:listar':
+            $svc = new App\Services\Backup\BackupService();
+            $files = $svc->list();
+            out($files === [] ? 'No hay copias en ' . $svc->directory() . '.' : 'Copias en ' . $svc->directory() . ':');
+            foreach ($files as $f) {
+                out(sprintf('  %s  %.1f MB  %s', basename($f), filesize($f) / 1048576, gmdate('Y-m-d H:i', (int) filemtime($f)) . ' UTC'));
+            }
+            break;
+
+        case 'backup:verificar':
+            $r = (new App\Services\Backup\BackupService())->verify($flags[0] ?? null);
+            out(sprintf('Restauración de prueba de %s en `%s`: %d tablas, %d filas, %.2f s.', basename($r['archivo']), $r['base'], $r['tablas'], $r['filas'], $r['segundos']));
+            foreach ($r['diferencias'] as $t => $d) {
+                out("  ✖ {$t}: esperado {$d['esperado']}, restaurado {$d['restaurado']}");
+            }
+            out($r['ok'] ? 'Copia verificada: se puede restaurar.' : 'La copia NO coincide con su manifiesto.');
+            App\Services\Audit::record('sistema.backup_verificado', $r['ok'] ? 'exito' : 'error', null, null, null, null, null, ['archivo' => basename($r['archivo']), 'filas' => $r['filas']]);
+            if (!$r['ok']) {
+                exit(1);
+            }
+            break;
+
+        case 'backup:restaurar':
+            $file = $flags[0] ?? '';
+            $opts = [];
+            foreach (array_slice($flags, 1) as $f) {
+                if (preg_match('/^--([a-z-]+)(?:=(.*))?$/', $f, $m)) {
+                    $opts[$m[1]] = $m[2] ?? true;
+                }
+            }
+            if ($file === '' || str_starts_with($file, '--')) {
+                fail('Uso: php bin/console backup:restaurar <archivo> --base=<nombre> [--sobrescribir]');
+            }
+            $svc = new App\Services\Backup\BackupService();
+            if (isset($opts['solo-descifrar'])) {
+                $dest = (string) $opts['solo-descifrar'];
+                if ($dest === '' || $dest === '1' || file_exists($dest)) {
+                    fail('Indica un archivo de destino que no exista: --solo-descifrar=/ruta/copia.sql.gz');
+                }
+                $plain = $svc->plainCopy($file);
+                $plain['temp'] ? rename($plain['path'], $dest) : copy($plain['path'], $dest);
+                @chmod($dest, 0600);
+                out("Copia descifrada en {$dest}. Restaurar: gunzip -c {$dest} | mysql -u USUARIO -p BASE. Borra el archivo al terminar.");
+                break;
+            }
+            $target = (string) ($opts['base'] ?? '');
+            $main = (string) Config::get('database.database');
+            if ($target === '' || $target === '1') {
+                fail('Indica la base de destino con --base=<nombre>.');
+            }
+            if ($target === $main && !isset($opts['sobrescribir'])) {
+                fail("Restaurar sobre la base principal ({$main}) BORRA sus datos actuales. Si es lo que quieres, agrega --sobrescribir (y detén la API y los cron antes).");
+            }
+            $r = $svc->restore($file, $target);
+            out(sprintf('Restaurada en `%s`: %d tablas, %d filas.', $target, count($r['manifiesto']), array_sum($r['manifiesto'])));
+            App\Services\Audit::record('sistema.backup_restaurado', 'exito', null, null, null, null, null, ['archivo' => basename($file), 'base' => $target]);
             break;
 
         default:

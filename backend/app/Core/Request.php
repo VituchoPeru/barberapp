@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Core;
 
 use App\Core\Exceptions\HttpException;
+use App\Helpers\TrustedProxies;
 
 /**
  * Petición HTTP inmutable en sus datos de entrada; los atributos (parámetros de ruta,
@@ -194,10 +195,44 @@ final class Request
         return in_array($this->method, ['GET', 'HEAD', 'OPTIONS'], true);
     }
 
+    /** IP del cliente. X-Forwarded-For solo cuenta si la conexión viene de un proxy de confianza (TRUSTED_PROXIES). */
     public function ip(): string
     {
-        // Solo se confía en REMOTE_ADDR. Los proxies de confianza se configurarán en despliegue.
-        return (string) ($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
+        $remote = (string) ($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
+        return TrustedProxies::clientIp($remote, $this->header('x-forwarded-for'));
+    }
+
+    /** true si la petición llegó por HTTPS (directo o informado por un proxy de confianza). */
+    public function isSecure(): bool
+    {
+        $https = strtolower((string) ($this->server['HTTPS'] ?? ''));
+        if ($https !== '' && $https !== 'off') {
+            return true;
+        }
+        if ((string) ($this->server['SERVER_PORT'] ?? '') === '443' && $https === '') {
+            return true;
+        }
+        $remote = (string) ($this->server['REMOTE_ADDR'] ?? '');
+        if ($remote !== '' && TrustedProxies::isTrusted($remote)) {
+            $proto = strtolower(trim(explode(',', (string) $this->header('x-forwarded-proto', ''))[0]));
+            return $proto === 'https';
+        }
+        return false;
+    }
+
+    /** Host pedido (sin puerto), para redirigir a HTTPS. Solo letras, números, puntos y guiones. */
+    public function host(): ?string
+    {
+        $host = strtolower((string) ($this->header('host') ?? ($this->server['SERVER_NAME'] ?? '')));
+        $host = preg_replace('/:\d+$/', '', $host) ?? '';
+        return preg_match('/^[a-z0-9.-]{1,253}$/', $host) ? $host : null;
+    }
+
+    /** Ruta original con su query (REQUEST_URI), para redirecciones. */
+    public function uri(): string
+    {
+        $uri = (string) ($this->server['REQUEST_URI'] ?? $this->path);
+        return str_starts_with($uri, '/') ? $uri : '/';
     }
 
     public function userAgent(): string

@@ -672,6 +672,29 @@ Sesiones autenticadas; revocables individualmente
 
 **Claves foráneas:** (tenant_id) → `tenants`(id); (usuario_id) → `usuarios`(id)
 
+## `solicitudes_datos`
+
+Derechos ARCO (Ley 29733): acceso, rectificación, cancelación y oposición
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `codigo` | char(12) | no |  | UNI | Número de solicitud que ve la persona |
+| `usuario_id` | bigint unsigned | sí |  | MUL | NULL si la cuenta ya no existe |
+| `email_hash` | char(64) | no |  |  | SHA-256 del correo al crear la solicitud (prueba de atención sin guardar el correo) |
+| `tipo` | enum('acceso','rectificacion','cancelacion','oposicion') | no |  |  |  |
+| `origen` | enum('autoservicio','formulario') | no |  |  | autoservicio = resuelta por la app al instante |
+| `estado` | enum('recibida','en_proceso','atendida','rechazada') | no | `recibida` | MUL |  |
+| `detalle` | varchar(2000) | sí |  |  | Lo que pide la persona (formulario) |
+| `respuesta` | varchar(2000) | sí |  |  |  |
+| `plazo_vence_en` | date | no |  |  | Fecha límite de respuesta (días hábiles según el tipo) |
+| `atendida_en` | datetime | sí |  |  |  |
+| `atendida_por` | bigint unsigned | sí |  | MUL |  |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+| `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (atendida_por) → `usuarios`(id); (usuario_id) → `usuarios`(id)
+
 ## `sucursales`
 
 | Columna | Tipo | Nulo | Defecto | Clave | Descripción |
@@ -848,7 +871,7 @@ Tokens de un solo uso enviados por correo
 |---|---|---|---|---|---|
 | `id` | bigint unsigned auto_increment | no |  | PRI |  |
 | `usuario_id` | bigint unsigned | no |  | MUL |  |
-| `tipo` | enum('verificar_email','restablecer_password') | no |  |  |  |
+| `tipo` | enum('verificar_email','restablecer_password','cambiar_email') | no |  |  |  |
 | `token_hash` | char(64) | no |  | UNI |  |
 | `email` | varchar(190) | no |  |  | Correo al que se envió; si el usuario cambia de correo el token deja de valer |
 | `expira_en` | datetime | no |  | MUL |  |
@@ -878,7 +901,9 @@ Cuenta única por persona; los roles por barbería están en membresias
 | `email_verificado_en` | datetime | sí |  |  |  |
 | `ultimo_login_en` | datetime | sí |  |  |  |
 | `acepto_terminos_en` | datetime | sí |  |  |  |
+| `terminos_version` | varchar(20) | sí |  |  | Versión de los términos de uso aceptada |
 | `acepto_privacidad_en` | datetime | sí |  |  | Consentimiento Ley 29733 |
+| `privacidad_version` | varchar(20) | sí |  |  | Versión de la política de privacidad aceptada |
 | `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
 | `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
 | `deleted_at` | datetime | sí |  |  |  |

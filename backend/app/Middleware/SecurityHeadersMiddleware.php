@@ -17,7 +17,10 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
         $response->setHeader('X-Content-Type-Options', 'nosniff');
         $response->setHeader('X-Frame-Options', 'DENY');
         $response->setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+        $response->setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+        $response->setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()');
+        $response->setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+        $response->setHeader('X-Permitted-Cross-Domain-Policies', 'none');
         // Las respuestas pueden declarar su propia caché (p. ej. imágenes QR públicas).
         if ($response->header('Cache-Control') === null) {
             $response->setHeader('Cache-Control', 'no-store');

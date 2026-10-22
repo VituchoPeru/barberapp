@@ -25,6 +25,7 @@ const MODULES = [
   ['avisos', 'Avisos', 'bell', 'plataforma.plantillas.gestionar'],
   ['reportes', 'Reportes', 'download', 'plataforma.reportes.ver'],
   ['auditoria', 'Auditoría', 'check', 'plataforma.auditoria.ver'],
+  ['privacidad', 'Privacidad', 'user', 'plataforma.privacidad.gestionar'],
   ['configuracion', 'Configuración', 'settings', 'plataforma.configuracion.gestionar'],
 ];
 

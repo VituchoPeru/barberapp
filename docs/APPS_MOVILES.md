@@ -129,8 +129,8 @@ Riesgo que queda: Apple puede pedir que la gestión del plan esté disponible po
 
 ### Antes de enviar a las tiendas (bloqueante)
 
-- **Eliminar la cuenta desde la app** (Apple 5.1.1(v)) y un enlace web para pedirlo (Google Play). Va con los derechos sobre datos personales de la **Fase 13**.
-- **Política de privacidad y términos** publicados (Fase 13) y enlazados en la ficha de la tienda.
+- ✅ **Eliminar la cuenta desde la app** (Apple 5.1.1(v)): *Mi cuenta → Eliminar mi cuenta* (Fase 13). Enlace web para Google Play: `https://<tu-dominio>/pages/legal/eliminar-cuenta.html`.
+- ✅ **Política de privacidad y términos** en `pages/legal/` (Fase 13). Falta: completar los datos del titular en el panel, revisión legal y enlazar `pages/legal/privacidad.html` en la ficha de cada tienda. Ver [SEGURIDAD.md](SEGURIDAD.md).
 - Formulario **Seguridad de los datos** de Google Play y **Privacidad de la app** de Apple con los datos de la tabla anterior.
 - Cuenta de demostración para los revisores (propietario y cliente) con datos de prueba.
 

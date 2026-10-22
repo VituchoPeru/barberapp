@@ -38,7 +38,8 @@ abstract class ApiTestCase extends DatabaseTestCase
         $router = new Router();
         (require BARBERAPP_BASE . '/routes/api.php')($router);
         $this->app = new Application($router, [
-            RequestIdMiddleware::class, SecurityHeadersMiddleware::class, CorsMiddleware::class, JsonBodyMiddleware::class,
+            RequestIdMiddleware::class, SecurityHeadersMiddleware::class, CorsMiddleware::class, \App\Middleware\HttpsMiddleware::class,
+            JsonBodyMiddleware::class, \App\Middleware\WriteRateLimitMiddleware::class,
         ]);
         Mailer::reset();
         Gate::flush();

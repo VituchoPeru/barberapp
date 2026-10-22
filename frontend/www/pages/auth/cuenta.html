@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="../../css/base.css">
   <link rel="stylesheet" href="../../css/auth.css">
   <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/legal.css">
 </head>
 <body class="app">
   <main class="auth">
@@ -36,6 +37,57 @@
           <p class="alert" data-type="info">Confirma tu correo para activar todas las funciones. Revisa tu bandeja de entrada.</p>
           <button class="btn btn--ghost btn--sm" type="button" data-resend data-loading="Enviando…">Reenviar enlace</button>
         </div>
+
+        <details class="account__edit">
+          <summary>Editar mis datos</summary>
+          <form class="form" data-form="perfil" novalidate>
+            <p class="alert" data-form-alert role="alert" hidden></p>
+            <div class="field"><label for="p-nombres">Nombres</label>
+              <input id="p-nombres" name="nombres" autocomplete="given-name" maxlength="100" required>
+              <p class="field__error" data-error-for="nombres"></p></div>
+            <div class="field"><label for="p-apellidos">Apellidos</label>
+              <input id="p-apellidos" name="apellidos" autocomplete="family-name" maxlength="100">
+              <p class="field__error" data-error-for="apellidos"></p></div>
+            <div class="field"><label for="p-telefono">Teléfono (opcional)</label>
+              <input id="p-telefono" name="telefono" type="tel" autocomplete="tel" inputmode="tel" maxlength="20">
+              <p class="field__error" data-error-for="telefono"></p></div>
+            <button class="btn" type="submit" data-loading="Guardando…">Guardar</button>
+          </form>
+        </details>
+
+        <details class="account__edit">
+          <summary>Cambiar correo</summary>
+          <form class="form" data-form="email" novalidate>
+            <p class="alert" data-form-alert role="alert" hidden></p>
+            <p class="hint">Te enviaremos un enlace al correo nuevo. Tu correo cambiará cuando lo confirmes.</p>
+            <div class="field"><label for="e-email">Correo nuevo</label>
+              <input id="e-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="190" required>
+              <p class="field__error" data-error-for="email"></p></div>
+            <div class="field"><label for="e-password">Tu contraseña</label>
+              <input id="e-password" name="password" type="password" autocomplete="current-password" required>
+              <p class="field__error" data-error-for="password"></p></div>
+            <button class="btn" type="submit" data-loading="Enviando…">Enviar enlace</button>
+          </form>
+        </details>
+
+        <details class="account__edit">
+          <summary>Cambiar contraseña</summary>
+          <form class="form" data-form="password" novalidate>
+            <p class="alert" data-form-alert role="alert" hidden></p>
+            <div class="field"><label for="c-actual">Contraseña actual</label>
+              <input id="c-actual" name="password_actual" type="password" autocomplete="current-password" required>
+              <p class="field__error" data-error-for="password_actual"></p></div>
+            <div class="field"><label for="c-nueva">Contraseña nueva</label>
+              <div class="password">
+                <input id="c-nueva" name="password_nueva" type="password" autocomplete="new-password" minlength="8" required>
+                <button type="button" data-toggle-password aria-controls="c-nueva" aria-pressed="false">Mostrar</button>
+              </div>
+              <p class="hint">Mínimo 8 caracteres, con letras y números.</p>
+              <p class="field__error" data-error-for="password_nueva"></p></div>
+            <button class="btn" type="submit" data-loading="Guardando…">Cambiar contraseña</button>
+            <p class="hint">Cerraremos tus sesiones en otros dispositivos.</p>
+          </form>
+        </details>
       </section>
 
       <section class="panel" aria-labelledby="barberias-titulo">
@@ -56,6 +108,60 @@
       <section class="panel" aria-labelledby="sesiones-titulo">
         <h2 id="sesiones-titulo">Sesiones abiertas</h2>
         <ul class="list" data-sessions><li class="skeleton" aria-hidden="true"></li></ul>
+        <button class="btn btn--ghost btn--sm" type="button" data-close-others data-loading="Cerrando…" hidden>Cerrar las demás sesiones</button>
+      </section>
+
+      <section class="panel" id="privacidad" aria-labelledby="privacidad-titulo">
+        <h2 id="privacidad-titulo">Privacidad y mis datos</h2>
+        <p class="hint">Tus derechos según la Ley N.º 29733. Lee la <a href="../legal/privacidad.html">política de privacidad</a> y los <a href="../legal/terminos.html">términos de uso</a>.</p>
+
+        <h3 class="account__sub">Descargar mis datos</h3>
+        <form class="form" data-form="exportar" novalidate>
+          <p class="alert" data-form-alert role="alert" hidden></p>
+          <p class="hint">Una copia de tu cuenta, citas, avisos y sesiones en un archivo JSON.</p>
+          <div class="field"><label for="x-password">Tu contraseña</label>
+            <input id="x-password" name="password" type="password" autocomplete="current-password" required>
+            <p class="field__error" data-error-for="password"></p></div>
+          <button class="btn btn--ghost" type="submit" data-loading="Preparando…">Descargar mis datos</button>
+        </form>
+
+        <h3 class="account__sub">Mis solicitudes</h3>
+        <ul class="list" data-requests><li class="skeleton" aria-hidden="true"></li></ul>
+        <details class="account__edit">
+          <summary>Hacer una solicitud sobre mis datos</summary>
+          <form class="form" data-form="solicitud" novalidate>
+            <p class="alert" data-form-alert role="alert" hidden></p>
+            <div class="field"><label for="s-tipo">Qué necesitas</label>
+              <select id="s-tipo" name="tipo" required>
+                <option value="">Elige una opción</option>
+                <option value="acceso">Acceso: saber qué datos tienen y cómo los usan</option>
+                <option value="rectificacion">Rectificación: corregir un dato</option>
+                <option value="oposicion">Oposición: que dejen de usar mis datos para algo</option>
+                <option value="cancelacion">Cancelación: borrar un dato concreto</option>
+              </select>
+              <p class="field__error" data-error-for="tipo"></p></div>
+            <div class="field"><label for="s-detalle">Cuéntanos el detalle</label>
+              <textarea id="s-detalle" name="detalle" rows="4" maxlength="2000" required></textarea>
+              <p class="field__error" data-error-for="detalle"></p></div>
+            <button class="btn" type="submit" data-loading="Enviando…">Enviar solicitud</button>
+            <p class="hint">Respondemos en un máximo de 20 días hábiles (acceso) o 10 días hábiles (los demás).</p>
+          </form>
+        </details>
+      </section>
+
+      <section class="panel panel--danger" id="eliminar" aria-labelledby="eliminar-titulo">
+        <h2 id="eliminar-titulo">Eliminar mi cuenta</h2>
+        <div data-deletion><div class="skeleton" aria-hidden="true"></div></div>
+        <form class="form" data-form="eliminar" novalidate hidden>
+          <p class="alert" data-form-alert role="alert" hidden></p>
+          <div class="field"><label for="d-password">Tu contraseña</label>
+            <input id="d-password" name="password" type="password" autocomplete="current-password" required>
+            <p class="field__error" data-error-for="password"></p></div>
+          <div class="field"><label for="d-confirmacion">Escribe ELIMINAR para confirmar</label>
+            <input id="d-confirmacion" name="confirmacion" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" required>
+            <p class="field__error" data-error-for="confirmacion"></p></div>
+          <button class="btn btn--danger btn--block" type="submit" data-loading="Eliminando…">Eliminar mi cuenta para siempre</button>
+        </form>
       </section>
 
       <p class="hint" data-install-link hidden><a href="../instalar.html">Instalar BARBERAPP en este dispositivo</a></p>
@@ -65,7 +171,27 @@
         <button class="btn btn--danger btn--block" type="button" data-logout-all data-loading="Cerrando…">Cerrar sesión en todos mis dispositivos</button>
       </div>
     </div>
+    <nav class="legal-links" aria-label="Textos legales">
+      <a href="../legal/privacidad.html">Privacidad</a>
+      <a href="../legal/terminos.html">Términos</a>
+    </nav>
   </main>
+
+  <dialog class="sheet sheet--confirm" data-legal-dialog aria-labelledby="legal-titulo">
+    <div class="sheet__head"><h2 id="legal-titulo">Actualizamos nuestros textos</h2></div>
+    <form class="sheet__body form" data-form="legal" novalidate>
+      <p class="alert" data-form-alert role="alert" hidden></p>
+      <p>Para seguir usando BARBERAPP, revisa y acepta la versión vigente:</p>
+      <ul class="legal-pendientes">
+        <li><a href="../legal/terminos.html" target="_blank" rel="noopener">Términos de uso</a></li>
+        <li><a href="../legal/privacidad.html" target="_blank" rel="noopener">Política de privacidad</a></li>
+      </ul>
+      <label class="check"><input type="checkbox" name="acepta" required> Leí y acepto los términos de uso y la política de privacidad.</label>
+      <p class="field__error" data-error-for="acepta"></p>
+      <button class="btn btn--block" type="submit" data-loading="Guardando…">Aceptar y continuar</button>
+      <p class="hint">Si no estás de acuerdo, puedes cerrar sesión o eliminar tu cuenta desde esta página.</p>
+    </form>
+  </dialog>
   <script type="module" src="../../js/pages/cuenta.js"></script>
   <script type="module" src="../../js/shell.js"></script>
 </body>

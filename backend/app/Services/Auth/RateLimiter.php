@@ -30,7 +30,9 @@ final class RateLimiter
     /** @return array{0:int, 1:int} [máximo, ventana en segundos] */
     private function limit(string $ambito): array
     {
-        $limit = Config::get('auth.limits.' . $ambito);
+        // Límites de acceso (auth.limits), de privacidad (privacy.limits, Fase 13) y el general de escrituras.
+        $limit = Config::get('auth.limits.' . $ambito) ?? Config::get('privacy.limits.' . $ambito)
+            ?? ($ambito === 'api_escritura_ip' ? Config::get('security.write_limit') : null);
         if (!is_array($limit) || count($limit) !== 2) {
             throw new \InvalidArgumentException("Límite no configurado: {$ambito}");
         }
