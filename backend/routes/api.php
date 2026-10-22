@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Controllers\AgendaBlocksController;
+use App\Controllers\AttendanceController;
 use App\Controllers\AuthController;
 use App\Controllers\BarberPanelController;
 use App\Controllers\BarbersController;
@@ -14,8 +15,10 @@ use App\Controllers\FavoritesController;
 use App\Controllers\HealthController;
 use App\Controllers\MarketplaceController;
 use App\Controllers\MeController;
+use App\Controllers\NotificationsController;
 use App\Controllers\PanelAgendaController;
 use App\Controllers\PanelClientsController;
+use App\Controllers\PanelNotificationsController;
 use App\Controllers\PanelReportsController;
 use App\Controllers\PublicProfileController;
 use App\Controllers\ServicesController;
@@ -63,7 +66,23 @@ return static function (Router $router): void {
             $r->get('/favoritos', [FavoritesController::class, 'index'], [new PermissionMiddleware('cliente.favoritos')], 'me.favorites');
             $r->put('/favoritos/{slug:[a-z0-9-]{1,80}}', [FavoritesController::class, 'add'], [new PermissionMiddleware('cliente.favoritos')], 'me.favorites.add');
             $r->delete('/favoritos/{slug:[a-z0-9-]{1,80}}', [FavoritesController::class, 'remove'], [new PermissionMiddleware('cliente.favoritos')], 'me.favorites.remove');
+
+            // Avisos, preferencias y dispositivos push (Fase 8). Toda cuenta (cliente o personal).
+            $r->get('/notificaciones', [NotificationsController::class, 'index'], [], 'me.notifications');
+            $r->get('/notificaciones/resumen', [NotificationsController::class, 'summary'], [], 'me.notifications.summary');
+            $r->post('/notificaciones/leer-todas', [NotificationsController::class, 'readAll'], [], 'me.notifications.read_all');
+            $r->post('/notificaciones/{id:\d+}/leer', [NotificationsController::class, 'read'], [], 'me.notifications.read');
+            $r->get('/preferencias-notificacion', [NotificationsController::class, 'preferences'], [], 'me.notification_prefs');
+            $r->put('/preferencias-notificacion', [NotificationsController::class, 'updatePreferences'], [], 'me.notification_prefs.update');
+            $r->get('/dispositivos', [NotificationsController::class, 'devices'], [], 'me.devices');
+            $r->post('/dispositivos', [NotificationsController::class, 'registerDevice'], [], 'me.devices.register');
+            $r->delete('/dispositivos', [NotificationsController::class, 'unregisterDevice'], [], 'me.devices.unregister');
+            $r->delete('/dispositivos/{id:\d+}', [NotificationsController::class, 'deactivateDevice'], [], 'me.devices.deactivate');
         }, [new AuthMiddleware()]);
+
+        // ---------------- Confirmar asistencia desde el recordatorio (Fase 8): enlace firmado, sin sesión.
+        $r->post('/asistencia/consultar', [AttendanceController::class, 'show'], [], 'attendance.show');
+        $r->post('/asistencia/confirmar', [AttendanceController::class, 'confirm'], [], 'attendance.confirm');
 
         // ---------------- Marketplace público (Fase 3). Sin sesión obligatoria; con sesión marca favoritos.
         $r->group('/marketplace', static function (Router $r): void {
@@ -180,6 +199,12 @@ return static function (Router $router): void {
             $r->get('/clientes/{id:\d+}', [PanelClientsController::class, 'show'], [$clientes], 'panel.clients.show');
             $r->get('/clientes/{id:\d+}/reservas', [PanelClientsController::class, 'bookings'], [$clientes], 'panel.clients.bookings');
             $r->put('/clientes/{id:\d+}', [PanelClientsController::class, 'update'], [$clientes, new PermissionMiddleware('clientes.notas')], 'panel.clients.update');
+
+            // ---------- Avisos y recordatorios (Fase 8)
+            $verAvisos = PermissionMiddleware::any('notificaciones.gestionar', 'reportes.operativos');
+            $r->get('/notificaciones/reglas', [PanelNotificationsController::class, 'rules'], [$verAvisos], 'panel.notifications.rules');
+            $r->put('/notificaciones/reglas', [PanelNotificationsController::class, 'updateRules'], [new PermissionMiddleware('notificaciones.gestionar')], 'panel.notifications.rules.update');
+            $r->get('/notificaciones/metricas', [PanelNotificationsController::class, 'metrics'], [$verAvisos], 'panel.notifications.metrics');
 
             $negocio = new PermissionMiddleware('negocio.perfil.gestionar');
             $r->get('/negocio', [BusinessController::class, 'show'], [$negocio], 'panel.business');

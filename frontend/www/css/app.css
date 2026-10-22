@@ -429,3 +429,41 @@ dialog.lightbox .icon-btn { position: fixed; top: 12px; right: 12px; background:
 .booking__meta .icon { width: 14px; height: 14px; }
 .booking__price { font-weight: 800; color: var(--accent-strong); white-space: nowrap; }
 @media (max-width: 420px) { .booking { grid-template-columns: auto minmax(0, 1fr); } .booking__price { display: none; } }
+
+/* ---------- Avisos (Fase 8): campana, bandeja y confirmación de asistencia ---------- */
+.bell { position: relative; margin-left: auto; }
+.topbar__spacer + .bell, .topbar__title + .bell { margin-left: 0; }
+.bell__badge {
+  position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px;
+  display: grid; place-items: center; font-size: .68rem; font-weight: 800; line-height: 1;
+  color: var(--color-negro, #111111); background: var(--accent); border-radius: 999px; border: 2px solid #111111;
+}
+.avisos { display: grid; gap: var(--space-2); margin: var(--space-4) 0 0; padding: 0; list-style: none; }
+.aviso {
+  display: grid; grid-template-columns: 40px 1fr; gap: var(--space-3); align-items: start;
+  padding: var(--space-4); background: var(--surface); border: 1px solid #26262A; border-radius: var(--radius-md);
+}
+.aviso--nuevo { border-color: rgba(201, 164, 92, .55); background: linear-gradient(0deg, rgba(201, 164, 92, .06), rgba(201, 164, 92, .06)), var(--surface); }
+.aviso__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: var(--accent); background: rgba(201, 164, 92, .12); }
+.aviso__body { min-width: 0; }
+.aviso__title { margin: 0; font-weight: 700; }
+.aviso--nuevo .aviso__title::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 8px; vertical-align: middle; border-radius: 50%; background: var(--accent); }
+.aviso__text { margin: 4px 0 0; color: var(--text-muted); overflow-wrap: anywhere; }
+.aviso__meta { margin: 6px 0 0; font-size: .78rem; color: var(--text-muted); }
+.aviso__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.aviso__actions:empty { display: none; }
+.sk--aviso { height: 112px; border-radius: var(--radius-md); }
+.avisos__pie { margin: var(--space-6) 0; text-align: center; }
+.asistencia__cita { display: grid; gap: var(--space-2); padding: var(--space-4); margin-bottom: var(--space-4); background: #161618; border: 1px solid #26262A; border-radius: var(--radius-md); }
+.asistencia__cuando { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--accent-strong); }
+.asistencia__datos { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; color: var(--text-muted); }
+.asistencia__datos li { display: flex; gap: var(--space-2); align-items: flex-start; }
+.asistencia .btn--block + .btn--block, .asistencia .hint + .btn--block { margin-top: var(--space-3); }
+.asistencia .hint { margin-top: var(--space-3); text-align: center; }
+.prefs { width: 100%; border-collapse: collapse; }
+.prefs th, .prefs td { padding: var(--space-3) var(--space-2); text-align: left; border-bottom: 1px solid #26262A; }
+.prefs th[scope="col"] { font-size: .78rem; color: var(--text-muted); text-align: center; }
+.prefs td { text-align: center; }
+.prefs td:first-child, .prefs th:first-child { text-align: left; }
+.prefs .switch { justify-content: center; }
+.account__sub { margin: var(--space-6) 0 var(--space-3); font-size: .95rem; }

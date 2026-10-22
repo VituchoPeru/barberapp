@@ -187,7 +187,7 @@ final class DemoSeeder
             $this->exec("INSERT INTO cliente_tenants (tenant_id, cliente_id, origen) VALUES (?, ?, 'enlace')", [$centro, $c2]);
             $this->exec("INSERT INTO cliente_tenants (tenant_id, cliente_id, origen, notas_internas) VALUES (?, ?, 'panel', 'Cliente registrado en mostrador (demo)')", [$centro, $cMostrador]);
             $this->exec('INSERT INTO favoritos (cliente_id, tenant_id) VALUES (?, ?)', [$c1, $centro]);
-            foreach (['confirmacion', 'recordatorio_24h', 'recordatorio_2h', 'cancelacion', 'reprogramacion'] as $tipo) {
+            foreach (['recordatorios', 'cambios'] as $tipo) {
                 $this->exec("INSERT INTO preferencias_notificacion (usuario_id, tenant_id, canal, tipo, habilitado) VALUES (?, NULL, 'push', ?, 1)", [$clienteUser, $tipo]);
             }
             $this->exec(
@@ -222,13 +222,14 @@ final class DemoSeeder
                 [$centro, $norte]
             );
 
-            // Recordatorio programado (cola de notificaciones de la Fase 8)
-            $inicioR1 = $this->db->query('SELECT inicio_utc FROM reservas WHERE id = ' . (int) $r1)->fetchColumn();
-            $this->exec(
-                "INSERT INTO notificaciones (tenant_id, usuario_id, reserva_id, canal, tipo, titulo, cuerpo, estado, programada_para_utc, dedupe_key)
-                 VALUES (?, ?, ?, 'push', 'recordatorio_24h', 'Tu cita es mañana', 'Recordatorio de demostración', 'programada', DATE_SUB(?, INTERVAL 24 HOUR), ?)",
-                [$centro, $clienteUser, $r1, $inicioR1, "reserva:{$r1}:recordatorio_24h:push"]
-            );
+            // Recordatorios de las citas demo con cliente con cuenta (cola de la Fase 8, reglas por defecto 24 h y 2 h).
+            // El worker (notificaciones:procesar) los envía a su hora; el push demo usa un token no válido para FCM.
+            foreach ([[$centro, $r1], [$centro, $r2]] as [$t, $rid]) {
+                $row = (new \App\Repositories\BookingRepository($t, $this->db))->find($rid);
+                if ($row !== null) {
+                    (new \App\Services\Notifications\NotificationCenter($t))->scheduleReminders($row);
+                }
+            }
 
             // Bloqueo de agenda: vacaciones aprobadas del barbero 2 dentro de 14 días
             $vac = (new DateTimeImmutable('now', new DateTimeZone(self::TZ)))->modify('+14 days')->setTime(0, 0);

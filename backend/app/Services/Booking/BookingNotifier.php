@@ -6,14 +6,18 @@ namespace App\Services\Booking;
 
 use App\Core\Database;
 use App\Helpers\Clock;
+use App\Services\Notifications\NotificationCenter;
 
 /**
- * Avisos de la Fase 5 en la bandeja interna (canal "interna", tabla notificaciones).
- * Los recordatorios programados y el envío por push o correo llegan con la Fase 8; aquí:
- *  - se avisa al cliente y al barbero cuando una cita se crea, se reprograma o se cancela;
- *  - al cancelar o reprogramar se anulan los recordatorios pendientes de esa cita
- *    (la Fase 8 programará los nuevos para la hora vigente).
- * Se escribe dentro de la transacción de la reserva: si la reserva falla, no queda aviso.
+ * Avisos de una cita (Fases 5 y 8). Se escribe dentro de la transacción de la reserva: si la
+ * reserva falla, no queda aviso.
+ *  - Bandeja de la app (canal "interna"): cliente y barbero, cuando la cita se crea, se
+ *    confirma, se reprograma o se cancela.
+ *  - Push y correo (Fase 8, NotificationCenter): al cliente cuando la reserva queda
+ *    registrada/confirmada o cuando la barbería la cancela o la cambia; al barbero, push con
+ *    el mismo texto de su bandeja.
+ *  - Recordatorios (Fase 8): se programan al crear y al reprogramar; al cancelar, reprogramar,
+ *    atender o marcar inasistencia se anulan los pendientes.
  */
 final class BookingNotifier
 {
@@ -25,8 +29,8 @@ final class BookingNotifier
     public function cancelPending(int $reservaId): int
     {
         $stmt = Database::connection()->prepare(
-            "UPDATE notificaciones SET estado = 'cancelada', ultimo_error = 'Cita cancelada o reprogramada'
-              WHERE tenant_id = ? AND reserva_id = ? AND estado IN ('programada', 'fallida')"
+            "UPDATE notificaciones SET estado = 'cancelada', ultimo_error = 'La cita cambió: el aviso ya no aplica', proximo_intento_utc = NULL
+              WHERE tenant_id = ? AND reserva_id = ? AND estado = 'programada'"
         );
         $stmt->execute([$this->tenantId, $reservaId]);
         return $stmt->rowCount();
@@ -59,17 +63,34 @@ final class BookingNotifier
             'asistencia_confirmada' => ['Asistencia confirmada', "{$cliente} confirmó que asistirá el {$cuando}. Código {$codigo}."],
         ];
 
+        $center = new NotificationCenter($this->tenantId);
         // Quien hizo el cambio no necesita aviso de su propia acción, salvo el comprobante del cliente.
         if ($r['cliente_usuario_id'] !== null && isset($paraCliente[$evento]) && ($actor !== 'cliente' || $evento === 'creada')) {
-            $this->insert((int) $r['cliente_usuario_id'], (int) $r['id'], "reserva_{$evento}", $paraCliente[$evento], "reserva:{$r['id']}:{$evento}:{$secuencia}:cliente");
+            $dedupe = "reserva:{$r['id']}:{$evento}:{$secuencia}:cliente";
+            $this->insert((int) $r['cliente_usuario_id'], (int) $r['id'], "reserva_{$evento}", $paraCliente[$evento], $dedupe, 'pages/cita.html?id=' . (int) $r['id']);
+            $codigo = [
+                'creada' => $r['estado'] === 'confirmada' ? 'reserva_confirmada' : 'reserva_recibida',
+                'confirmada' => 'reserva_confirmada',
+                'reprogramada' => 'reserva_modificada',
+                'cancelada' => 'reserva_cancelada',
+            ][$evento];
+            $motivo = $evento === 'cancelada' && !empty($r['motivo_cancelacion']) ? 'Motivo: ' . $r['motivo_cancelacion'] : '';
+            $center->clientEvent($r, $codigo, $dedupe, ['motivo' => $motivo]);
+        }
+        if (in_array($evento, ['creada', 'reprogramada'], true)) {
+            $center->scheduleReminders($r);
         }
         if ($r['barbero_usuario_id'] !== null && isset($paraBarbero[$evento])) {
-            $this->insert((int) $r['barbero_usuario_id'], (int) $r['id'], "reserva_{$evento}", $paraBarbero[$evento], "reserva:{$r['id']}:{$evento}:{$secuencia}:barbero");
+            $dedupe = "reserva:{$r['id']}:{$evento}:{$secuencia}:barbero";
+            $url = 'pages/barbero/index.html?cita=' . (int) $r['id'];
+            $this->insert((int) $r['barbero_usuario_id'], (int) $r['id'], "reserva_{$evento}", $paraBarbero[$evento], $dedupe, $url);
+            $center->staffPush((int) $r['barbero_usuario_id'], "reserva_{$evento}", $paraBarbero[$evento][0], $paraBarbero[$evento][1],
+                ['reserva_id' => (int) $r['id'], 'url' => $url], $dedupe);
         }
     }
 
     /** @param array{0:string, 1:string} $texto */
-    private function insert(int $usuarioId, int $reservaId, string $tipo, array $texto, string $dedupe): void
+    private function insert(int $usuarioId, int $reservaId, string $tipo, array $texto, string $dedupe, string $url): void
     {
         $now = Clock::nowSql();
         Database::connection()->prepare(
@@ -78,7 +99,7 @@ final class BookingNotifier
              ON DUPLICATE KEY UPDATE id = id"
         )->execute([
             $this->tenantId, $usuarioId, $reservaId, $tipo, $texto[0], $texto[1],
-            json_encode(['reserva_id' => $reservaId], JSON_UNESCAPED_UNICODE), $now, $now, substr($dedupe, 0, 191),
+            json_encode(['reserva_id' => $reservaId, 'url' => $url], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $now, $now, substr($dedupe, 0, 191),
         ]);
     }
 }

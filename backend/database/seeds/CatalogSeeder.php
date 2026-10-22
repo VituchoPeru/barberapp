@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeds;
 
+use App\Services\Notifications\Templates;
 use PDO;
 
 /**
@@ -55,6 +56,7 @@ final class CatalogSeeder
         'clientes.notas' => ['clientes', 'Registrar observaciones autorizadas'],
         'reportes.operativos' => ['reportes', 'Reportes operativos'],
         'reportes.financieros' => ['reportes', 'Reportes de ingresos'],
+        'notificaciones.gestionar' => ['notificaciones', 'Reglas de recordatorios y avisos a clientes'],
         // Cliente
         'cliente.reservar' => ['cliente', 'Crear reservas'],
         'cliente.reservas.gestionar' => ['cliente', 'Cancelar, reprogramar y confirmar asistencia'],
@@ -66,11 +68,11 @@ final class CatalogSeeder
         'superadmin' => ['plataforma.*'],
         'propietario' => [
             'negocio.*', 'sucursales.*', 'personal.*', 'barberos.*', 'servicios.*', 'horarios.gestionar',
-            'bloqueos.gestionar', 'politicas.*', 'reservas.*', 'clientes.*', 'reportes.*',
+            'bloqueos.gestionar', 'politicas.*', 'reservas.*', 'clientes.*', 'reportes.*', 'notificaciones.*',
         ],
         'administrador' => [
             'reservas.*', 'clientes.*', 'servicios.gestionar', 'horarios.gestionar', 'bloqueos.gestionar',
-            'reportes.operativos',
+            'reportes.operativos', 'notificaciones.gestionar',
         ],
         'barbero' => ['reservas.ver_propias', 'reservas.asistencia', 'bloqueos.solicitar', 'horarios.propios'],
         'cliente' => ['cliente.*'],
@@ -161,30 +163,17 @@ final class CatalogSeeder
 
     private function plantillas(): void
     {
-        $plantillas = [
-            ['reserva_confirmada', 'push', 'Reserva confirmada',
-                'Tu cita en {{barberia}} con {{barbero}} es el {{fecha}} a las {{hora}}. Código {{codigo}}.'],
-            ['recordatorio_24h', 'push', 'Tu cita es mañana',
-                'Te esperamos mañana {{fecha}} a las {{hora}} en {{barberia}}. ¿Confirmas tu asistencia?'],
-            ['recordatorio_2h', 'push', 'Tu cita es en 2 horas',
-                'Hoy a las {{hora}} en {{sucursal}} con {{barbero}}.'],
-            ['reserva_cancelada', 'push', 'Reserva cancelada',
-                'Tu cita del {{fecha}} a las {{hora}} en {{barberia}} fue cancelada.'],
-            ['reserva_reprogramada', 'push', 'Reserva reprogramada',
-                'Tu cita en {{barberia}} ahora es el {{fecha}} a las {{hora}}.'],
-            ['reserva_modificada', 'push', 'Tu cita fue actualizada',
-                '{{barberia}} actualizó tu cita: {{fecha}} a las {{hora}} con {{barbero}}.'],
-            ['reserva_confirmada', 'email', 'Confirmación de tu reserva en {{barberia}}',
-                "Hola {{cliente}},\n\nTu cita quedó registrada:\n- Fecha: {{fecha}}\n- Hora: {{hora}}\n- Barbero: {{barbero}}\n- Servicios: {{servicios}}\n- Código: {{codigo}}\n\nPuedes gestionarla desde la app BARBERAPP."],
-        ];
-        $vars = json_encode(['barberia', 'sucursal', 'barbero', 'cliente', 'fecha', 'hora', 'servicios', 'codigo']);
+        // Textos por defecto de la Fase 8 (los mismos que usa Templates si falta la fila).
+        $vars = json_encode(Templates::VARIABLES);
         $stmt = $this->db->prepare(
             "INSERT INTO plantillas_notificacion (tenant_id, codigo, canal, idioma, asunto, cuerpo, variables)
              VALUES (NULL, ?, ?, 'es-PE', ?, ?, ?)
              ON DUPLICATE KEY UPDATE id = id"
         );
-        foreach ($plantillas as [$codigo, $canal, $asunto, $cuerpo]) {
-            $stmt->execute([$codigo, $canal, $asunto, $cuerpo, $vars]);
+        foreach (Templates::DEFAULTS as $codigo => $canales) {
+            foreach ($canales as $canal => [$asunto, $cuerpo]) {
+                $stmt->execute([$codigo, $canal, $asunto, $cuerpo, $vars]);
+            }
         }
     }
 

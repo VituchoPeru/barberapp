@@ -6,11 +6,13 @@ namespace App\Services\Schedule;
 
 use App\Core\Database;
 use App\Helpers\Clock;
+use App\Services\Notifications\NotificationCenter;
 
 /**
  * Avisos internos de las solicitudes de ausencia (Fase 7). Mismo esquema que BookingNotifier:
  * notificaciones del canal "interna" con dedupe_key única (un reintento no duplica el aviso).
- * El envío por push o correo llega con la Fase 8, que leerá estas mismas filas.
+ * Fase 8: además de la bandeja, se programa un push con el mismo texto (si la persona tiene la
+ * app con avisos activados y no los desactivó en sus preferencias de "agenda").
  *  - Barbero pide una ausencia  → aviso a quienes pueden aprobarla (bloqueos.gestionar).
  *  - Se aprueba o rechaza       → aviso al barbero que la pidió.
  */
@@ -46,7 +48,9 @@ final class BlockNotifier
              ON DUPLICATE KEY UPDATE id = id"
         )->execute([
             $this->tenantId, $usuarioId, $tipo, $titulo, mb_substr($cuerpo, 0, 1000),
-            json_encode(['bloqueo_id' => $bloqueoId], JSON_UNESCAPED_UNICODE), $now, $now, substr($dedupe, 0, 191),
+            json_encode(['bloqueo_id' => $bloqueoId, 'url' => $url = ($tipo === 'bloqueo_solicitado' ? 'pages/panel/ausencias.html' : 'pages/barbero/ausencias.html')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            $now, $now, substr($dedupe, 0, 191),
         ]);
+        (new NotificationCenter($this->tenantId))->staffPush($usuarioId, $tipo, $titulo, mb_substr($cuerpo, 0, 1000), ['bloqueo_id' => $bloqueoId, 'url' => $url], $dedupe);
     }
 }

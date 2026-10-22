@@ -18,3 +18,10 @@ backend/storage/mail/*.eml
 
 # Imágenes subidas por las barberías (Fase 3)
 backend/public/media/tenants/
+
+# Avisos push en desarrollo y caché del token OAuth de FCM (Fase 8)
+backend/storage/push/*.log
+backend/storage/cache/*.json
+backend/storage/cache/*.lock
+# Cuentas de servicio de Firebase: nunca al repositorio
+*firebase-adminsdk*.json

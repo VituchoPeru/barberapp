@@ -19,6 +19,7 @@ final class Mailer
 {
     /** @var list<MailMessage> */
     private static array $sent = [];
+    private static ?string $lastError = null;
 
     /** Envía el correo. Devuelve false (y registra el error) si falla: el flujo que lo llama sigue. */
     public static function send(MailMessage $message): bool
@@ -26,6 +27,7 @@ final class Mailer
         $driver = (string) Config::get('mail.driver', 'log');
         $from = (string) Config::get('mail.from_address', 'no-reply@barberapp.pe');
         $fromName = (string) Config::get('mail.from_name', 'BARBERAPP');
+        self::$lastError = null;
         try {
             switch ($driver) {
                 case 'array':
@@ -43,6 +45,7 @@ final class Mailer
             Logger::info('Correo enviado', ['driver' => $driver, 'to_domain' => substr((string) strrchr($message->to, '@'), 1), 'subject' => $message->subject]);
             return true;
         } catch (Throwable $e) {
+            self::$lastError = mb_substr($e->getMessage(), 0, 500);
             Logger::error('No se pudo enviar correo', ['driver' => $driver, 'subject' => $message->subject, 'exception' => $e]);
             return false;
         }
@@ -59,6 +62,17 @@ final class Mailer
         if (file_put_contents($file, $message->toMime($from, $fromName)) === false) {
             throw new RuntimeException("No se pudo escribir {$file}");
         }
+    }
+
+    /** Motivo del último fallo de send() (null si el último envío funcionó). */
+    public static function lastError(): ?string
+    {
+        return self::$lastError;
+    }
+
+    public static function driver(): string
+    {
+        return (string) Config::get('mail.driver', 'log');
     }
 
     /** @return list<MailMessage> Solo driver array (pruebas). */

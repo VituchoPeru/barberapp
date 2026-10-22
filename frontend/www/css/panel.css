@@ -254,3 +254,12 @@ details.more-table summary { cursor: pointer; font-size: .82rem; font-weight: 60
 .ag-bar select { width: 100%; }
 /* .panel-page anulaba el margen lateral de .wrap: en móvil el contenido tocaba los bordes. */
 .wrap.panel-page { padding-left: var(--space-4); padding-right: var(--space-4); }
+
+/* ---------- Avisos y recordatorios (Fase 8) ---------- */
+.av-horas { display: grid; gap: var(--space-2); }
+.av-hora { display: flex; align-items: center; gap: var(--space-2); }
+.av-hora .input { width: 96px; min-height: 44px; padding: 0 var(--space-3); }
+.av-hora .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(201, 164, 92, .25); }
+.av-hora .icon-btn { color: var(--text-muted); }
+.av-sub { margin: var(--space-6) 0 var(--space-3); font-size: .95rem; }
+.grid-2 .av-sub { margin-top: 0; }

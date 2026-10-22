@@ -153,7 +153,9 @@ final class PanelAgendaTest extends PanelTestCase
         $res = $this->call('POST', "/panel/reservas/{$r2['id']}/confirmar", [], $h);
         $this->assertSame(200, $res->status(), $res->body());
         $this->assertSame('confirmada', $this->data($res)['estado']);
-        $this->assertSame(1, (int) $this->scalar("SELECT COUNT(*) FROM notificaciones WHERE reserva_id = ? AND tipo = 'reserva_confirmada' AND usuario_id = ?", [$r2['id'], $this->userId(self::CLIENTE2)]));
+        $this->assertSame(1, (int) $this->scalar("SELECT COUNT(*) FROM notificaciones WHERE reserva_id = ? AND tipo = 'reserva_confirmada' AND canal = 'interna' AND usuario_id = ?", [$r2['id'], $this->userId(self::CLIENTE2)]));
+        // Fase 8: además de la bandeja, el aviso sale por correo (Cliente Dos no tiene app con push).
+        $this->assertSame(1, (int) $this->scalar("SELECT COUNT(*) FROM notificaciones WHERE reserva_id = ? AND tipo = 'reserva_confirmada' AND canal = 'email' AND usuario_id = ?", [$r2['id'], $this->userId(self::CLIENTE2)]));
 
         $res = $this->call('POST', "/panel/reservas/{$r1['id']}/iniciar", [], $h);
         $this->assertSame(422, $res->status(), 'Muy temprano');
@@ -171,7 +173,9 @@ final class PanelAgendaTest extends PanelTestCase
         $this->assertSame('completada', $c['estado']);
         $this->assertContains('Atendida', array_column($c['historial'], 'texto'));
         $this->assertNotNull($this->scalar('SELECT ultima_visita_en FROM cliente_tenants WHERE tenant_id = ? AND cliente_id = ?', [$this->tenantId('demo-centro'), $r1['cliente_id']]));
-        $this->assertSame('cancelada', $this->scalar("SELECT estado FROM notificaciones WHERE reserva_id = ? AND tipo = 'recordatorio_24h'", [$r1['id']]), 'Recordatorios anulados');
+        // Recordatorios de la cita (Fase 8): los que seguían en cola quedan anulados.
+        $this->assertGreaterThan(0, (int) $this->scalar("SELECT COUNT(*) FROM notificaciones WHERE reserva_id = ? AND tipo = 'recordatorio' AND estado = 'cancelada'", [$r1['id']]), 'Recordatorios anulados');
+        $this->assertSame(0, (int) $this->scalar("SELECT COUNT(*) FROM notificaciones WHERE reserva_id = ? AND tipo = 'recordatorio' AND estado = 'programada'", [$r1['id']]));
 
         // La cita de las 11:00 (r2) aún no empieza: no se marca inasistencia.
         $this->assertSame(422, $this->call('POST', "/panel/reservas/{$r2['id']}/no-asistio", [], $h)->status());

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Avisos · BARBERAPP</title>
+</head>
+<body class="app">
+  <header class="topbar">
+    <a class="icon-btn" href="inicio.html" data-back aria-label="Volver" data-icon="back"></a>
+    <h1 class="topbar__title">Avisos</h1>
+    <button class="btn btn--ghost btn--sm" type="button" data-read-all hidden data-loading="Marcando…">Marcar todo como leído</button>
+  </header>
+  <main class="wrap" data-page aria-busy="true">
+    <p class="alert" data-notice role="status" aria-live="polite" hidden></p>
+    <div class="tabs" role="tablist" aria-label="Avisos">
+      <button type="button" role="tab" id="tab-todas" aria-controls="panel-avisos" aria-selected="true" data-filtro="">Todos</button>
+      <button type="button" role="tab" id="tab-nuevas" aria-controls="panel-avisos" aria-selected="false" data-filtro="1" tabindex="-1">Sin leer</button>
+    </div>
+    <section class="tabpanel" id="panel-avisos" role="tabpanel" aria-labelledby="tab-todas" tabindex="0">
+      <ul class="avisos" data-list aria-live="polite"></ul>
+      <div class="more" data-more hidden><button class="btn btn--ghost" type="button">Ver más</button></div>
+    </section>
+    <p class="hint avisos__pie">Te avisamos aquí, por notificación en la app y por correo según tus <a href="auth/cuenta.html#avisos">preferencias de avisos</a>.</p>
+  </main>
+  <script type="module" src="../js/pages/notificaciones.js"></script>
+</body>
+</html>
