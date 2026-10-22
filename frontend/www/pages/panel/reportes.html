@@ -25,10 +25,20 @@
     <p class="alert" data-notice role="status" hidden></p>
     <div class="panel-head">
       <div><h2>Reportes</h2><p>Calculados con tus reservas y cobros registrados. El importe previsto de las citas no se cuenta como ingreso.</p></div>
-      <div class="toolbar"><button class="btn btn--ghost btn--sm" type="button" data-csv><span data-icon="download"></span> Descargar CSV</button></div>
+      <details class="export-menu" data-export>
+        <summary class="btn btn--ghost btn--sm"><span data-icon="download"></span> Exportar</summary>
+        <div class="export-menu__list" role="group" aria-label="Formatos de exportación">
+          <button type="button" class="export-menu__item" data-dl="resumen:csv">Resumen <small>CSV</small></button>
+          <button type="button" class="export-menu__item" data-dl="resumen:xlsx">Resumen <small>Excel</small></button>
+          <button type="button" class="export-menu__item" data-dl="reservas:csv">Reservas una por una <small>CSV</small></button>
+          <button type="button" class="export-menu__item" data-dl="reservas:xlsx">Reservas una por una <small>Excel</small></button>
+          <button type="button" class="export-menu__item" data-print>Imprimir o guardar en PDF</button>
+        </div>
+      </details>
     </div>
+    <p class="print-only print-head" data-print-head></p>
     <form class="toolbar" data-filters>
-      <div class="field"><label for="f-rango">Periodo</label><select id="f-rango" data-rango><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="mes">Este mes</option><option value="custom">Personalizado</option></select></div>
+      <div class="field"><label for="f-rango">Periodo</label><select id="f-rango" data-rango><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="mes">Este mes</option><option value="mes-anterior">Mes anterior</option><option value="custom">Personalizado</option></select></div>
       <div class="field" data-custom hidden><label for="f-desde">Desde</label><input id="f-desde" type="date" data-desde></div>
       <div class="field" data-custom hidden><label for="f-hasta">Hasta</label><input id="f-hasta" type="date" data-hasta></div>
       <div class="field"><label for="f-sucursal">Sucursal</label><select id="f-sucursal" data-sucursal><option value="">Todas</option></select></div>
@@ -40,12 +50,15 @@
       <section class="card-box" aria-labelledby="h-dia" style="margin-top:16px"><h3 id="h-dia">Reservas por día</h3><p class="hint">Sin contar canceladas. Pasa el cursor o enfoca una barra para ver el detalle.</p><div data-by-day></div></section>
       <div class="grid-2" style="margin-top:16px">
         <section class="card-box" aria-labelledby="h-svc"><h3 id="h-svc">Servicios más solicitados</h3><ul class="hbars" data-services></ul></section>
-        <section class="card-box" aria-labelledby="h-occ"><h3 id="h-occ">Ocupación por barbero</h3><p class="hint">Minutos reservados ÷ jornada efectiva (sin descansos ni ausencias).</p><div data-occupancy></div></section>
+        <section class="card-box" aria-labelledby="h-conf"><h3 id="h-conf">Confirmación y asistencia</h3><div data-confirm></div></section>
       </div>
+      <section class="card-box" aria-labelledby="h-dem" style="margin-top:16px"><h3 id="h-dem">Demanda por día y hora</h3><p class="hint">Reservas no canceladas según su hora de inicio. Cuanto más intenso el color, más demanda.</p><div data-demand></div></section>
+      <section class="card-box" aria-labelledby="h-prod" style="margin-top:16px"><h3 id="h-prod">Productividad por barbero</h3><p class="hint">Ocupación = minutos reservados ÷ jornada efectiva (sin descansos ni ausencias).</p><div data-productivity></div></section>
       <div class="grid-2" style="margin-top:16px">
+        <section class="card-box" aria-labelledby="h-cli"><h3 id="h-cli">Clientes recurrentes</h3><div data-clients></div></section>
         <section class="card-box" aria-labelledby="h-can"><h3 id="h-can">Cancelaciones e inasistencias</h3><div data-cancel></div></section>
-        <section class="card-box" aria-labelledby="h-ing" data-income-box hidden><h3 id="h-ing">Ingresos registrados</h3><div data-income></div></section>
       </div>
+      <section class="card-box" aria-labelledby="h-ing" data-income-box hidden style="margin-top:16px"><h3 id="h-ing">Ingresos registrados</h3><div data-income></div></section>
       <section class="card-box" aria-labelledby="h-mes" style="margin-top:16px"><h3 id="h-mes">Evolución mensual (12 meses)</h3><div data-monthly></div></section>
     </div>
   </main>

@@ -15,17 +15,21 @@ use App\Repositories\BarberRepository;
 use App\Repositories\BranchRepository;
 use App\Repositories\ReportRepository;
 use App\Services\Booking\Availability;
+use App\Services\Reports\ReportAnalytics;
 use App\Services\Schedule\WorkingTime;
 use DateTimeImmutable;
 use DateTimeZone;
 
 /**
- * Dashboard y reportes operativos del panel (Fase 6). Todo se calcula desde datos reales:
+ * Dashboard y reportes operativos del panel (Fases 6 y 11). Todo se calcula desde datos reales:
  *   - reservas por estado y día (en la zona horaria de la sucursal o de la barbería);
  *   - ocupación = minutos reservados (pendiente, confirmada, atendida, no asistió) ÷ minutos de
  *     jornada efectiva (WorkingTime: jornada ∩ horario de la sede − descansos − bloqueos);
  *   - ingresos = SOLO cobros registrados (reserva_pagos), nunca el importe previsto de las citas,
  *     y solo para quien tiene reportes.financieros.
+ * Fase 11 agrega confirmación, demanda por día y hora, productividad por barbero, clientes
+ * recurrentes y el detalle previsto/cobrado/saldo de las citas atendidas (ReportAnalytics), y la
+ * exportación a CSV y Excel (ReportExport).
  */
 final class ReportService
 {
@@ -120,14 +124,23 @@ final class ReportService
 
     // ================================================================== reportes
 
-    /** @param array<string, mixed> $query desde, hasta, sucursal_id, barbero_id @return array<string, mixed> */
-    public function report(array $query): array
+    /**
+     * Filtros comunes de reportes y exportaciones: rango (por defecto los últimos 30 días),
+     * sucursal y barbero de esta barbería, con los límites del plan.
+     *
+     * @param array<string, mixed> $query
+     * @return array{desde:string, hasta:string, desdeUtc:string, hastaUtc:string, sucursalId:?int, barberoId:?int, branches:array<int, array<string, mixed>>, tz:DateTimeZone, avanzados:bool}
+     */
+    public function criteria(array $query): array
     {
         $q = Validator::validate($query, [
             'desde' => 'nullable|date', 'hasta' => 'nullable|date', 'sucursal_id' => 'nullable|integer|min:1', 'barbero_id' => 'nullable|integer|min:1',
         ]);
         [$sucursalId, $branches, $tz] = $this->scope($q);
         $barberoId = isset($q['barbero_id']) ? (int) $q['barbero_id'] : null;
+        if ($barberoId !== null && !isset($this->barbers()[$barberoId])) {
+            throw new NotFoundException('Barbero no encontrado.');
+        }
         $hoy = Clock::nowUtc()->setTimezone($tz)->format('Y-m-d');
         $hasta = (string) ($q['hasta'] ?? $hoy);
         $desde = (string) ($q['desde'] ?? (new DateTimeImmutable($hasta))->modify('-29 day')->format('Y-m-d'));
@@ -143,6 +156,41 @@ final class ReportService
             Entitlements::for($this->tenantId)->assertFeature('reportes_avanzados');
         }
         [$desdeUtc, $hastaUtc] = $this->utcRange($desde, $hasta, $tz);
+        return compact('desde', 'hasta', 'desdeUtc', 'hastaUtc', 'sucursalId', 'barberoId', 'branches', 'tz', 'avanzados');
+    }
+
+    /**
+     * Detalle de reservas del rango para exportar (una fila por cita). Sin clientes.ver el nombre
+     * del cliente no se incluye; sin reportes.financieros tampoco lo cobrado.
+     *
+     * @param array<string, mixed> $c criteria()
+     * @return list<array<string, mixed>>
+     */
+    public function detailRows(array $c, int $limit): array
+    {
+        $rows = $this->repo->detail($c['desdeUtc'], $c['hastaUtc'], $c['sucursalId'], $c['barberoId'], $limit);
+        if (count($rows) > $limit) {
+            throw new ValidationException(['hasta' => ['El detalle tiene más de ' . number_format($limit, 0, '.', ' ') . ' reservas. Elige un periodo más corto o filtra por sucursal o barbero.']]);
+        }
+        return $rows;
+    }
+
+    public function canSeeClients(): bool
+    {
+        return in_array('clientes.ver', $this->perms, true);
+    }
+
+    public function canSeeIncome(): bool
+    {
+        return $this->financial();
+    }
+
+    /** @param array<string, mixed> $query desde, hasta, sucursal_id, barbero_id @return array<string, mixed> */
+    public function report(array $query): array
+    {
+        $c = $this->criteria($query);
+        ['desde' => $desde, 'hasta' => $hasta, 'desdeUtc' => $desdeUtc, 'hastaUtc' => $hastaUtc, 'sucursalId' => $sucursalId,
+            'barberoId' => $barberoId, 'branches' => $branches, 'tz' => $tz, 'avanzados' => $avanzados] = $c;
         $tzName = $tz->getName();
         $rows = $this->repo->bookings($desdeUtc, $hastaUtc, $sucursalId, $barberoId);
         $estados = $this->countByEstado($rows);
@@ -181,6 +229,17 @@ final class ReportService
             unset($ob);
         }
 
+        $barbers = $this->barbers();
+        $completadas = array_map(static fn (array $r): int => (int) $r['id'], array_filter($rows, static fn (array $r): bool => $r['estado'] === 'completada'));
+        $paid = $this->financial() ? $this->repo->paidByBooking($completadas) : null;
+        $pagos = $this->financial() ? $this->repo->payments($desdeUtc, $hastaUtc, $sucursalId, $barberoId) : null;
+        $atendidosIds = array_map(static fn (array $r): int => (int) $r['cliente_id'], array_filter($rows, static fn (array $r): bool => $r['estado'] === 'completada'));
+        $prior = $this->repo->clientsWithPriorVisit($atendidosIds, $desdeUtc, $sucursalId, $barberoId);
+        $clientes = ReportAnalytics::retention($rows, $prior, $this->canSeeClients() ? [] : null);
+        if ($clientes['top'] !== null) {
+            $clientes = ReportAnalytics::retention($rows, $prior, $this->repo->clientNames(array_column($clientes['top'], 'cliente_id')));
+        }
+
         $total = count($rows);
         $out = [
             'rango' => ['desde' => $desde, 'hasta' => $hasta, 'zona_horaria' => $tzName],
@@ -203,11 +262,26 @@ final class ReportService
             'cancelaciones' => ['total' => $estados['cancelada'], 'por' => $cancelPor, 'tasa' => $this->rate($estados['cancelada'], $total)],
             'inasistencias' => ['total' => $estados['no_asistio'], 'tasa' => $this->rate($estados['no_asistio'], $estados['completada'] + $estados['no_asistio'])],
             'evolucion_mensual' => $avanzados ? $this->monthly($hasta, $tz, $sucursalId, $barberoId) : null,
+            'confirmacion' => ReportAnalytics::confirmations($rows),
+            'clientes' => $clientes,
+            'demanda' => $avanzados ? ReportAnalytics::demand($rows, $tzName, $desde, $hasta) : null,
+            'productividad' => $avanzados ? ReportAnalytics::productivity(
+                $rows,
+                $barbers,
+                $ocupacion !== null ? array_column($ocupacion['barberos'], null, 'barbero_id') : null,
+                $paid,
+                $pagos
+            ) : null,
+            // Para el filtro: los vigentes (los dados de baja solo aparecen en los datos de su historial).
+            'barberos' => array_values(array_map(
+                static fn (int $id, array $b): array => ['id' => $id, 'nombre' => $b['nombre'], 'activo' => $b['activo']],
+                array_keys(array_filter($barbers, static fn (array $b): bool => !$b['eliminado'])),
+                array_filter($barbers, static fn (array $b): bool => !$b['eliminado'])
+            )),
             'ingresos' => null,
             'plan' => ['reportes_avanzados' => $avanzados, 'max_dias' => $avanzados ? self::MAX_DIAS_REPORTE : self::MAX_DIAS_BASICO],
         ];
-        if ($this->financial()) {
-            $pagos = $this->repo->payments($desdeUtc, $hastaUtc, $sucursalId, $barberoId);
+        if ($pagos !== null && $paid !== null) {
             $porMetodo = [];
             foreach ($pagos as $p) {
                 $porMetodo[(string) $p['metodo']] = ($porMetodo[(string) $p['metodo']] ?? 0) + (float) $p['monto'];
@@ -218,9 +292,32 @@ final class ReportService
                 'cobros' => count($pagos),
                 'por_metodo' => array_map(fn (string $m, float $v): array => ['metodo' => $m, 'monto' => $this->money($v)], array_keys($porMetodo), $porMetodo),
                 'moneda' => 'PEN',
-            ];
+            ] + ReportAnalytics::income($rows, $pagos, $paid, $barbers, $tzName, $desde, $hasta);
         }
         return $out;
+    }
+
+    /** @var array<int, array{nombre:string, activo:bool, eliminado:bool}>|null */
+    private ?array $barbersCache = null;
+
+    /**
+     * Barberos de la barbería, también inactivos o dados de baja (pueden tener historial).
+     *
+     * @return array<int, array{nombre:string, activo:bool, eliminado:bool}>
+     */
+    private function barbers(): array
+    {
+        if ($this->barbersCache === null) {
+            $this->barbersCache = [];
+            foreach ($this->repo->barbers() as $b) {
+                $this->barbersCache[(int) $b['id']] = [
+                    'nombre' => (string) $b['nombre_publico'],
+                    'activo' => (bool) $b['activo'] && $b['deleted_at'] === null,
+                    'eliminado' => $b['deleted_at'] !== null,
+                ];
+            }
+        }
+        return $this->barbersCache;
     }
 
     /**

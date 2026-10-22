@@ -34,6 +34,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Avisos y recordatorios](docs/RECORDATORIOS.md) (cola, worker y cron, FCM, preferencias, confirmar asistencia y métricas)
 - [Panel del superadministrador SaaS](docs/SUPERADMIN.md) (módulos, privacidad, cálculo de indicadores, ciclo de vida de suscripciones)
 - [Planes y monetización](docs/MONETIZACION.md) (límites, prueba, Mercado Pago, webhooks, vencimientos, restricción, SUNAT pendiente)
+- [Reportes y analítica](docs/REPORTES.md) (demanda por hora, productividad, recurrencia, previsto frente a cobrado, CSV, Excel y PDF)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -259,6 +260,10 @@ Resultado al cerrar la Fase 9: **282 pruebas OK en PHP 8.3** (1 omitida, sin zba
 Desde la Fase 10 cubren planes y monetización: límites y funciones por plan, prueba automática, cotización y pago (contratación, renovación, mejora con prorrateo, cambios programados), Mercado Pago con la API simulada (firma, consulta del pago, duplicados, reembolsos, caídas) y el cron de vencimientos y restricción. Ver [MONETIZACION.md](docs/MONETIZACION.md#pruebas).
 
 Resultado al cerrar la Fase 10: **316 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 309 y se omiten 7 (sin GD ni zbar). La migración 0015 se probó sobre una base de la Fase 9 con datos demo. Recorrido E2E en Chromium (escritorio y móvil 390×844): renovar con el simulador y volver con el pago confirmado, cotizar varios meses, programar y anular un cambio, mejora con prorrateo, funciones bloqueadas del plan Básico (reportes, colores, correo), configuración de cobros y pagos en línea de la plataforma; 56/56 comprobaciones sin errores de consola ni desbordes.
+
+Desde la Fase 11 cubren reportes y analítica: confirmación, demanda por día y hora en la zona horaria de la sede, productividad por barbero, clientes nuevos y recurrentes, previsto frente a cobrado y saldo por cobrar, permisos de las exportaciones, CSV con fórmulas neutralizadas y libro `.xlsx` válido. Ver [REPORTES.md](docs/REPORTES.md#pruebas).
+
+Resultado al cerrar la Fase 11: **325 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 317 y se omiten 8 (sin GD, zbar ni zip). Sin migraciones nuevas. Recorrido E2E en Chromium (escritorio y móvil 390×844): indicadores, mapa de demanda, productividad, clientes, ingresos, filtros, las cuatro descargas (CSV y Excel, resumen y detalle), impresión a PDF, administrador sin ingresos y plan Básico; 33/33 comprobaciones sin errores de consola ni desbordes.
 
 > **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría) `0014_superadmin_saas.sql` (barberías demo, bloqueo de cuentas, historial de suscripciones) y `0015_planes_monetizacion.sql` (órdenes de pago, cambios programados, restricción y permiso `negocio.suscripcion.gestionar`). Para el pago en línea configura `PAYMENT_DRIVER` y las claves de Mercado Pago (ver [MONETIZACION.md](docs/MONETIZACION.md#configuración-backendenv)). Desde la Fase 9 ejecuta también `php bin/console db:seed` (agrega el rol `operador`; es idempotente). Programa el cron de `notificaciones:procesar` y el de `suscripciones:vencer`.
 

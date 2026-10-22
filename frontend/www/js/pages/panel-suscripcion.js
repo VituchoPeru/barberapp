@@ -84,7 +84,7 @@ function feats(c, p = null) {
     rows.push(item(true, lim(p.max_sucursales, 'sucursal', 'sucursales', 'Sucursales ilimitadas')));
     rows.push(item(true, lim(p.max_barberos, 'barbero', 'barberos', 'Barberos ilimitados')));
   }
-  rows.push(item(!!c.reportes_avanzados, 'Reportes avanzados: ocupación, evolución mensual y periodos largos'));
+  rows.push(item(!!c.reportes_avanzados, 'Reportes avanzados: ocupación, productividad, demanda por hora, evolución mensual y periodos largos'));
   rows.push(item(!!c.personalizacion, 'Colores propios en tu perfil'));
   ['interna', 'push', 'email'].forEach((k) => rows.push(item((c.canales || []).includes(k), CANALES[k])));
   return `<ul class="plan__feats">${rows.join('')}</ul>`;
