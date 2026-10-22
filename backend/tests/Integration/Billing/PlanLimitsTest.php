@@ -57,6 +57,13 @@ final class PlanLimitsTest extends BillingTestCase
         $this->assertNull($basico['evolucion_mensual']);
         $this->assertSame(['reportes_avanzados' => false, 'max_dias' => 31], $basico['plan']);
         $this->assertArrayHasKey('por_dia', $basico, 'Los reportes básicos siguen disponibles');
+        $this->assertNull($basico['demanda'], 'Demanda por hora: reporte avanzado (Fase 11)');
+        $this->assertNull($basico['productividad']);
+        $this->assertIsArray($basico['confirmacion']);
+        $this->assertIsArray($basico['clientes']);
+        $this->assertNotEmpty($basico['barberos'], 'El filtro por barbero también está en el plan básico');
+        $csv = $this->panel('GET', '/reportes/exportar?formato=xlsx', $this->as(self::OWNER_NORTE, 'demo-norte'));
+        $this->assertSame(200, $csv->status(), 'Exportar está en todos los planes');
 
         $largo = $this->panel('GET', '/reportes?desde=2026-01-01&hasta=2026-03-31', $this->as(self::OWNER_NORTE, 'demo-norte'));
         $this->assertSame(403, $largo->status());
@@ -65,6 +72,8 @@ final class PlanLimitsTest extends BillingTestCase
         $pro = $this->ok($this->panel('GET', '/reportes', $this->as(self::OWNER)));
         $this->assertIsArray($pro['ocupacion']);
         $this->assertCount(12, $pro['evolucion_mensual']);
+        $this->assertIsArray($pro['demanda']);
+        $this->assertIsArray($pro['productividad']);
         $this->assertTrue($pro['plan']['reportes_avanzados']);
     }
 

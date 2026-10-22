@@ -184,6 +184,7 @@ return static function (Router $router): void {
             $verAgenda = PermissionMiddleware::any('reservas.ver_todas', 'reservas.ver_propias');
             $r->get('/dashboard', [PanelReportsController::class, 'dashboard'], [PermissionMiddleware::any('reservas.ver_todas', 'reportes.operativos')], 'panel.dashboard');
             $r->get('/reportes', [PanelReportsController::class, 'report'], [new PermissionMiddleware('reportes.operativos')], 'panel.reports');
+            $r->get('/reportes/exportar', [PanelReportsController::class, 'export'], [new PermissionMiddleware('reportes.operativos')], 'panel.reports.export');
 
             $r->get('/agenda', [PanelAgendaController::class, 'agenda'], [$verAgenda], 'panel.agenda');
             $r->get('/agenda/catalogo', [PanelAgendaController::class, 'catalog'], [PermissionMiddleware::any('reservas.crear', 'reservas.reprogramar')], 'panel.agenda.catalog');

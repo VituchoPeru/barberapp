@@ -29,7 +29,7 @@ final class Entitlements
     public const RECURSOS = ['sucursales' => 'max_sucursales', 'barberos' => 'max_barberos'];
 
     private const FEATURE_LABELS = [
-        'reportes_avanzados' => 'Los reportes avanzados (ocupación, evolución mensual y rangos de más de 31 días)',
+        'reportes_avanzados' => 'Los reportes avanzados (ocupación, productividad por barbero, demanda por día y hora, evolución mensual y rangos de más de 31 días)',
         'personalizacion' => 'La personalización de colores',
     ];
 

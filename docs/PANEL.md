@@ -34,6 +34,7 @@ El barbero ve solo su columna; si pide una cita de otro barbero recibe `404`. Si
 ```text
 GET  /panel/dashboard?fecha=&sucursal_id=                    reservas.ver_todas | reportes.operativos
 GET  /panel/reportes?desde=&hasta=&sucursal_id=&barbero_id=  reportes.operativos (máx. 366 días; por defecto últimos 30)
+GET  /panel/reportes/exportar?tipo=resumen|reservas&formato=csv|xlsx&…  reportes.operativos (Fase 11, ver REPORTES.md)
 
 GET  /panel/agenda?fecha=|desde=&hasta=&vista=dia|semana&sucursal_id=&barbero_id=   (máx. 7 días)
 GET  /panel/agenda/catalogo                    servicios activos y barberos (servicio_ids, sucursal_ids)
@@ -92,6 +93,8 @@ Tabla `reserva_pagos` (migración 0011): monto (0.01–99 999.99), método (`efe
 | Evolución mensual | Últimos 12 meses hasta el mes final del rango |
 
 Las fechas se agrupan en PHP con la zona de la barbería (no se depende de las tablas de zonas horarias de MySQL).
+
+Desde la Fase 11 el reporte suma confirmación, demanda por día y hora, productividad por barbero, clientes recurrentes, previsto frente a cobrado y exportación a CSV, Excel y PDF: ver [REPORTES.md](REPORTES.md).
 
 ## Configuración
 
