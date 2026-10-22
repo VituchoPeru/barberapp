@@ -5,11 +5,17 @@ declare(strict_types=1);
 use App\Controllers\AgendaBlocksController;
 use App\Controllers\AuthController;
 use App\Controllers\BarbersController;
+use App\Controllers\BookingPolicyController;
+use App\Controllers\BookingsController;
 use App\Controllers\BranchesController;
+use App\Controllers\BusinessController;
 use App\Controllers\FavoritesController;
 use App\Controllers\HealthController;
 use App\Controllers\MarketplaceController;
 use App\Controllers\MeController;
+use App\Controllers\PanelAgendaController;
+use App\Controllers\PanelClientsController;
+use App\Controllers\PanelReportsController;
 use App\Controllers\PublicProfileController;
 use App\Controllers\ServicesController;
 use App\Controllers\StaffController;
@@ -66,6 +72,20 @@ return static function (Router $router): void {
             $r->get('/barberias/{slug:[a-z0-9-]{1,80}}/qr', [MarketplaceController::class, 'qr'], [], 'marketplace.qr');
         }, [new AuthMiddleware(true, true)]);
 
+        // ---------------- Motor de reservas (Fase 5)
+        // Disponibilidad pública: sin sesión obligatoria (el cliente ve horarios antes de iniciar sesión).
+        $r->get('/disponibilidad', [BookingsController::class, 'availability'], [new AuthMiddleware(true, true)], 'bookings.availability');
+        $r->post('/reservas', [BookingsController::class, 'store'], [new AuthMiddleware(), new PermissionMiddleware('cliente.reservar'), new VerifiedEmailMiddleware()], 'bookings.store');
+        $r->group('/mis-reservas', static function (Router $r): void {
+            $gestionar = new PermissionMiddleware('cliente.reservas.gestionar');
+            $r->get('', [BookingsController::class, 'index'], [], 'bookings.mine');
+            $r->get('/{id:\d+}', [BookingsController::class, 'show'], [], 'bookings.mine.show');
+            $r->get('/{id:\d+}/disponibilidad', [BookingsController::class, 'rescheduleAvailability'], [$gestionar], 'bookings.mine.availability');
+            $r->post('/{id:\d+}/cancelar', [BookingsController::class, 'cancel'], [$gestionar], 'bookings.mine.cancel');
+            $r->post('/{id:\d+}/reprogramar', [BookingsController::class, 'reschedule'], [$gestionar], 'bookings.mine.reschedule');
+            $r->post('/{id:\d+}/confirmar-asistencia', [BookingsController::class, 'confirmAttendance'], [$gestionar], 'bookings.mine.confirm');
+        }, [new AuthMiddleware()]);
+
         // ---------------- Panel de barbería: requiere sesión + membresía activa en la barbería
         $r->group('/panel', static function (Router $r): void {
             $r->get('/contexto', [StaffController::class, 'context'], [], 'panel.context');
@@ -114,12 +134,52 @@ return static function (Router $router): void {
             $r->post('/barberos/{id:\d+}/foto', [BarbersController::class, 'uploadPhoto'], [$barberos], 'panel.barbers.photo');
             $r->delete('/barberos/{id:\d+}/foto', [BarbersController::class, 'deletePhoto'], [$barberos], 'panel.barbers.photo.delete');
 
+            // ---------- Reglas de reserva (Fase 5)
+            $politicas = new PermissionMiddleware('politicas.gestionar');
+            $r->get('/politicas-reserva', [BookingPolicyController::class, 'index'], [$politicas], 'panel.booking_policy');
+            $r->put('/politicas-reserva', [BookingPolicyController::class, 'update'], [$politicas], 'panel.booking_policy.update');
+            $r->delete('/politicas-reserva/{sucursal_id:\d+}', [BookingPolicyController::class, 'destroy'], [$politicas], 'panel.booking_policy.destroy');
+
             $bloqueos = new PermissionMiddleware('bloqueos.gestionar');
             $r->get('/bloqueos', [AgendaBlocksController::class, 'index'], [$bloqueos], 'panel.blocks');
             $r->post('/bloqueos', [AgendaBlocksController::class, 'store'], [$bloqueos], 'panel.blocks.store');
             $r->post('/bloqueos/{id:\d+}/aprobar', [AgendaBlocksController::class, 'approve'], [$bloqueos], 'panel.blocks.approve');
             $r->post('/bloqueos/{id:\d+}/rechazar', [AgendaBlocksController::class, 'reject'], [$bloqueos], 'panel.blocks.reject');
             $r->delete('/bloqueos/{id:\d+}', [AgendaBlocksController::class, 'destroy'], [$bloqueos], 'panel.blocks.destroy');
+
+            // ---------- Panel administrativo (Fase 6): dashboard, agenda, clientes, reportes y configuración
+            $verAgenda = PermissionMiddleware::any('reservas.ver_todas', 'reservas.ver_propias');
+            $r->get('/dashboard', [PanelReportsController::class, 'dashboard'], [PermissionMiddleware::any('reservas.ver_todas', 'reportes.operativos')], 'panel.dashboard');
+            $r->get('/reportes', [PanelReportsController::class, 'report'], [new PermissionMiddleware('reportes.operativos')], 'panel.reports');
+
+            $r->get('/agenda', [PanelAgendaController::class, 'agenda'], [$verAgenda], 'panel.agenda');
+            $r->get('/agenda/catalogo', [PanelAgendaController::class, 'catalog'], [PermissionMiddleware::any('reservas.crear', 'reservas.reprogramar')], 'panel.agenda.catalog');
+            $r->get('/disponibilidad', [PanelAgendaController::class, 'availability'], [PermissionMiddleware::any('reservas.crear', 'reservas.reprogramar')], 'panel.availability');
+            $r->post('/reservas', [PanelAgendaController::class, 'store'], [new PermissionMiddleware('reservas.crear')], 'panel.bookings.store');
+            $r->get('/reservas/{id:\d+}', [PanelAgendaController::class, 'show'], [$verAgenda], 'panel.bookings.show');
+            $asistencia = new PermissionMiddleware('reservas.asistencia');
+            $r->post('/reservas/{id:\d+}/confirmar', [PanelAgendaController::class, 'confirm'], [$verAgenda, PermissionMiddleware::any('reservas.crear', 'reservas.asistencia')], 'panel.bookings.confirm');
+            $r->post('/reservas/{id:\d+}/iniciar', [PanelAgendaController::class, 'start'], [$verAgenda, $asistencia], 'panel.bookings.start');
+            $r->post('/reservas/{id:\d+}/completar', [PanelAgendaController::class, 'complete'], [$verAgenda, $asistencia], 'panel.bookings.complete');
+            $r->post('/reservas/{id:\d+}/no-asistio', [PanelAgendaController::class, 'noShow'], [$verAgenda, $asistencia], 'panel.bookings.no_show');
+            $r->post('/reservas/{id:\d+}/cancelar', [PanelAgendaController::class, 'cancel'], [$verAgenda, new PermissionMiddleware('reservas.cancelar')], 'panel.bookings.cancel');
+            $r->get('/reservas/{id:\d+}/disponibilidad', [PanelAgendaController::class, 'rescheduleAvailability'], [$verAgenda, new PermissionMiddleware('reservas.reprogramar')], 'panel.bookings.availability');
+            $r->post('/reservas/{id:\d+}/reprogramar', [PanelAgendaController::class, 'reschedule'], [$verAgenda, new PermissionMiddleware('reservas.reprogramar')], 'panel.bookings.reschedule');
+            $r->put('/reservas/{id:\d+}/notas', [PanelAgendaController::class, 'notes'], [$verAgenda, PermissionMiddleware::any('reservas.crear', 'reservas.asistencia')], 'panel.bookings.notes');
+            $cobrar = new PermissionMiddleware('reservas.cobrar');
+            $r->post('/reservas/{id:\d+}/pagos', [PanelAgendaController::class, 'pay'], [$verAgenda, $cobrar], 'panel.bookings.pay');
+            $r->post('/reservas/{id:\d+}/pagos/{pago:\d+}/anular', [PanelAgendaController::class, 'voidPayment'], [$verAgenda, $cobrar], 'panel.bookings.pay.void');
+
+            $clientes = new PermissionMiddleware('clientes.ver');
+            $r->get('/clientes', [PanelClientsController::class, 'index'], [$clientes], 'panel.clients');
+            $r->post('/clientes', [PanelClientsController::class, 'store'], [new PermissionMiddleware('reservas.crear')], 'panel.clients.store');
+            $r->get('/clientes/{id:\d+}', [PanelClientsController::class, 'show'], [$clientes], 'panel.clients.show');
+            $r->get('/clientes/{id:\d+}/reservas', [PanelClientsController::class, 'bookings'], [$clientes], 'panel.clients.bookings');
+            $r->put('/clientes/{id:\d+}', [PanelClientsController::class, 'update'], [$clientes, new PermissionMiddleware('clientes.notas')], 'panel.clients.update');
+
+            $negocio = new PermissionMiddleware('negocio.perfil.gestionar');
+            $r->get('/negocio', [BusinessController::class, 'show'], [$negocio], 'panel.business');
+            $r->put('/negocio', [BusinessController::class, 'update'], [$negocio], 'panel.business.update');
         }, [new AuthMiddleware(), new TenantContextMiddleware(true, true)]);
     });
 };

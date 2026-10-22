@@ -17,6 +17,7 @@ declare(strict_types=1);
  *   php bin/console docs:dictionary    Regenera docs/DICCIONARIO_DATOS.md desde la base de datos
  *   php bin/console key:generate       Genera APP_KEY en .env (firma de tokens; --force para reemplazarla)
  *   php bin/console auth:purge         Borra sesiones, tokens y contadores vencidos (programar en cron diario)
+ *   php bin/console reservas:purge     Borra claves de idempotencia vencidas (24 h; programar en cron diario)
  */
 
 use App\Core\Config;
@@ -205,6 +206,11 @@ try {
             $t = (new App\Repositories\UserTokenRepository())->purge();
             $l = (new App\Services\Auth\RateLimiter())->purge();
             out("Eliminados: {$s} sesiones, {$t} tokens de correo, {$l} contadores de intentos.");
+            break;
+
+        case 'reservas:purge':
+            $k = App\Services\Booking\Idempotency::purge();
+            out("Eliminadas: {$k} claves de idempotencia vencidas.");
             break;
 
         default:

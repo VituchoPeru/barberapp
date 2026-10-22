@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Clientes · Panel BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Clientes <span class="muted" data-tenant-name></span></h1>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos del panel"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <div class="panel-head">
+      <div><h2>Clientes</h2><p>Personas que reservaron en tu barbería o registraste en mostrador.</p></div>
+      <div class="toolbar"><button class="btn btn--sm" type="button" data-new hidden>Registrar cliente</button></div>
+    </div>
+    <div class="search-row">
+      <div class="field"><label for="f-q">Buscar</label><input id="f-q" type="search" autocomplete="off" placeholder="Nombre, teléfono o correo" data-q></div>
+      <div class="field"><label for="f-orden">Ordenar por</label><select id="f-orden" data-orden><option value="recientes">Visita más reciente</option><option value="nombre">Nombre</option><option value="reservas">Más reservas</option></select></div>
+    </div>
+    <p class="muted" data-count aria-live="polite"></p>
+    <div data-loading><div class="skeleton"></div></div>
+    <ul class="rows" data-list></ul>
+    <button class="btn btn--ghost" type="button" data-more hidden>Ver más</button>
+  </main>
+
+  <dialog class="sheet" data-detail aria-labelledby="cli-title">
+    <div class="sheet__head"><h2 id="cli-title" data-det-title>Cliente</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+    <div class="sheet__body" data-det-body></div>
+  </dialog>
+
+  <dialog class="sheet" data-new-sheet aria-labelledby="newc-title">
+    <form class="form" data-new-form novalidate>
+      <div class="sheet__head"><h2 id="newc-title">Registrar cliente</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+      <div class="sheet__body">
+        <p class="alert" data-form-alert role="alert" hidden></p>
+        <p class="hint">Para clientes que reservan por teléfono o en el local. Si luego crean una cuenta con el mismo correo verificado, verán sus citas.</p>
+        <div class="row2">
+          <div class="field"><label for="c-nombres">Nombres</label><input id="c-nombres" name="nombres" maxlength="100" required><p class="field__error" data-error-for="nombres"></p></div>
+          <div class="field"><label for="c-apellidos">Apellidos</label><input id="c-apellidos" name="apellidos" maxlength="100"><p class="field__error" data-error-for="apellidos"></p></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="c-telefono">Teléfono</label><input id="c-telefono" name="telefono" inputmode="tel"><p class="field__error" data-error-for="telefono"></p></div>
+          <div class="field"><label for="c-email">Correo</label><input id="c-email" name="email" type="email"><p class="field__error" data-error-for="email"></p></div>
+        </div>
+      </div>
+      <div class="sheet__foot"><button class="btn btn--ghost" type="button" data-close>Cancelar</button><button class="btn" type="submit" data-loading="Guardando…">Guardar</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="../../js/pages/panel-clientes.js"></script>
+</body>
+</html>

@@ -204,6 +204,24 @@ final class DemoSeeder
             $r4 = $this->reserva($centro, $sedeCentro, $b2, $cMostrador, 'cancelada', $manana . ' 15:00', [[$sCorte, 'Corte clásico', 30, '25.00']], 'panel', $adminCentro);
             $this->reserva($norte, $sedeNorte, $b3, $c1, 'pendiente', $manana . ' 17:00', [[$sNorteCorte, 'Corte moderno', 30, '30.00']], 'qr', $clienteUser);
 
+            // Atención y cobro de la cita ya atendida (Fase 6): datos de demostración, no ingresos reales.
+            $this->exec(
+                'UPDATE reservas SET atencion_iniciada_en = inicio_utc, atencion_finalizada_en = fin_utc WHERE id = ?',
+                [$r3]
+            );
+            $this->exec(
+                "INSERT INTO reserva_pagos (tenant_id, reserva_id, monto, moneda, metodo, referencia, pagado_en, registrado_por)
+                 SELECT tenant_id, id, precio_total, moneda, 'efectivo', 'Demo', fin_utc, ? FROM reservas WHERE id = ?",
+                [$adminCentro, $r3]
+            );
+            $this->exec(
+                "UPDATE cliente_tenants ct SET
+                        primera_visita_en = (SELECT MIN(r.inicio_utc) FROM reservas r WHERE r.tenant_id = ct.tenant_id AND r.cliente_id = ct.cliente_id AND r.estado = 'completada'),
+                        ultima_visita_en = (SELECT MAX(r.inicio_utc) FROM reservas r WHERE r.tenant_id = ct.tenant_id AND r.cliente_id = ct.cliente_id AND r.estado = 'completada')
+                  WHERE ct.tenant_id IN (?, ?)",
+                [$centro, $norte]
+            );
+
             // Recordatorio programado (cola de notificaciones de la Fase 8)
             $inicioR1 = $this->db->query('SELECT inicio_utc FROM reservas WHERE id = ' . (int) $r1)->fetchColumn();
             $this->exec(
@@ -333,16 +351,17 @@ final class DemoSeeder
 
         $id = $this->insert(
             "INSERT INTO reservas (tenant_id, codigo, sucursal_id, barbero_id, cliente_id, estado, inicio_utc, fin_utc, zona_horaria,
-                                   duracion_total_minutos, precio_total, canal, confirmada_en, cancelada_en, cancelada_por, motivo_cancelacion,
+                                   duracion_total_minutos, precio_total, canal, confirmada_en, cancelada_en, cancelada_por, cancelada_por_tipo, motivo_cancelacion,
                                    atencion_iniciada_en, atencion_finalizada_en, creado_por)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $tenant, Codes::reserva(), $sucursal, $barbero, $cliente, $estado, $this->utc($inicio), $this->utc($fin), self::TZ,
                 $total, $precio, $canal,
                 in_array($estado, ['confirmada', 'completada'], true) ? gmdate('Y-m-d H:i:s') : null,
                 $estado === 'cancelada' ? gmdate('Y-m-d H:i:s') : null,
                 $estado === 'cancelada' ? $actor : null,
-                $estado === 'cancelada' ? 'Cancelada por el cliente (demo)' : null,
+                $estado === 'cancelada' ? ($canal === 'panel' ? 'personal' : 'cliente') : null,
+                $estado === 'cancelada' ? ($canal === 'panel' ? 'Cancelada desde el panel (demo)' : 'Cancelada por el cliente (demo)') : null,
                 $estado === 'completada' ? $this->utc($inicio) : null,
                 $estado === 'completada' ? $this->utc($fin) : null,
                 $actor,

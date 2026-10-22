@@ -52,12 +52,9 @@ async function renderMemberships(me) {
     // Accesos al panel según rol (el backend vuelve a verificar cada permiso).
     const qs = `?tenant=${encodeURIComponent(t.slug)}`;
     const links = [];
-    if (m.roles.includes('propietario') || m.roles.includes('administrador')) {
-      links.push(`<a class="btn btn--ghost btn--sm" href="../panel/servicios.html${qs}">Servicios</a>`, `<a class="btn btn--ghost btn--sm" href="../panel/barberos.html${qs}">Barberos y horarios</a>`,
-        `<a class="btn btn--ghost btn--sm" href="../panel/ausencias.html${qs}">Ausencias</a>`);
-    }
-    if (m.roles.includes('propietario')) {
-      links.push(`<a class="btn btn--ghost btn--sm" href="../panel/sucursales.html${qs}">Sucursales</a>`, `<a class="btn btn--ghost btn--sm" href="../panel/perfil-publico.html${qs}">Perfil público y QR</a>`);
+    if (m.roles.length) {
+      // Inicio redirige al primer módulo permitido; el menú del panel muestra el resto según permisos.
+      links.push(`<a class="btn btn--sm" href="../panel/inicio.html${qs}">Abrir panel</a>`, `<a class="btn btn--ghost btn--sm" href="../panel/agenda.html${qs}">Agenda</a>`);
     }
     const perfil = links.join('');
     return `<li class="item" data-current="${t.id === current}">

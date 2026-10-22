@@ -74,16 +74,23 @@ final class Database
 
     private static int $savepointDepth = 0;
 
+    /** Aislamiento para operaciones de agenda: cada lectura ve lo último confirmado tras obtener el candado. */
+    public const READ_COMMITTED = 'READ COMMITTED';
+
     /**
      * Ejecuta $fn dentro de una transacción. Hace rollback ante cualquier excepción.
      * Si ya hay una transacción abierta, usa un SAVEPOINT: el bloque se revierte solo,
      * sin deshacer el trabajo previo de la transacción externa.
      *
+     * $isolation (p. ej. self::READ_COMMITTED) solo aplica a la transacción más externa.
+     * El motor de reservas lo usa porque, en REPEATABLE READ, una lectura normal hecha después de
+     * esperar un SELECT … FOR UPDATE podría no ver la reserva que la otra transacción acaba de confirmar.
+     *
      * @template T
      * @param callable(PDO): T $fn
      * @return T
      */
-    public static function transaction(callable $fn)
+    public static function transaction(callable $fn, ?string $isolation = null)
     {
         $pdo = self::connection();
         if ($pdo->inTransaction()) {
@@ -99,6 +106,12 @@ final class Database
             } finally {
                 self::$savepointDepth--;
             }
+        }
+        if ($isolation !== null) {
+            if (!in_array($isolation, ['READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE'], true)) {
+                throw new RuntimeException('Nivel de aislamiento no permitido.');
+            }
+            $pdo->exec('SET TRANSACTION ISOLATION LEVEL ' . $isolation);
         }
         $pdo->beginTransaction();
         try {

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Agenda · Panel BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Agenda <span class="muted" data-tenant-name></span></h1>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos del panel"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <div class="ag-bar">
+      <div class="ag-nav">
+        <button class="icon-btn" type="button" data-prev aria-label="Anterior"><span data-icon="back"></span></button>
+        <button class="btn btn--ghost btn--sm" type="button" data-today>Hoy</button>
+        <button class="icon-btn" type="button" data-next aria-label="Siguiente"><span data-icon="chevron"></span></button>
+        <label class="sr-only" for="f-fecha">Fecha</label><input class="input" id="f-fecha" type="date" data-fecha style="min-height:40px;max-width:160px">
+      </div>
+      <div class="ag-seg" role="group" aria-label="Vista"><button type="button" data-vista="dia" aria-pressed="true">Día</button><button type="button" data-vista="semana" aria-pressed="false">Semana</button></div>
+      <div class="field"><label for="f-sucursal">Sucursal</label><select id="f-sucursal" data-sucursal></select></div>
+      <div class="field" data-barbero-field><label for="f-barbero">Barbero</label><select id="f-barbero" data-barbero><option value="">Todos</option></select></div>
+      <button class="btn btn--sm" type="button" data-new hidden><span data-icon="plus"></span> Nueva cita</button>
+    </div>
+    <div class="panel-head">
+      <div><h2 class="ag-date" data-date-title>Agenda</h2><div class="ag-summary" data-summary></div></div>
+      <div class="toolbar"><span class="ag-updated" data-updated aria-live="polite"></span><button class="icon-btn" type="button" data-refresh aria-label="Actualizar agenda"><span data-icon="refresh"></span></button></div>
+    </div>
+    <div class="ag-legend" aria-hidden="true">
+      <span style="--c:#FFB020">Pendiente</span><span style="--c:#C9A45C">Confirmada</span><span style="--c:#3DD68C">Atendida / en atención</span><span style="--c:#E5484D">Cancelada o no asistió</span><span style="--c:rgba(201,164,92,.25)" data-legend-work>Jornada (toca para agendar)</span>
+    </div>
+    <div data-loading><div class="skeleton" style="height:320px"></div></div>
+    <div data-board></div>
+  </main>
+
+  <dialog class="sheet" data-detail aria-labelledby="det-title">
+    <div class="sheet__head"><h2 id="det-title" data-det-title>Cita</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+    <div class="sheet__body" data-det-body></div>
+  </dialog>
+
+  <dialog class="sheet" data-new-sheet aria-labelledby="new-title">
+    <form class="form" data-new-form novalidate>
+      <div class="sheet__head"><h2 id="new-title">Nueva cita</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+      <div class="sheet__body">
+        <p class="alert" data-form-alert role="alert" hidden></p>
+        <fieldset class="fieldset"><legend>Cliente</legend>
+          <div data-client-chosen hidden></div>
+          <div data-client-pick>
+            <div class="field"><label for="n-buscar">Buscar cliente registrado</label><input id="n-buscar" type="search" autocomplete="off" placeholder="Nombre, teléfono o correo" data-client-search></div>
+            <ul class="pick-list" data-client-results></ul>
+            <p class="hint">¿Es nuevo? Completa sus datos (se guarda como cliente de mostrador):</p>
+            <div class="row2">
+              <div class="field"><label for="n-nombres">Nombres</label><input id="n-nombres" name="nombres" maxlength="100"><p class="field__error" data-error-for="cliente.nombres"></p></div>
+              <div class="field"><label for="n-apellidos">Apellidos</label><input id="n-apellidos" name="apellidos" maxlength="100"></div>
+            </div>
+            <div class="row2">
+              <div class="field"><label for="n-telefono">Teléfono</label><input id="n-telefono" name="telefono" inputmode="tel" placeholder="987 654 321"><p class="field__error" data-error-for="cliente.telefono"></p></div>
+              <div class="field"><label for="n-email">Correo (opcional)</label><input id="n-email" name="email" type="email"><p class="field__error" data-error-for="cliente.email"></p></div>
+            </div>
+          </div>
+          <p class="field__error" data-error-for="cliente_id"></p>
+        </fieldset>
+        <div class="field"><span class="label" style="font-size:.875rem;font-weight:600">Servicios (en orden, el mismo barbero los atiende seguidos)</span><div class="svc-checks" data-svcs></div><p class="field__error" data-error-for="servicio_ids"></p></div>
+        <div class="row2">
+          <div class="field"><label for="n-barbero">Barbero</label><select id="n-barbero" name="barbero_id" data-n-barbero></select><p class="field__error" data-error-for="barbero_id"></p></div>
+          <div class="field"><label for="n-fecha">Fecha</label><input id="n-fecha" name="fecha" type="date" data-n-fecha><p class="field__error" data-error-for="fecha"></p></div>
+        </div>
+        <div class="field"><span style="font-size:.875rem;font-weight:600">Hora</span><div class="slot-grid" data-slots role="group" aria-label="Horarios libres"></div><p class="hint" data-slots-hint>Elige servicios, barbero y fecha para ver los horarios libres.</p><p class="field__error" data-error-for="hora"></p></div>
+        <div class="field"><label for="n-notas">Nota del cliente (la ve el cliente)</label><input id="n-notas" name="notas" maxlength="500"></div>
+        <div class="field"><label for="n-internas">Notas internas (solo personal)</label><input id="n-internas" name="notas_internas" maxlength="1000"></div>
+        <label class="switch"><span><strong>Confirmada</strong><br><small class="muted">Desactívala si debes confirmarla luego con el cliente.</small></span><input type="checkbox" role="switch" name="confirmada" checked></label>
+      </div>
+      <div class="sheet__foot"><button class="btn btn--ghost" type="button" data-close>Cancelar</button><button class="btn" type="submit" data-loading="Registrando…">Registrar cita</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet" data-sub-sheet aria-labelledby="sub-title">
+    <form class="form" data-sub-form novalidate>
+      <div class="sheet__head"><h2 id="sub-title" data-sub-title>Acción</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+      <div class="sheet__body" data-sub-body></div>
+      <div class="sheet__foot"><button class="btn btn--ghost" type="button" data-close>Volver</button><button class="btn" type="submit" data-sub-submit data-loading="Guardando…">Guardar</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="../../js/pages/panel-agenda.js"></script>
+</body>
+</html>

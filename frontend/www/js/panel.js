@@ -19,16 +19,42 @@ export { toast };
 export const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 export const DIAS_CORTOS = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
+/** Estados de una cita: etiqueta y clase visual (siempre con texto, nunca solo color). */
+export const ESTADOS = {
+  pendiente: ['Pendiente', 'warn'],
+  confirmada: ['Confirmada', 'gold'],
+  completada: ['Atendida', 'ok'],
+  cancelada: ['Cancelada', 'off'],
+  no_asistio: ['No asistió', 'off'],
+};
+export const estadoBadge = (r) => (r.en_atencion
+  ? '<span class="badge badge--live">En atención</span>'
+  : `<span class="badge badge--${ESTADOS[r.estado][1]}">${ESTADOS[r.estado][0]}</span>`);
+
+/** Clave única para Idempotency-Key (reintentos por red no duplican la operación). */
+export const idemKey = () => (crypto.randomUUID ? crypto.randomUUID() : `k-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
 /** Petición al panel con la barbería activa. */
 export const papi = (path, options = {}) => api(path, { ...options, headers: { ...H, ...(options.headers || {}) } });
 
 const MODULES = [
+  ['inicio', 'Inicio', 'home', ['reservas.ver_todas', 'reportes.operativos']],
+  ['agenda', 'Agenda', 'calendar', ['reservas.ver_todas', 'reservas.ver_propias']],
+  ['clientes', 'Clientes', 'user', 'clientes.ver'],
+  ['reportes', 'Reportes', 'chart', 'reportes.operativos'],
   ['servicios', 'Servicios', 'scissors', 'servicios.gestionar'],
   ['barberos', 'Barberos', 'user', ['barberos.gestionar', 'horarios.gestionar']],
   ['ausencias', 'Ausencias', 'calendar', 'bloqueos.gestionar'],
   ['sucursales', 'Sucursales', 'store', 'sucursales.gestionar'],
   ['perfil-publico', 'Perfil público', 'globe', 'negocio.perfil.gestionar'],
+  ['configuracion', 'Configuración', 'settings', ['negocio.perfil.gestionar', 'politicas.gestionar']],
 ];
+
+/** Primer módulo del panel al que puede entrar quien inicia sesión (según permisos). */
+export function homeModule(ctx) {
+  const m = MODULES.find(([, , , perm]) => can(ctx, perm));
+  return m ? m[0] : null;
+}
 
 let ctxPromise;
 /** Barbería, roles y permisos del usuario en ella (GET /panel/contexto). */
@@ -122,4 +148,11 @@ export function noticeList(el, title, items, type = 'error') {
   el.innerHTML = `${escapeHtml(title)}${items.length ? `<ul>${items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : ''}`;
   el.dataset.type = type;
   el.hidden = false;
+}
+
+/** Barras horizontales de una serie: el valor siempre va en texto (no depende del color). */
+export function hbars(items, max = 100, fmt = (v) => v) {
+  return items.map((i) => `<li class="hbar"><span class="hbar__label">${escapeHtml(i.label)}</span>
+    <span class="hbar__track" role="img" aria-label="${escapeHtml(i.label)}: ${escapeHtml(String(fmt(i.value)))}"><span class="hbar__fill" style="width:${max > 0 ? Math.min(100, (i.value || 0) * 100 / max) : 0}%"></span></span>
+    <span class="hbar__value">${escapeHtml(String(fmt(i.value)))}</span></li>`).join('');
 }
