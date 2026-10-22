@@ -74,6 +74,10 @@ export async function mountBell(tenantSlug = '') {
     try { paint((await api('/me/notificaciones/resumen')).no_leidas); } catch { /* sin red: se reintenta en el siguiente ciclo */ }
   }, POLL_MS);
   document.addEventListener('avisos:leidos', (e) => paint(e.detail.no_leidas));
+  // Push recibido con la app abierta (Fase 12): se actualiza al instante, sin esperar el ciclo.
+  document.addEventListener('avisos:nuevo', async () => {
+    try { paint((await api('/me/notificaciones/resumen')).no_leidas); } catch { /* sin red */ }
+  });
 }
 
 export function itemHtml(n) {

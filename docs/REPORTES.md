@@ -26,7 +26,7 @@ GET /api/v1/panel/reportes?desde=&hasta=&sucursal_id=&barbero_id=
     reportes.operativos. Devuelve también confirmacion, clientes, demanda, productividad,
     barberos (para el filtro) e ingresos.{por_dia, por_barbero, atendidas}.
 
-GET /api/v1/panel/reportes/exportar?tipo=resumen|reservas&formato=csv|xlsx&desde=&hasta=&sucursal_id=&barbero_id=
+GET /api/v1/panel/reportes/exportar?tipo=resumen|reservas&formato=csv|xlsx|pdf&desde=&hasta=&sucursal_id=&barbero_id=
     reportes.operativos. Descarga el archivo (Content-Disposition: attachment) y registra
     reportes.exportado en la auditoría con los filtros y el tamaño.
 ```
@@ -58,7 +58,7 @@ Todo se agrupa en PHP con la zona horaria de la sucursal o de la barbería. Los 
 
 - **CSV** (`Services/Reports/Export/CsvWriter`): UTF-8 con BOM (Excel muestra bien las tildes), coma y CRLF. Los números van sin formato (punto decimal). Un texto que empieza con `=`, `+`, `-`, `@`, tabulación o retorno se antepone con `'` para que Excel o Google Sheets no lo ejecuten como fórmula (inyección CSV).
 - **Excel** (`Services/Reports/Export/XlsxWriter`): `.xlsx` real (Office Open XML) generado sin dependencias ni `ext-zip`: el ZIP se arma en PHP con DEFLATE (`zlib`) o sin compresión si no hay zlib. Texto como cadena en línea (nunca fórmula), números como números, encabezado en negrita con la fila fija y ancho de columnas ajustado. Validado al abrirlo con openpyxl (Python) en las pruebas manuales; no se probó en Excel de escritorio.
-- **PDF**: botón "Imprimir o guardar en PDF" con una hoja de estilos de impresión (fondo claro, sin menús ni filtros, tablas desplegadas y encabezado con el periodo y los filtros). No se genera en el servidor. En la app nativa (Capacitor) la opción se oculta; la descarga de archivos en Android/iOS se revisa en la Fase 12.
+- **PDF**: botón "Imprimir o guardar en PDF" con una hoja de estilos de impresión (fondo claro, sin menús ni filtros, tablas desplegadas y encabezado con el periodo y los filtros). Desde la Fase 12 hay además **PDF generado en el servidor** (`formato=pdf`, resumen o reservas una por una, sin gráficos) con `PdfWriter`, sin dependencias. En la app nativa la impresión se oculta y las descargas se guardan y se abren con la hoja Compartir (ver [APPS_MOVILES.md](APPS_MOVILES.md)).
 
 ## Pruebas
 
@@ -71,5 +71,5 @@ Resultado al cerrar la Fase 11: 325 pruebas OK en PHP 8.3 (1 omitida); en PHP 8.
 ## Limitaciones
 
 - La exportación se arma en memoria; por eso el detalle se limita a 20 000 reservas por archivo.
-- El PDF depende del diálogo de impresión del navegador; no hay PDF generado en el servidor.
+- El PDF del servidor contiene tablas, no gráficos; la versión con gráficos sigue siendo la de impresión del navegador.
 - No hay migraciones nuevas: la Fase 11 usa columnas que ya existían (`confirmada_en`, `asistencia_confirmada_en`, `atencion_*`, `reserva_pagos`).

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Archivos que la app puede compartir (reportes CSV, Excel y PDF, códigos QR, citas .ics):
+     solo la carpeta de caché, donde @capacitor/filesystem los escribe antes de abrir "Compartir". -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="exportaciones" path="exportaciones/" />
+</paths>

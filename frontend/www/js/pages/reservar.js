@@ -251,6 +251,12 @@ function contactButtons(names = [], barberName = '', suc = null) {
 async function confirmBooking() {
   if (sending) return;
   notice = null;
+  // Sin conexión no se confirma nada: la reserva solo existe cuando el servidor la valida (Fase 12).
+  if (navigator.onLine === false) {
+    notice = 'Estás sin conexión. Conéctate a internet para confirmar tu reserva; tu selección se mantiene.';
+    render();
+    return;
+  }
   const user = await me().catch(() => null);
   if (!user) {
     save();

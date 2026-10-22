@@ -1,5 +1,5 @@
 import { $, escapeHtml } from '../ui.js';
-import { config } from '../config.js';
+import { downloadFromApi } from '../descargas.js';
 import { bootPlatform, papi, fail, done, toast, excludeDemo, mountDemoToggle, demoBanner, kpi, money, hbars } from '../plataforma.js';
 
 /** Reportes globales (Fase 9): series mensuales calculadas en el backend y exportación CSV. */
@@ -47,19 +47,11 @@ async function load() {
   done();
 }
 
-/** Descarga el CSV con la sesión actual (la exportación queda en la auditoría). */
+/** Descarga el CSV con la sesión actual (la exportación queda en la auditoría). En la app, "Compartir". */
 async function csv(btn) {
   btn.disabled = true;
   try {
-    const res = await fetch(`${config.API_BASE_URL}/plataforma/reportes?${query()}&formato=csv`, { credentials: 'include', headers: { Accept: 'text/csv' } });
-    if (!res.ok) throw new Error('No se pudo generar el CSV.');
-    const name = (res.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/);
-    const url = URL.createObjectURL(await res.blob());
-    const a = Object.assign(document.createElement('a'), { href: url, download: name ? name[1] : 'barberapp-reporte-global.csv' });
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    await downloadFromApi(`/plataforma/reportes?${query()}&formato=csv`, { accept: 'text/csv', fallbackName: 'barberapp-reporte-global.csv', title: 'Reporte global BARBERAPP' });
   } catch (e) { toast(e.message, 'error'); } finally { btn.disabled = false; }
 }
 

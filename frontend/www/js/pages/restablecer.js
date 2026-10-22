@@ -1,4 +1,4 @@
-import { api, csrf } from '../api.js';
+import { api, clearSession } from '../api.js';
 import { $, clearErrors, showErrors, withLoading, bindPasswordToggles } from '../ui.js';
 
 const form = $('#restablecer-form');
@@ -26,7 +26,7 @@ form.addEventListener('submit', async (event) => {
   }
   try {
     await withLoading(form.querySelector('[type=submit]'), () => api('/auth/reset-password', { method: 'POST', body: { token, password: form.password.value } }));
-    csrf.set(null);
+    await clearSession();
     location.assign('login.html?restablecida=1');
   } catch (e) {
     showErrors(form, e);

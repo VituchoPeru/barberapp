@@ -11,6 +11,7 @@ use App\Services\Audit;
 use App\Services\Auth\Gate;
 use App\Services\Panel\ReportService;
 use App\Services\Reports\Export\CsvWriter;
+use App\Services\Reports\Export\PdfWriter;
 use App\Services\Reports\Export\XlsxWriter;
 use App\Services\Reports\ReportExport;
 
@@ -18,7 +19,7 @@ use App\Services\Reports\ReportExport;
  * Dashboard, reportes y exportaciones de la barbería (Fases 6 y 11).
  *   GET /api/v1/panel/dashboard?fecha=&sucursal_id=                         (reservas.ver_todas o reportes.operativos)
  *   GET /api/v1/panel/reportes?desde=&hasta=&sucursal_id=&barbero_id=       (reportes.operativos)
- *   GET /api/v1/panel/reportes/exportar?tipo=resumen|reservas&formato=csv|xlsx&desde=&hasta=&sucursal_id=&barbero_id=
+ *   GET /api/v1/panel/reportes/exportar?tipo=resumen|reservas&formato=csv|xlsx|pdf&desde=&hasta=&sucursal_id=&barbero_id=
  *                                                                           (reportes.operativos; queda en la auditoría)
  * Los ingresos registrados solo se incluyen con reportes.financieros y los nombres de clientes
  * del detalle solo con clientes.ver.
@@ -47,8 +48,8 @@ final class PanelReportsController extends BaseController
         if (!in_array($tipo, ['resumen', 'reservas'], true)) {
             $errors['tipo'] = ['Elige resumen o reservas.'];
         }
-        if (!in_array($formato, ['csv', 'xlsx'], true)) {
-            $errors['formato'] = ['Elige csv o xlsx.'];
+        if (!in_array($formato, ['csv', 'xlsx', 'pdf'], true)) {
+            $errors['formato'] = ['Elige csv, xlsx o pdf.'];
         }
         if ($errors !== []) {
             throw new ValidationException($errors);
@@ -83,6 +84,16 @@ final class PanelReportsController extends BaseController
             $preamble = [['Reporte BARBERAPP', (string) $t['nombre_comercial'], $c['desde'] . ' a ' . $c['hasta'], $c['tz']->getName()]];
             $res = new Response(CsvWriter::write($tables, $tipo === 'resumen' ? $preamble : []), 200);
             $res->setHeader('Content-Type', 'text/csv; charset=utf-8');
+        } elseif ($formato === 'pdf') {
+            // PDF generado en el servidor (Fase 12): la app nativa no tiene diálogo de impresión.
+            $heading = array_values(array_filter([
+                (string) $t['nombre_comercial'],
+                'Periodo: ' . $c['desde'] . ' a ' . $c['hasta'] . ' · ' . $c['tz']->getName(),
+                'Sucursal: ' . ($labels['sucursal'] ?? 'Todas') . ($tipo === 'resumen' ? ' · Barbero: ' . ($labels['barbero'] ?? 'Todos') : ''),
+            ]));
+            $generated = (new \DateTimeImmutable('now', $c['tz']))->format('Y-m-d H:i');
+            $res = new Response(PdfWriter::write($tables, $tipo === 'resumen' ? 'Reporte de la barbería' : 'Reservas una por una', $heading, 'Generado el ' . $generated), 200);
+            $res->setHeader('Content-Type', 'application/pdf');
         } else {
             $res = new Response(XlsxWriter::write($tables), 200);
             $res->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

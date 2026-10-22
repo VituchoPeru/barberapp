@@ -1,5 +1,6 @@
 import { api, ApiError } from '../api.js';
 import { config } from '../config.js';
+import { plugin } from '../native.js';
 import { escapeHtml } from '../ui.js';
 import { icon } from '../icons.js';
 import {
@@ -190,14 +191,17 @@ tabs.forEach((t, i) => {
 async function share() {
   const url = data.enlace;
   try {
-    if (navigator.share) {
+    const nativeShare = plugin('Share');
+    if (nativeShare) {
+      await nativeShare.share({ title: data.nombre, text: `Reserva en ${data.nombre} con BARBERAPP`, url, dialogTitle: 'Compartir barbería' });
+    } else if (navigator.share) {
       await navigator.share({ title: data.nombre, text: `Reserva en ${data.nombre} con BARBERAPP`, url });
     } else {
       await navigator.clipboard.writeText(url);
       toast('Enlace copiado');
     }
   } catch (e) {
-    if (e && e.name !== 'AbortError') toast('No se pudo compartir. Copia el enlace: ' + url, 'error');
+    if (e && e.name !== 'AbortError' && !/cancel/i.test(String(e.message || ''))) toast('No se pudo compartir. Copia el enlace: ' + url, 'error');
   }
 }
 
@@ -207,8 +211,8 @@ function openQr() {
     <img src="${escapeHtml(base)}?formato=svg" alt="Código QR que abre ${escapeHtml(data.nombre)} en BARBERAPP" width="260" height="260">
     <p class="muted">Escanéalo con la cámara del celular para abrir esta barbería, aunque no tengas la app.</p>
     <div class="contact-list">
-      <a class="btn btn--sm" href="${escapeHtml(base)}?formato=png&tam=16&descargar=1">${icon('download')}Descargar PNG</a>
-      <a class="btn btn--sm btn--ghost" href="${escapeHtml(base)}?formato=svg&descargar=1">${icon('download')}SVG</a>
+      <a class="btn btn--sm" href="${escapeHtml(base)}?formato=png&tam=16&descargar=1" data-api-download="${escapeHtml(base.slice(config.API_BASE_URL.length))}?formato=png&tam=16&descargar=1" data-filename="qr-barberia.png">${icon('download')}Descargar PNG</a>
+      <a class="btn btn--sm btn--ghost" href="${escapeHtml(base)}?formato=svg&descargar=1" data-api-download="${escapeHtml(base.slice(config.API_BASE_URL.length))}?formato=svg&descargar=1" data-filename="qr-barberia.svg">${icon('download')}SVG</a>
     </div>`;
   $('[data-qr-dialog]').showModal();
 }

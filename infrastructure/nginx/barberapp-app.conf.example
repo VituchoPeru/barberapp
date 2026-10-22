@@ -11,6 +11,25 @@ server {
         return 302 /pages/barberia.html?slug=$1&$args;
     }
 
+    # PWA (Fase 12): el service worker y el manifiesto siempre se revalidan.
+    location = /sw.js { add_header Cache-Control "no-cache"; try_files $uri =404; }
+    location = /manifest.webmanifest {
+        default_type application/manifest+json;
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
+    # Enlaces directos que abren las apps (Fase 12): Android App Links e iOS Universal Links.
+    # Copia infrastructure/well-known/*.example a /var/www/barberapp/well-known/ con los datos reales.
+    location = /.well-known/assetlinks.json {
+        alias /var/www/barberapp/well-known/assetlinks.json;
+        default_type application/json;
+    }
+    location = /.well-known/apple-app-site-association {
+        alias /var/www/barberapp/well-known/apple-app-site-association;
+        default_type application/json;
+    }
+
     location / {
         try_files $uri $uri/ =404;
     }

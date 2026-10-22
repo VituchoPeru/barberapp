@@ -218,7 +218,7 @@ final class PanelAnalyticsTest extends PanelTestCase
         $this->assertStringNotContainsString('Cobrado', $adm);
 
         $this->assertSame(403, $this->call('GET', "/panel/reportes/exportar?{$qs}", null, $this->actingAs(self::BARBERO1))->status());
-        $this->assertSame(422, $this->call('GET', "/panel/reportes/exportar?formato=pdf&{$qs}", null, $this->owner())->status());
+        $this->assertSame(422, $this->call('GET', "/panel/reportes/exportar?formato=docx&{$qs}", null, $this->owner())->status());
         $this->assertSame(422, $this->call('GET', "/panel/reportes/exportar?tipo=todo&{$qs}", null, $this->owner())->status());
     }
 
@@ -256,5 +256,24 @@ final class PanelAnalyticsTest extends PanelTestCase
         $this->assertStringContainsString('Cliente Uno Demo', $sheet);
         $zip->close();
         unlink($file);
+    }
+
+    public function testPdfExportForTheNativeApp(): void
+    {
+        $qs = "desde={$this->lunes}&hasta={$this->domingo}";
+        $res = $this->call('GET', "/panel/reportes/exportar?tipo=resumen&formato=pdf&{$qs}", null, $this->owner());
+        $this->assertSame(200, $res->status(), $res->body());
+        $this->assertSame('application/pdf', $res->header('Content-Type'));
+        $this->assertStringContainsString('.pdf"', (string) $res->header('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF-1.4', $res->body());
+        $this->assertStringEndsWith("%%EOF\n", $res->body());
+
+        $res = $this->call('GET', "/panel/reportes/exportar?tipo=reservas&formato=pdf&{$qs}", null, $this->owner());
+        $this->assertSame(200, $res->status(), $res->body());
+        $this->assertStringContainsString('/MediaBox [0 0 841.89 595.28]', $res->body(), 'El detalle tiene muchas columnas: página horizontal');
+
+        $audit = $this->db->query("SELECT JSON_UNQUOTE(JSON_EXTRACT(datos_nuevos, '$.formato')) FROM auditoria WHERE accion = 'reportes.exportado' ORDER BY id DESC LIMIT 1")->fetchColumn();
+        $this->assertSame('pdf', $audit);
+        $this->assertSame(403, $this->call('GET', "/panel/reportes/exportar?formato=pdf&{$qs}", null, $this->actingAs(self::BARBERO1))->status());
     }
 }

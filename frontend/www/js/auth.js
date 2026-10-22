@@ -1,24 +1,44 @@
-import { api, csrf, ApiError } from './api.js';
+import { api, csrf, ApiError, mobileSession, clearSession } from './api.js';
+import { isNative, platform } from './native.js';
 
 /** Utilidades de sesión compartidas por las pantallas de acceso. */
 
-export async function login(email, password) {
-  const data = await api('/auth/login', { method: 'POST', body: { email, password, canal: 'web' } });
-  csrf.set(data.csrf_token);
+/** Canal de la sesión: cookie + CSRF en web, tokens en la app nativa. */
+function channel() {
+  return isNative()
+    ? { canal: 'movil', dispositivo: `App BARBERAPP (${platform() === 'ios' ? 'iOS' : 'Android'})` }
+    : { canal: 'web' };
+}
+
+async function keep(data) {
+  if (isNative()) {
+    await mobileSession.store(data);
+    // Recién iniciada la sesión es el momento de pedir permiso para los recordatorios.
+    // Si la persona no acepta, la app sigue igual (los avisos quedan en la bandeja).
+    try { await (await import('./push.js')).enablePush(); } catch { /* sin push */ }
+  } else {
+    csrf.set(data.csrf_token);
+  }
   return data;
 }
 
+export async function login(email, password) {
+  return keep(await api('/auth/login', { method: 'POST', body: { email, password, ...channel() } }));
+}
+
 export async function register(payload) {
-  const data = await api('/auth/register', { method: 'POST', body: { ...payload, canal: 'web' } });
-  csrf.set(data.csrf_token);
-  return data;
+  return keep(await api('/auth/register', { method: 'POST', body: { ...payload, ...channel() } }));
 }
 
 export async function logout(todas = false) {
   try {
+    if (isNative()) {
+      const { unregisterPush } = await import('./push.js');
+      await unregisterPush(); // este teléfono deja de recibir avisos de la cuenta
+    }
     await api('/auth/logout', { method: 'POST', body: { todas } });
   } finally {
-    csrf.set(null);
+    await clearSession();
   }
 }
 
@@ -28,7 +48,7 @@ export async function currentUser() {
     return await api('/me');
   } catch (e) {
     if (e instanceof ApiError && e.status === 401) {
-      csrf.set(null);
+      await clearSession();
       return null;
     }
     throw e;

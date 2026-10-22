@@ -51,7 +51,7 @@ final class CorsMiddleware implements MiddlewareInterface
     {
         $response->setHeader('Access-Control-Allow-Origin', $origin);
         $response->setHeader('Vary', 'Origin');
-        $response->setHeader('Access-Control-Expose-Headers', 'X-Request-Id');
+        $response->setHeader('Access-Control-Expose-Headers', 'X-Request-Id, Content-Disposition, Retry-After');
         if (Config::get('cors.allow_credentials', true)) {
             $response->setHeader('Access-Control-Allow-Credentials', 'true');
         }

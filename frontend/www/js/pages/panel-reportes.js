@@ -1,11 +1,11 @@
 import { $, escapeHtml, notice } from '../ui.js';
-import { config } from '../config.js';
+import { downloadFromApi } from '../descargas.js';
 import { bootPanel, papi, H, q, money, mins, fmtDate, today, hbars, DIAS, DIAS_CORTOS, isNativeApp } from '../panel.js';
 
 /**
  * Reportes y analítica del panel (Fases 6 y 11). Todo sale de /panel/reportes: reservas reales,
  * jornadas efectivas y cobros registrados. Los ingresos solo aparecen con reportes.financieros.
- * Las exportaciones (CSV y Excel) las genera el backend y quedan en la auditoría.
+ * Las exportaciones (CSV, Excel y PDF) las genera el backend y quedan en la auditoría.
  */
 const noticeEl = $('[data-notice]');
 const METODOS = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', yape: 'Yape', plin: 'Plin', transferencia: 'Transferencia', otro: 'Otro' };
@@ -260,7 +260,12 @@ function renderMonthly(r) {
 
 // ======================================================================= exportar
 
-/** Descarga desde el backend con la sesión actual (la exportación queda en la auditoría). */
+const MIME = { csv: 'text/csv', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', pdf: 'application/pdf' };
+
+/**
+ * Descarga desde el backend con la sesión actual (la exportación queda en la auditoría).
+ * En la app nativa el archivo se abre en "Compartir" para guardarlo o enviarlo (Fase 12).
+ */
 async function download(btn, tipo, formato) {
   const qs = filtersQuery();
   qs.set('tipo', tipo);
@@ -268,18 +273,7 @@ async function download(btn, tipo, formato) {
   btn.disabled = true;
   btn.setAttribute('aria-busy', 'true');
   try {
-    const res = await fetch(`${config.API_BASE_URL}/panel/reportes/exportar?${qs}`, { credentials: 'include', headers: { ...H, Accept: formato === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' } });
-    if (!res.ok) {
-      const p = await res.json().catch(() => null);
-      throw new Error((p && p.error && p.error.message) || 'No se pudo generar el archivo.');
-    }
-    const name = (res.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/);
-    const url = URL.createObjectURL(await res.blob());
-    const a = Object.assign(document.createElement('a'), { href: url, download: name ? name[1] : `reporte.${formato}` });
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    await downloadFromApi(`/panel/reportes/exportar?${qs}`, { headers: H, accept: MIME[formato], fallbackName: `reporte.${formato}`, title: 'Reporte BARBERAPP' });
     $('[data-export]').open = false;
   } catch (e) {
     notice(noticeEl, e.message, 'error');
@@ -320,7 +314,7 @@ document.querySelectorAll('[data-dl]').forEach((b) => b.addEventListener('click'
   download(b, tipo, formato);
 }));
 const printBtn = $('[data-print]');
-// En la app nativa (Capacitor) no hay diálogo de impresión: la opción se oculta.
+// En la app nativa (Capacitor) no hay diálogo de impresión: se usa el PDF del servidor.
 if (isNativeApp() || typeof window.print !== 'function') printBtn.hidden = true;
 printBtn.addEventListener('click', printReport);
 document.addEventListener('click', (e) => {

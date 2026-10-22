@@ -4,11 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111111">
+  <link rel="manifest" href="../../manifest.webmanifest">
+  <link rel="icon" href="../../assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../../assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BARBERAPP">
   <meta name="referrer" content="no-referrer">
   <title>Mi cuenta · BARBERAPP</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../css/tokens.css">
   <link rel="stylesheet" href="../../css/base.css">
   <link rel="stylesheet" href="../../css/auth.css">
@@ -44,6 +49,7 @@
         <p class="hint">Elige cómo quieres enterarte. Los avisos siempre quedan en tu <a href="../notificaciones.html">bandeja de la app</a>.</p>
         <form data-prefs><div class="skeleton" aria-hidden="true"></div></form>
         <h3 class="account__sub">Teléfonos con notificaciones</h3>
+        <div class="push-here" data-push-here hidden></div>
         <ul class="list" data-devices><li class="skeleton" aria-hidden="true"></li></ul>
       </section>
 
@@ -52,6 +58,8 @@
         <ul class="list" data-sessions><li class="skeleton" aria-hidden="true"></li></ul>
       </section>
 
+      <p class="hint" data-install-link hidden><a href="../instalar.html">Instalar BARBERAPP en este dispositivo</a></p>
+
       <div class="form">
         <button class="btn btn--ghost btn--block" type="button" data-logout data-loading="Cerrando…">Cerrar sesión</button>
         <button class="btn btn--danger btn--block" type="button" data-logout-all data-loading="Cerrando…">Cerrar sesión en todos mis dispositivos</button>
@@ -59,5 +67,6 @@
     </div>
   </main>
   <script type="module" src="../../js/pages/cuenta.js"></script>
+  <script type="module" src="../../js/shell.js"></script>
 </body>
 </html>

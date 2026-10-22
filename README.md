@@ -18,7 +18,9 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | 8 | Recordatorios automáticos: cola persistente, worker por cron, push FCM, correo, bandeja, preferencias, confirmar asistencia y métricas | ✅ Terminada |
 | 9 | Superadministrador SaaS: dashboard con MRR y churn reales, barberías, planes, suscripciones, pagos, usuarios, avisos, auditoría, configuración y reportes | ✅ Terminada |
 | 10 | Planes y monetización: límites por plan, prueba gratuita automática, pago en línea con Mercado Pago (y simulador local), webhooks firmados, vencimientos, avisos y restricción | ✅ Terminada |
-| 11+ | Apps, publicación… | Pendiente |
+| 11 | Reportes y analítica: confirmación, demanda por hora, productividad, recurrencia, previsto frente a cobrado y exportaciones | ✅ Terminada |
+| 12 | PWA, Android e iOS: instalación, service worker, modo sin conexión, app con Capacitor (sesión segura, push, descargas, enlaces directos) y guía de compilación y tiendas | ✅ Terminada |
+| 13+ | Seguridad y protección de datos, pruebas, despliegue… | Pendiente |
 
 ## Documentación
 
@@ -35,6 +37,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Panel del superadministrador SaaS](docs/SUPERADMIN.md) (módulos, privacidad, cálculo de indicadores, ciclo de vida de suscripciones)
 - [Planes y monetización](docs/MONETIZACION.md) (límites, prueba, Mercado Pago, webhooks, vencimientos, restricción, SUNAT pendiente)
 - [Reportes y analítica](docs/REPORTES.md) (demanda por hora, productividad, recurrencia, previsto frente a cobrado, CSV, Excel y PDF)
+- [PWA, Android e iOS](docs/APPS_MOVILES.md) (service worker, instalación, compilación, firma, push, enlaces y reglas de pago de las tiendas)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -264,6 +267,10 @@ Resultado al cerrar la Fase 10: **316 pruebas OK en PHP 8.3** (1 omitida, sin zb
 Desde la Fase 11 cubren reportes y analítica: confirmación, demanda por día y hora en la zona horaria de la sede, productividad por barbero, clientes nuevos y recurrentes, previsto frente a cobrado y saldo por cobrar, permisos de las exportaciones, CSV con fórmulas neutralizadas y libro `.xlsx` válido. Ver [REPORTES.md](docs/REPORTES.md#pruebas).
 
 Resultado al cerrar la Fase 11: **325 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 317 y se omiten 8 (sin GD, zbar ni zip). Sin migraciones nuevas. Recorrido E2E en Chromium (escritorio y móvil 390×844): indicadores, mapa de demanda, productividad, clientes, ingresos, filtros, las cuatro descargas (CSV y Excel, resumen y detalle), impresión a PDF, administrador sin ingresos y plan Básico; 33/33 comprobaciones sin errores de consola ni desbordes.
+
+Desde la Fase 12 cubren el PDF de reportes generado en el servidor (estructura, acentos, paginación y permisos). Ver [APPS_MOVILES.md](docs/APPS_MOVILES.md#7-pruebas).
+
+Resultado al cerrar la Fase 12: **330 pruebas OK en PHP 8.3** (1 omitida); en **PHP 8.0** pasan todas y se omiten 8 (sin GD, zbar ni zip). `npm run verificar` sin problemas. Recorrido E2E en Chromium con la PWA y con Capacitor simulado: 46/46 comprobaciones. **El APK/AAB y el proyecto de iOS no se compilaron en este entorno** (sin Android SDK ni Xcode); ver la guía.
 
 > **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría) `0014_superadmin_saas.sql` (barberías demo, bloqueo de cuentas, historial de suscripciones) y `0015_planes_monetizacion.sql` (órdenes de pago, cambios programados, restricción y permiso `negocio.suscripcion.gestionar`). Para el pago en línea configura `PAYMENT_DRIVER` y las claves de Mercado Pago (ver [MONETIZACION.md](docs/MONETIZACION.md#configuración-backendenv)). Desde la Fase 9 ejecuta también `php bin/console db:seed` (agrega el rol `operador`; es idempotente). Programa el cron de `notificaciones:procesar` y el de `suscripciones:vencer`.
 

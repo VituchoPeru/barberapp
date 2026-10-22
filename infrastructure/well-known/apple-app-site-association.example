@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["REEMPLAZAR_TEAM_ID.pe.barberapp.app"],
+        "components": [
+          { "/": "/b/*", "comment": "Enlace directo de cada barbería y su código QR" }
+        ]
+      }
+    ]
+  }
+}

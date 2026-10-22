@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { saveFile } from '../native.js';
 import { escapeHtml, clearErrors, showErrors, withLoading } from '../ui.js';
 import { icon } from '../icons.js';
 import { money, minutes, safeUrl, avatarHtml, emptyHtml, mountTabbar, loginUrl, page, me, toast } from '../marketplace.js';
@@ -112,10 +113,8 @@ root.addEventListener('click', async (e) => {
     return;
   }
   if (e.target.closest('[data-ics]')) {
-    const url = URL.createObjectURL(icsFile(r));
-    const link = Object.assign(document.createElement('a'), { href: url, download: `cita-${r.codigo}.ics` });
-    document.body.appendChild(link); link.click(); link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Web: descarga el .ics. App: "Compartir" permite abrirlo con el calendario del teléfono.
+    saveFile(icsFile(r), `cita-${r.codigo}.ics`, 'Agregar al calendario').catch((err) => toast(err.message, 'error'));
     return;
   }
   if (e.target.closest('[data-cancel]')) { openCancel(); return; }
