@@ -13,7 +13,7 @@
  * Al publicar una versión nueva, sube VERSION: el navegador instala el worker nuevo, vuelve a
  * descargar el núcleo y borra las cachés anteriores.
  */
-const VERSION = 'fase14-v4';
+const VERSION = 'fase14-v5';
 const CORE = `barberapp-core-${VERSION}`;
 const RUNTIME = `barberapp-runtime-${VERSION}`;
 const RUNTIME_MAX = 120;

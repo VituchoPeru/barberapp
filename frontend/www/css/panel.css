@@ -75,6 +75,7 @@
 .slot { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .slot input[type="time"], .slot select { min-height: 40px; padding: 0 var(--space-2); font: inherit; color: var(--text); background: var(--surface); border: 1px solid #2E2E32; border-radius: var(--radius-sm); color-scheme: dark; }
 .slot select { max-width: 190px; }
+.slot > * { min-width: 0; max-width: 100%; }
 .slot input[type="time"], .ag-nav input[type="date"] { min-width: 0; max-width: 100%; }
 .slot--break { padding-left: var(--space-3); border-left: 2px solid rgba(201, 164, 92, .45); }
 .slot__label { font-size: .78rem; font-weight: 700; color: var(--text-muted); min-width: 64px; }
