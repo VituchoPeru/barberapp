@@ -1,0 +1,72 @@
+// Fixtures compartidas: sesión por rol y "vigilante" de cada página.
+// El vigilante falla la prueba si la página tuvo errores de JavaScript, respuestas 5xx de la API,
+// recursos propios rotos, contenido más ancho que la pantalla o una carga XSS convertida en HTML.
+import { test as base, expect } from '@playwright/test';
+import { readFileSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { WEB } from './entorno.mjs';
+
+const here = dirname(fileURLToPath(import.meta.url));
+
+export function authFile(rol) {
+  return join(here, '.auth', `${rol}.json`);
+}
+
+export const test = base.extend({
+  rol: [null, { option: true }],
+
+  storageState: async ({ rol }, use) => {
+    await use(rol ? authFile(rol) : undefined);
+  },
+
+  page: async ({ page, rol }, use) => {
+    if (rol && existsSync(authFile(rol))) {
+      // El token CSRF vive en sessionStorage (no en la cookie): se deja listo antes de cargar.
+      const { csrf } = JSON.parse(readFileSync(authFile(rol), 'utf8'));
+      await page.addInitScript((t) => { try { sessionStorage.setItem('barberapp.csrf', t); } catch { /* nada */ } }, csrf);
+    }
+    const problemas = [];
+    page.on('pageerror', (e) => problemas.push(`Error de JavaScript: ${e.message}`));
+    page.on('console', (m) => {
+      // Los 4xx esperados (p. ej. /me sin sesión) también se anuncian en consola: se juzgan por la respuesta.
+      if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) problemas.push(`Consola: ${m.text()}`);
+    });
+    page.on('response', (r) => {
+      const url = r.url();
+      if (r.status() >= 500) problemas.push(`HTTP ${r.status()} en ${url}`);
+      if (r.status() === 404 && url.includes(`${WEB}/`) && !url.includes('/api/')) problemas.push(`Recurso faltante: ${url}`);
+    });
+    page.on('requestfailed', (r) => {
+      const err = r.failure()?.errorText || '';
+      if (!/ERR_ABORTED|NS_BINDING_ABORTED|cancelled|Load request cancelled/i.test(err)) problemas.push(`Petición fallida ${r.url()}: ${err}`);
+    });
+    page.problemas = problemas;
+    await use(page);
+    expect(problemas, 'Problemas en la página').toEqual([]);
+  },
+});
+
+export { expect };
+
+/** Revisiones comunes a toda pantalla ya cargada. */
+export async function revisarPantalla(page, nombre) {
+  // Sin esqueletos de carga pendientes (la pantalla terminó de pedir sus datos).
+  await expect(page.locator('.skeleton:visible')).toHaveCount(0, { timeout: 15_000 });
+  const xss = await page.locator('[data-xss]').count();
+  expect(xss, `${nombre}: un texto con etiquetas se pintó como HTML (XSS)`).toBe(0);
+  // En móviles, si algo desborda, el navegador agranda el viewport (innerWidth crece con él):
+  // se compara contra el ancho real de la pantalla emulada.
+  const vista = page.viewportSize()?.width ?? 0;
+  const ancho = await page.evaluate((vista) => {
+    const doc = document.scrollingElement || document.documentElement;
+    const anchos = [...document.querySelectorAll('body *')]
+      .filter((el) => el.getBoundingClientRect().right > vista + 1 && getComputedStyle(el).position !== 'fixed' && el.closest('[hidden],dialog:not([open])') === null)
+      .filter((el) => !el.closest('.scroll-x, [data-scroll-x], .table-wrap, .agenda, .heatmap, pre'))
+      .slice(0, 3)
+      .map((el) => `${el.tagName.toLowerCase()}${el.className ? '.' + String(el.className).split(' ').join('.') : ''}`);
+    return { scroll: Math.max(doc.scrollWidth, window.innerWidth), vista, anchos };
+  }, vista);
+  expect(ancho.scroll, `${nombre}: desborde horizontal (${ancho.anchos.join(', ')})`).toBeLessThanOrEqual(ancho.vista + 1);
+  await expect(page.locator('h1').first(), `${nombre}: sin título principal`).toBeAttached();
+}

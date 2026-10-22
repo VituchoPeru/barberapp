@@ -17,6 +17,8 @@ use PHPUnit\Framework\TestCase;
  * SELECT … FOR UPDATE ambas validarían el horario como libre y se crearían dos reservas.
  *
  * Estas pruebas confirman datos de verdad en la base de pruebas; al terminar borran lo que crearon.
+ *
+ * @group concurrencia
  */
 final class ConcurrencyTest extends TestCase
 {

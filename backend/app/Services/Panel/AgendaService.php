@@ -21,6 +21,7 @@ use App\Repositories\PanelClientRepository;
 use App\Services\Audit;
 use App\Services\Booking\Availability;
 use App\Services\Booking\BookingNotifier;
+use App\Services\Booking\BookingRules;
 use App\Services\Booking\BookingService;
 use App\Services\Schedule\WorkingTime;
 use DateTimeImmutable;
@@ -288,57 +289,31 @@ final class AgendaService
                 throw new NotFoundException('Cita no encontrada.');
             }
             $full = (array) $this->repo->find($id);
-            $now = Clock::nowUtc()->getTimestamp();
-            $ini = Availability::ts((string) $r['inicio_utc']);
-            $fin = Availability::ts((string) $r['fin_utc']);
-            $activa = in_array($r['estado'], ['pendiente', 'confirmada'], true);
-            $reciente = $ini >= $now - PanelBookingPresenter::DIAS_CORRECCION * 86400;
-            $temprano = $now < $ini - PanelBookingPresenter::ATENCION_ANTICIPADA_MIN * 60;
+            $decision = BookingRules::staffTransition($accion, (string) $r['estado'], [
+                'now' => Clock::nowUtc()->getTimestamp(),
+                'inicio' => Availability::ts((string) $r['inicio_utc']),
+                'fin' => Availability::ts((string) $r['fin_utc']),
+                'atencion_iniciada' => $full['atencion_iniciada_en'] !== null,
+                'tiene_cobros' => fn (): bool => (float) $this->repo->paidTotal($id) > 0,
+            ]);
+            if ($decision === null) {
+                return; // ya estaba así: un reintento no falla
+            }
             $nowSql = Clock::nowSql();
-            $ip = $request !== null ? Ip::toBinary($request->ip()) : null;
-            $event = ['actor_tipo' => 'personal', 'actor_usuario_id' => $this->userId, 'ip' => $ip, 'estado_anterior' => $r['estado']];
-            $changes = [];
-            $correccion = false;
+            $correccion = $decision['correccion'];
+            $event = [
+                'actor_tipo' => 'personal', 'actor_usuario_id' => $this->userId, 'ip' => $request !== null ? Ip::toBinary($request->ip()) : null,
+                'estado_anterior' => $r['estado'], 'tipo' => $decision['evento'], 'estado_nuevo' => $decision['estado'],
+            ];
 
             switch ($accion) {
                 case 'confirmar':
-                    if ($r['estado'] === 'confirmada') {
-                        return;
-                    }
-                    if ($r['estado'] !== 'pendiente' || $fin <= $now) {
-                        throw new HttpException(409, 'booking_not_active', 'Solo se confirma una cita pendiente que aún no termina.');
-                    }
                     $changes = ['estado' => 'confirmada', 'confirmada_en' => $nowSql];
-                    $event += ['tipo' => 'confirmada', 'estado_nuevo' => 'confirmada'];
                     break;
-
                 case 'iniciar':
-                    if ($full['atencion_iniciada_en'] !== null && $activa) {
-                        return;
-                    }
-                    if (!$activa) {
-                        throw new HttpException(409, 'booking_not_active', 'La cita no está activa.');
-                    }
-                    if ($temprano) {
-                        throw new HttpException(422, 'too_early', 'Aún falta para esta cita: puedes iniciar la atención desde ' . PanelBookingPresenter::ATENCION_ANTICIPADA_MIN . ' minutos antes.');
-                    }
                     $changes = ['atencion_iniciada_en' => $nowSql] + ($r['estado'] === 'pendiente' ? ['estado' => 'confirmada', 'confirmada_en' => $nowSql] : []);
-                    $event += ['tipo' => 'atencion_iniciada', 'estado_nuevo' => 'confirmada'];
                     break;
-
                 case 'completar':
-                    if ($r['estado'] === 'completada') {
-                        return;
-                    }
-                    if ($activa) {
-                        if ($temprano) {
-                            throw new HttpException(422, 'too_early', 'Aún falta para esta cita: no se puede marcar como atendida.');
-                        }
-                    } elseif ($r['estado'] === 'no_asistio' && $reciente) {
-                        $correccion = true;
-                    } else {
-                        throw new HttpException(409, 'booking_not_active', 'Esta cita no se puede marcar como atendida.');
-                    }
                     $changes = [
                         'estado' => 'completada',
                         'atencion_iniciada_en' => $full['atencion_iniciada_en'] ?? ($correccion ? $r['inicio_utc'] : min($nowSql, (string) $r['inicio_utc'])),
@@ -347,34 +322,11 @@ final class AgendaService
                     if ($full['confirmada_en'] === null) {
                         $changes['confirmada_en'] = $nowSql;
                     }
-                    $event += ['tipo' => 'completada', 'estado_nuevo' => 'completada', 'datos' => $correccion ? ['correccion' => true] : null];
+                    $event['datos'] = $correccion ? ['correccion' => true] : null;
                     break;
-
-                case 'no_asistio':
-                    if ($r['estado'] === 'no_asistio') {
-                        return;
-                    }
-                    if ($activa) {
-                        if ($now < $ini) {
-                            throw new HttpException(422, 'too_early', 'La inasistencia se registra cuando ya pasó la hora de la cita.');
-                        }
-                        if ($full['atencion_iniciada_en'] !== null) {
-                            throw new HttpException(409, 'attention_started', 'La atención ya se inició: marca la cita como atendida.');
-                        }
-                    } elseif ($r['estado'] === 'completada' && $reciente) {
-                        if ((float) $this->repo->paidTotal($id) > 0) {
-                            throw new HttpException(409, 'booking_has_payments', 'La cita tiene cobros registrados. Anúlalos antes de marcar la inasistencia.');
-                        }
-                        $correccion = true;
-                    } else {
-                        throw new HttpException(409, 'booking_not_active', 'Esta cita no se puede marcar como inasistencia.');
-                    }
+                default: // no_asistio
                     $changes = ['estado' => 'no_asistio', 'atencion_iniciada_en' => null, 'atencion_finalizada_en' => null];
-                    $event += ['tipo' => 'no_asistio', 'estado_nuevo' => 'no_asistio', 'datos' => $correccion ? ['correccion' => true] : null];
-                    break;
-
-                default:
-                    throw new NotFoundException('Acción no encontrada.');
+                    $event['datos'] = $correccion ? ['correccion' => true] : null;
             }
 
             if (!$bookings->update($id, (int) $r['version'], $changes)) {

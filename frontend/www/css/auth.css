@@ -8,6 +8,7 @@
 }
 .auth__card {
   width: 100%;
+  grid-template-columns: minmax(0, 1fr); /* sin esto, un contenido ancho estiraba la tarjeta en 320 px */
   max-width: 420px;
   display: grid;
   gap: var(--space-6);

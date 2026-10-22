@@ -275,22 +275,9 @@ final class BookingService
 
         Database::transaction(function () use ($id, $userId, $motivo, $actor, $request): void {
             $r = $this->lockBooking($id);
-            if ($r['estado'] === 'cancelada') {
-                return; // idempotente: un reintento no falla
-            }
-            if (!in_array($r['estado'], ['pendiente', 'confirmada'], true)) {
-                throw new HttpException(409, 'booking_not_active', 'Esta cita ya no está activa y no se puede cancelar.');
-            }
             $policy = $this->availability->policy((int) $r['sucursal_id']);
-            $ini = Availability::ts((string) $r['inicio_utc']);
-            if ($actor === 'cliente') {
-                if ($ini <= Clock::nowUtc()->getTimestamp()) {
-                    throw new HttpException(409, 'booking_started', 'La cita ya comenzó o pasó: no se puede cancelar en línea.');
-                }
-                if (Clock::nowUtc()->getTimestamp() > $ini - $policy->cancelacionLimite * 60) {
-                    throw new HttpException(422, 'cancellation_window_closed', 'Ya no puedes cancelar en línea: el plazo vence ' . self::minutesText($policy->cancelacionLimite)
-                        . ' antes de la cita. Comunícate con la barbería.', ['texto_politica' => $policy->texto]);
-                }
+            if (!BookingRules::assertCancellable((string) $r['estado'], $actor, $policy, Availability::ts((string) $r['inicio_utc']), Clock::nowUtc()->getTimestamp())) {
+                return; // ya estaba cancelada: un reintento no falla
             }
             $now = Clock::nowSql();
             if (!$this->repo->update($id, (int) $r['version'], [
@@ -356,21 +343,9 @@ final class BookingService
             if (!in_array((int) $r['barbero_id'], $locked, true)) {
                 throw new HttpException(409, 'booking_changed', 'La cita cambió mientras la procesábamos. Actualiza e intenta de nuevo.');
             }
-            if (!in_array($r['estado'], ['pendiente', 'confirmada'], true)) {
-                throw new HttpException(409, 'booking_not_active', 'Esta cita ya no está activa y no se puede reprogramar.');
-            }
             $policy = $ctx['policy'];
             $ini = Availability::ts((string) $r['inicio_utc']);
-            if ($actor === 'cliente') {
-                if (Clock::nowUtc()->getTimestamp() > $ini - $policy->reprogramacionLimite * 60) {
-                    throw new HttpException(422, 'reschedule_window_closed', 'Ya no puedes reprogramar en línea: el plazo vence ' . self::minutesText($policy->reprogramacionLimite)
-                        . ' antes de la cita. Comunícate con la barbería.', ['texto_politica' => $policy->texto]);
-                }
-                if ((int) $r['reprogramaciones'] >= $policy->maxReprogramaciones) {
-                    throw new HttpException(422, 'reschedule_limit', "Esta cita ya se reprogramó {$r['reprogramaciones']} " . ((int) $r['reprogramaciones'] === 1 ? 'vez' : 'veces')
-                        . '. Para otro cambio cancela y reserva de nuevo, o comunícate con la barbería.');
-                }
-            }
+            BookingRules::assertReschedulable((string) $r['estado'], $actor, $policy, $ini, Clock::nowUtc()->getTimestamp(), (int) $r['reprogramaciones']);
             if ($start === $ini) {
                 throw new HttpException(422, 'same_slot', 'Elige una fecha u hora distinta a la actual.');
             }
@@ -445,9 +420,7 @@ final class BookingService
                 throw new NotFoundException('Reserva no encontrada.');
             }
             $full = (array) $this->repo->find($id);
-            if (!in_array($r['estado'], ['pendiente', 'confirmada'], true) || Availability::ts((string) $r['inicio_utc']) <= Clock::nowUtc()->getTimestamp()) {
-                throw new HttpException(409, 'booking_not_active', 'Solo puedes confirmar tu asistencia a una cita próxima y activa.');
-            }
+            BookingRules::assertAttendanceConfirmable((string) $r['estado'], Availability::ts((string) $r['inicio_utc']), Clock::nowUtc()->getTimestamp());
             if ($full['asistencia_confirmada_en'] !== null) {
                 return; // ya confirmada: idempotente
             }
@@ -568,16 +541,7 @@ final class BookingService
 
     private function assertWithinPolicy(BookingPolicy $policy, int $start, string $fecha, string $tz): void
     {
-        $now = Clock::nowUtc();
-        if ($start < $now->getTimestamp() + $policy->anticipacion * 60) {
-            throw new HttpException(422, 'too_soon', $start <= $now->getTimestamp()
-                ? 'Ese horario ya pasó. Elige otro.'
-                : 'Las reservas en línea se hacen con al menos ' . self::minutesText($policy->anticipacion) . ' de anticipación.');
-        }
-        $max = $now->setTimezone(new DateTimeZone($tz))->modify("+{$policy->horizonteDias} day")->format('Y-m-d');
-        if ($fecha > $max) {
-            throw new HttpException(422, 'too_far', "Puedes reservar con hasta {$policy->horizonteDias} días de anticipación.");
-        }
+        BookingRules::assertWithinPolicy($policy, $start, $fecha, $tz, Clock::nowUtc()->getTimestamp());
     }
 
     private function assertClientFree(ClientRepository $clients, int $clienteId, int $start, int $end, ?int $excludeId, bool $staff = false): void
@@ -626,14 +590,6 @@ final class BookingService
 
     public static function minutesText(int $min): string
     {
-        if ($min % 1440 === 0 && $min >= 1440) {
-            $d = intdiv($min, 1440);
-            return $d === 1 ? '1 día' : "{$d} días";
-        }
-        if ($min % 60 === 0 && $min >= 60) {
-            $h = intdiv($min, 60);
-            return $h === 1 ? '1 hora' : "{$h} horas";
-        }
-        return "{$min} minutos";
+        return BookingRules::minutesText($min);
     }
 }

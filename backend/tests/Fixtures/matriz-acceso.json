@@ -1,0 +1,1748 @@
+{
+    "health": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "health.live": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "legal": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "webhooks.payments": {
+        "anonimo": "L",
+        "cliente": "L",
+        "barbero": "L",
+        "administrador": "L",
+        "propietario": "L",
+        "operador": "L",
+        "superadmin": "L"
+    },
+    "auth.register": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "auth.login": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "auth.refresh": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "auth.forgot": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "auth.reset": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "auth.verify": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "auth.confirm_email": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "auth.logout": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "auth.csrf": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "auth.verify.resend": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.memberships": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.memberships.accept": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.memberships.reject": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.context": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.sessions": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.sessions.revoke": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.profile.update": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.password": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.email": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.sessions.close_others": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.legal.accept": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.data.export": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.deletion.preview": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.delete": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.data_requests": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.data_requests.store": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.favorites": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.favorites.add": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.favorites.remove": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.notifications": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.notifications.summary": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.notifications.read_all": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.notifications.read": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.notification_prefs": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.notification_prefs.update": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.devices": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.devices.register": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.devices.unregister": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "me.devices.deactivate": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "attendance.show": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "attendance.confirm": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "marketplace.filters": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "marketplace.search": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "marketplace.show": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "marketplace.qr": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "bookings.availability": {
+        "anonimo": "S",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "bookings.store": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "bookings.mine": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "bookings.mine.show": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "bookings.mine.availability": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "bookings.mine.cancel": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "bookings.mine.reschedule": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "bookings.mine.confirm": {
+        "anonimo": "L",
+        "cliente": "S",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "panel.context": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.staff": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.staff.invite": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.staff.revoke": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.team_settings": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.team_settings.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.public_profile": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.public_profile.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.photos.upload": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.photos.delete": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.branches": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.branches.store": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.branches.show": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.branches.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.branches.destroy": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.branches.hours": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.services": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.services.store": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.services.show": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.services.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.services.destroy": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.categories": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.categories.store": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.categories.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.categories.destroy": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers.store": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers.show": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers.destroy": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers.services": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers.schedule": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers.working_time": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers.photo": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.barbers.photo.delete": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.booking_policy": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.booking_policy.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.booking_policy.destroy": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.blocks": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.blocks.store": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.blocks.approve": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.blocks.reject": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.blocks.destroy": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.dashboard": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.reports": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.reports.export": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.agenda": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.agenda.catalog": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.availability": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.store": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.show": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.confirm": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.start": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.complete": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.no_show": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.cancel": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.availability": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.reschedule": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.notes": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.pay": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.bookings.pay.void": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.clients": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.clients.store": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.clients.show": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.clients.bookings": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.clients.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.notifications.rules": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.notifications.rules.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.notifications.metrics": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "S",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.subscription": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.subscription.quote": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.subscription.pay": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.subscription.change_plan": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.subscription.cancel_scheduled": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.subscription.order": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.subscription.simulate": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.business": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "panel.business.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "S",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.day": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.upcoming": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.history": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.bookings.show": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.bookings.confirm": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.bookings.start": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.bookings.complete": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.bookings.no_show": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.bookings.notes": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.schedule": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.schedule.update": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.blocks": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.blocks.request": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "barber.blocks.withdraw": {
+        "anonimo": "L",
+        "cliente": "B",
+        "barbero": "S",
+        "administrador": "-",
+        "propietario": "-",
+        "operador": "B",
+        "superadmin": "B"
+    },
+    "platform.context": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.dashboard": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.reports": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.system": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.tenants": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.tenants.show": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.tenants.update": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.tenants.approve": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.tenants.reject": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.tenants.suspend": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.tenants.reactivate": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.plans": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.plans.store": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.plans.update": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.subscriptions": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.subscriptions.store": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.subscriptions.show": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.subscriptions.change_plan": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.subscriptions.renew": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.subscriptions.suspend": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.subscriptions.reactivate": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.subscriptions.cancel": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.payments": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.orders": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.payments.store": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.payments.confirm": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.payments.reject": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.payments.refund": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.users": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.users.search": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.users.show": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.users.block": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.users.unblock": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.users.role": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.templates": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.templates.save": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.templates.restore": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.templates.preview": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.audit": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.audit.actions": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.settings": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.settings.update": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "P",
+        "superadmin": "S"
+    },
+    "platform.data_requests": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    },
+    "platform.data_requests.respond": {
+        "anonimo": "L",
+        "cliente": "P",
+        "barbero": "P",
+        "administrador": "P",
+        "propietario": "P",
+        "operador": "S",
+        "superadmin": "S"
+    }
+}
