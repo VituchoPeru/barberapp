@@ -453,7 +453,7 @@ Historial inmutable: solo INSERT
 | `id` | bigint unsigned auto_increment | no |  | PRI |  |
 | `tenant_id` | bigint unsigned | no |  | MUL |  |
 | `reserva_id` | bigint unsigned | no |  |  |  |
-| `tipo` | enum('creada','confirmada','reprogramada','cancelada','asistencia_confirmada','atencion_iniciada','completada','no_asistio','modificada','nota') | no |  |  |  |
+| `tipo` | enum('creada','confirmada','reprogramada','cancelada','asistencia_confirmada','atencion_iniciada','completada','no_asistio','modificada','nota','pago_registrado','pago_anulado') | no |  |  |  |
 | `estado_anterior` | varchar(20) | sí |  |  |  |
 | `estado_nuevo` | varchar(20) | sí |  |  |  |
 | `inicio_anterior_utc` | datetime | sí |  |  |  |
@@ -469,6 +469,28 @@ Historial inmutable: solo INSERT
 | `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
 
 **Claves foráneas:** (actor_usuario_id) → `usuarios`(id); (tenant_id,reserva_id) → `reservas`(tenant_id,id)
+
+## `reserva_pagos`
+
+Cobros registrados por la barbería; fuente de los ingresos del panel
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `tenant_id` | bigint unsigned | no |  | MUL |  |
+| `reserva_id` | bigint unsigned | no |  |  |  |
+| `monto` | decimal(10,2) | no |  |  |  |
+| `moneda` | char(3) | no | `PEN` |  |  |
+| `metodo` | enum('efectivo','tarjeta','yape','plin','transferencia','otro') | no |  |  |  |
+| `referencia` | varchar(100) | sí |  |  | N.º de operación o comprobante (opcional) |
+| `pagado_en` | datetime | no |  |  | UTC |
+| `registrado_por` | bigint unsigned | sí |  | MUL |  |
+| `anulado_en` | datetime | sí |  |  |  |
+| `anulado_por` | bigint unsigned | sí |  | MUL |  |
+| `motivo_anulacion` | varchar(255) | sí |  |  |  |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (anulado_por) → `usuarios`(id); (registrado_por) → `usuarios`(id); (tenant_id,reserva_id) → `reservas`(tenant_id,id)
 
 ## `reserva_servicios`
 

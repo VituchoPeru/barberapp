@@ -159,6 +159,105 @@ final class BookingService
         return $this->presented($id);
     }
 
+    // ================================================================== crear desde el panel
+
+    /**
+     * Reserva registrada por el personal (mostrador, teléfono, WhatsApp). Mismo motor y mismos
+     * candados que la reserva en línea; cambia solo quién la hace:
+     *   - el cliente es uno ya vinculado a la barbería o uno nuevo de mostrador (sin cuenta);
+     *   - se puede elegir cualquier barbero activo, acepte o no reservas en línea;
+     *   - sin anticipación mínima ni horizonte corto (BookingPolicy::forStaff);
+     *   - no aplica el tope de citas activas por cliente ni el bloqueo de reservas en línea.
+     * Nunca permite cruzar dos citas del mismo barbero ni del mismo cliente.
+     *
+     * @param array<string, mixed> $staff usuario autenticado
+     * @param array<string, mixed> $input sucursal_id, servicio_ids, barbero_id|null, fecha, hora, cliente_id | cliente{…}, notas, notas_internas, estado
+     * @param callable(): int $resolveClient devuelve el cliente_id ya vinculado y bloqueado (se ejecuta dentro de la transacción)
+     * @return array<string, mixed>
+     */
+    public function createByStaff(array $staff, array $input, callable $resolveClient, ?Request $request = null): array
+    {
+        $data = Validator::validate($input, [
+            'sucursal_id' => 'required|integer|min:1',
+            'barbero_id' => 'nullable|integer|min:1',
+            'fecha' => 'required|date',
+            'hora' => 'required|time',
+            'notas' => 'nullable|string|max:500',
+            'notas_internas' => 'nullable|string|max:1000',
+            'estado' => 'nullable|in:pendiente,confirmada',
+        ]);
+        $barberoId = isset($data['barbero_id']) ? (int) $data['barbero_id'] : null;
+        $notas = isset($data['notas']) && trim((string) $data['notas']) !== '' ? trim((string) $data['notas']) : null;
+        $internas = isset($data['notas_internas']) && trim((string) $data['notas_internas']) !== '' ? trim((string) $data['notas_internas']) : null;
+        $estado = $data['estado'] ?? 'confirmada';
+
+        $ctx = $this->staffAware($this->availability->context((int) $data['sucursal_id'], $input['servicio_ids'] ?? null, $barberoId, false), 'personal');
+        $start = $this->startTs($ctx, (string) $data['fecha'], (string) $data['hora']);
+        $this->assertWithinPolicy($ctx['policy'], $start, (string) $data['fecha'], (string) $ctx['branch']['zona_horaria']);
+        $serviceIds = array_map(static fn (array $s): int => (int) $s['id'], $ctx['services']);
+        $userId = (int) $staff['id'];
+
+        $id = Database::transaction(function () use ($userId, $ctx, $serviceIds, $barberoId, $start, $data, $notas, $internas, $estado, $resolveClient, $request): int {
+            $clienteId = $resolveClient();
+
+            $this->barbers->lockMany(array_keys($ctx['candidates']));
+            $locked = array_keys($ctx['candidates']);
+            $fresh = $this->staffAware($this->availability->context((int) $ctx['branch']['id'], $serviceIds, $barberoId, false), 'personal');
+            $fresh['candidates'] = array_intersect_key($fresh['candidates'], array_flip($locked));
+            [$chosen, $alternativas] = $this->pick($fresh, (string) $data['fecha'], $start, null, null);
+            if ($chosen === null) {
+                throw new HttpException(409, 'slot_unavailable', 'Ese horario no está libre en la agenda. Elige otro.', ['alternativas' => $alternativas]);
+            }
+            $cand = $fresh['candidates'][$chosen];
+            $segments = $this->segments($cand, $fresh['services'], $start);
+            $end = $segments[count($segments) - 1]['fin_ts'];
+            $this->assertClientFree(new ClientRepository(), $clienteId, $start, $end, null, true);
+
+            if (self::$beforeWrite !== null) {
+                (self::$beforeWrite)();
+            }
+
+            $now = Clock::nowSql();
+            $id = $this->insertWithCode([
+                'sucursal_id' => (int) $fresh['branch']['id'],
+                'barbero_id' => $chosen,
+                'cliente_id' => $clienteId,
+                'estado' => $estado,
+                'inicio_utc' => gmdate('Y-m-d H:i:s', $start),
+                'fin_utc' => gmdate('Y-m-d H:i:s', $end),
+                'zona_horaria' => (string) $fresh['branch']['zona_horaria'],
+                'duracion_total_minutos' => intdiv($end - $start, 60),
+                'precio_total' => AvailabilityService::price($cand, $fresh['services']),
+                'moneda' => (string) ($fresh['services'][0]['moneda'] ?? 'PEN'),
+                'canal' => 'panel',
+                'barbero_asignado_auto' => $barberoId === null,
+                'notas_cliente' => $notas,
+                'notas_internas' => $internas,
+                'confirmada_en' => $estado === 'confirmada' ? $now : null,
+                'creado_por' => $userId,
+            ]);
+            $this->repo->replaceServices($id, $this->serviceRows($segments));
+            $ip = $request !== null ? Ip::toBinary($request->ip()) : null;
+            $this->repo->addEvent($id, [
+                'tipo' => 'creada', 'estado_nuevo' => 'pendiente', 'inicio_nuevo_utc' => gmdate('Y-m-d H:i:s', $start), 'fin_nuevo_utc' => gmdate('Y-m-d H:i:s', $end),
+                'barbero_nuevo_id' => $chosen, 'actor_tipo' => 'personal', 'actor_usuario_id' => $userId, 'ip' => $ip,
+                'datos' => ['canal' => 'panel', 'servicios' => $serviceIds, 'barbero_asignado_auto' => $barberoId === null],
+            ]);
+            if ($estado === 'confirmada') {
+                $this->repo->addEvent($id, ['tipo' => 'confirmada', 'estado_anterior' => 'pendiente', 'estado_nuevo' => 'confirmada', 'actor_tipo' => 'personal', 'actor_usuario_id' => $userId]);
+            }
+            $this->repo->incrementClientBookings($clienteId);
+            $row = (array) $this->repo->find($id);
+            (new BookingNotifier($this->tenantId))->notify($row, 'creada', 'personal');
+            Audit::record('reserva.creada', 'exito', $request, $userId, $this->tenantId, 'reservas', $id, [
+                'codigo' => $row['codigo'], 'barbero_id' => $chosen, 'inicio_utc' => $row['inicio_utc'], 'canal' => 'panel', 'cliente_id' => $clienteId,
+            ]);
+            return $id;
+        }, Database::READ_COMMITTED);
+
+        return $this->presented($id);
+    }
+
     // ================================================================== cancelar
 
     /**
@@ -241,7 +340,7 @@ final class BookingService
         // Cliente con barbero elegido: se mantiene. Con "cualquiera": el motor puede reasignar.
         $pool = $pedido ?? ($auto && $this->availability->policy((int) $current['sucursal_id'])->permiteCualquierBarbero ? null : (int) $current['barbero_id']);
         $serviceIds = array_map(static fn (array $s): int => (int) $s['servicio_id'], $this->repo->services($id));
-        $ctx = $this->availability->context((int) $current['sucursal_id'], $serviceIds, $pool, $actor === 'cliente');
+        $ctx = $this->staffAware($this->availability->context((int) $current['sucursal_id'], $serviceIds, $pool, $actor === 'cliente'), $actor);
         $start = $this->startTs($ctx, (string) $data['fecha'], (string) $data['hora']);
 
         Database::transaction(function () use ($id, $userId, $ctx, $serviceIds, $pool, $start, $data, $actor, $request): void {
@@ -274,7 +373,7 @@ final class BookingService
             }
             $this->assertWithinPolicy($policy, $start, (string) $data['fecha'], (string) $ctx['branch']['zona_horaria']);
 
-            $fresh = $this->availability->context((int) $r['sucursal_id'], $serviceIds, $pool, $actor === 'cliente');
+            $fresh = $this->staffAware($this->availability->context((int) $r['sucursal_id'], $serviceIds, $pool, $actor === 'cliente'), $actor);
             $fresh['candidates'] = array_intersect_key($fresh['candidates'], array_flip($locked));
             [$chosen, $alternativas] = $this->pick($fresh, (string) $data['fecha'], $start, $id, (int) $r['barbero_id']);
             if ($chosen === null) {
@@ -295,7 +394,7 @@ final class BookingService
                 unset($seg);
             }
             $end = $segments[count($segments) - 1]['fin_ts'];
-            $this->assertClientFree(new ClientRepository(), (int) $r['cliente_id'], $start, $end, $id);
+            $this->assertClientFree(new ClientRepository(), (int) $r['cliente_id'], $start, $end, $id, $actor === 'personal');
 
             if (self::$beforeWrite !== null) {
                 (self::$beforeWrite)();
@@ -378,6 +477,21 @@ final class BookingService
     }
 
     // ================================================================== internos
+
+    /**
+     * El personal agenda sin anticipación mínima ni horizonte corto (atiende en mostrador o por
+     * teléfono); la jornada, los bloqueos, el margen y la grilla se respetan igual que en línea.
+     *
+     * @param array<string, mixed> $ctx
+     * @return array<string, mixed>
+     */
+    private function staffAware(array $ctx, string $actor): array
+    {
+        if ($actor === 'personal') {
+            $ctx['policy'] = $ctx['policy']->forStaff();
+        }
+        return $ctx;
+    }
 
     /**
      * Elige el barbero libre en $start: el actual (reprogramación) si sigue libre; si no, el de
@@ -463,16 +577,19 @@ final class BookingService
         }
     }
 
-    private function assertClientFree(ClientRepository $clients, int $clienteId, int $start, int $end, ?int $excludeId): void
+    private function assertClientFree(ClientRepository $clients, int $clienteId, int $start, int $end, ?int $excludeId, bool $staff = false): void
     {
         $o = $clients->overlapping($clienteId, gmdate('Y-m-d H:i:s', $start), gmdate('Y-m-d H:i:s', $end), $excludeId);
         if ($o !== null) {
-            throw new HttpException(409, 'client_overlap', "Ya tienes otra cita a esa hora en {$o['nombre_comercial']} (código {$o['codigo']}).");
+            throw new HttpException(409, 'client_overlap', $staff
+                // Al personal no se le revela en qué otra barbería tiene cita el cliente.
+                ? ((int) $o['tenant_id'] === $this->tenantId ? "El cliente ya tiene otra cita a esa hora (código {$o['codigo']})." : 'El cliente ya tiene otra cita a esa hora.')
+                : "Ya tienes otra cita a esa hora en {$o['nombre_comercial']} (código {$o['codigo']}).");
         }
     }
 
     /** Bloquea barbero y reserva (en ese orden, igual que al crear). @return array<string, mixed> */
-    private function lockBooking(int $id): array
+    public function lockBooking(int $id): array
     {
         $peek = $this->repo->find($id);
         if ($peek === null) {

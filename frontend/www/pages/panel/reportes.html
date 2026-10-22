@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Reportes · Panel BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Reportes <span class="muted" data-tenant-name></span></h1>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos del panel"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <div class="panel-head">
+      <div><h2>Reportes</h2><p>Calculados con tus reservas y cobros registrados. El importe previsto de las citas no se cuenta como ingreso.</p></div>
+      <div class="toolbar"><button class="btn btn--ghost btn--sm" type="button" data-csv><span data-icon="download"></span> Descargar CSV</button></div>
+    </div>
+    <form class="toolbar" data-filters>
+      <div class="field"><label for="f-rango">Periodo</label><select id="f-rango" data-rango><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="mes">Este mes</option><option value="custom">Personalizado</option></select></div>
+      <div class="field" data-custom hidden><label for="f-desde">Desde</label><input id="f-desde" type="date" data-desde></div>
+      <div class="field" data-custom hidden><label for="f-hasta">Hasta</label><input id="f-hasta" type="date" data-hasta></div>
+      <div class="field"><label for="f-sucursal">Sucursal</label><select id="f-sucursal" data-sucursal><option value="">Todas</option></select></div>
+      <div class="field"><label for="f-barbero">Barbero</label><select id="f-barbero" data-barbero><option value="">Todos</option></select></div>
+    </form>
+    <div data-loading><div class="skeleton"></div><div class="skeleton" style="margin-top:8px"></div></div>
+    <div data-report hidden>
+      <div class="kpis" data-kpis></div>
+      <section class="card-box" aria-labelledby="h-dia" style="margin-top:16px"><h3 id="h-dia">Reservas por día</h3><p class="hint">Sin contar canceladas. Pasa el cursor o enfoca una barra para ver el detalle.</p><div data-by-day></div></section>
+      <div class="grid-2" style="margin-top:16px">
+        <section class="card-box" aria-labelledby="h-svc"><h3 id="h-svc">Servicios más solicitados</h3><ul class="hbars" data-services></ul></section>
+        <section class="card-box" aria-labelledby="h-occ"><h3 id="h-occ">Ocupación por barbero</h3><p class="hint">Minutos reservados ÷ jornada efectiva (sin descansos ni ausencias).</p><div data-occupancy></div></section>
+      </div>
+      <div class="grid-2" style="margin-top:16px">
+        <section class="card-box" aria-labelledby="h-can"><h3 id="h-can">Cancelaciones e inasistencias</h3><div data-cancel></div></section>
+        <section class="card-box" aria-labelledby="h-ing" data-income-box hidden><h3 id="h-ing">Ingresos registrados</h3><div data-income></div></section>
+      </div>
+      <section class="card-box" aria-labelledby="h-mes" style="margin-top:16px"><h3 id="h-mes">Evolución mensual (12 meses)</h3><div data-monthly></div></section>
+    </div>
+  </main>
+  <script type="module" src="../../js/pages/panel-reportes.js"></script>
+</body>
+</html>

@@ -34,7 +34,7 @@ final class BookingNotifier
 
     /**
      * @param array<string, mixed> $r fila de BookingRepository::SELECT_DETAIL
-     * @param string $evento creada | reprogramada | cancelada | asistencia_confirmada
+     * @param string $evento creada | reprogramada | cancelada | asistencia_confirmada | confirmada
      */
     public function notify(array $r, string $evento, string $actor, int $secuencia = 0): void
     {
@@ -50,6 +50,7 @@ final class BookingNotifier
                     : "{$tenant} recibió tu solicitud para el {$cuando} y la confirmará pronto. Código {$codigo}."],
             'reprogramada' => ['Cita reprogramada', "Tu cita en {$tenant} ahora es el {$cuando}. Código {$codigo}."],
             'cancelada' => ['Cita cancelada', "Se canceló tu cita del {$cuando} en {$tenant}. Código {$codigo}."],
+            'confirmada' => ['Reserva confirmada', "{$tenant} confirmó tu cita del {$cuando}. Código {$codigo}."],
         ];
         $paraBarbero = [
             'creada' => ['Nueva cita', "{$cliente} reservó para el {$cuando}. Código {$codigo}."],

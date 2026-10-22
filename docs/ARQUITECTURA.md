@@ -61,9 +61,9 @@ barberapp/
 │   │   ├── Middleware/    ← RequestId, SecurityHeaders, Cors, JsonBody, TenantContext
 │   │   ├── Repositories/  ← BaseRepository, TenantScopedRepository
 │   │   ├── Helpers/       ← Validator, Clock (UTC), Codes
-│   │   ├── Services/  Models/  Policies/  Jobs/   ← se completan en fases siguientes
+│   │   ├── Services/      ← Auth, Booking (motor de reservas), Schedule (jornada), Panel (agenda, reportes), Media, Qr…
 │   ├── database/
-│   │   ├── migrations/    ← 0001…0006 *.sql
+│   │   ├── migrations/    ← 0001…0011 *.sql
 │   │   ├── seeds/         ← CatalogSeeder (todos los entornos), DemoSeeder (solo local/testing)
 │   │   └── schema.sql     ← script completo generado
 │   ├── bin/console        ← CLI: db:create, migrate, db:seed, schema:build, routes…

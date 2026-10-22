@@ -204,6 +204,24 @@ final class DemoSeeder
             $r4 = $this->reserva($centro, $sedeCentro, $b2, $cMostrador, 'cancelada', $manana . ' 15:00', [[$sCorte, 'Corte clásico', 30, '25.00']], 'panel', $adminCentro);
             $this->reserva($norte, $sedeNorte, $b3, $c1, 'pendiente', $manana . ' 17:00', [[$sNorteCorte, 'Corte moderno', 30, '30.00']], 'qr', $clienteUser);
 
+            // Atención y cobro de la cita ya atendida (Fase 6): datos de demostración, no ingresos reales.
+            $this->exec(
+                'UPDATE reservas SET atencion_iniciada_en = inicio_utc, atencion_finalizada_en = fin_utc WHERE id = ?',
+                [$r3]
+            );
+            $this->exec(
+                "INSERT INTO reserva_pagos (tenant_id, reserva_id, monto, moneda, metodo, referencia, pagado_en, registrado_por)
+                 SELECT tenant_id, id, precio_total, moneda, 'efectivo', 'Demo', fin_utc, ? FROM reservas WHERE id = ?",
+                [$adminCentro, $r3]
+            );
+            $this->exec(
+                "UPDATE cliente_tenants ct SET
+                        primera_visita_en = (SELECT MIN(r.inicio_utc) FROM reservas r WHERE r.tenant_id = ct.tenant_id AND r.cliente_id = ct.cliente_id AND r.estado = 'completada'),
+                        ultima_visita_en = (SELECT MAX(r.inicio_utc) FROM reservas r WHERE r.tenant_id = ct.tenant_id AND r.cliente_id = ct.cliente_id AND r.estado = 'completada')
+                  WHERE ct.tenant_id IN (?, ?)",
+                [$centro, $norte]
+            );
+
             // Recordatorio programado (cola de notificaciones de la Fase 8)
             $inicioR1 = $this->db->query('SELECT inicio_utc FROM reservas WHERE id = ' . (int) $r1)->fetchColumn();
             $this->exec(

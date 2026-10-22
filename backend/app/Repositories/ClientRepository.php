@@ -83,7 +83,7 @@ final class ClientRepository extends BaseRepository
     public function overlapping(int $clienteId, string $inicioUtc, string $finUtc, ?int $excludeId = null): ?array
     {
         return $this->fetchOne(
-            'SELECT r.codigo, t.nombre_comercial FROM reservas r JOIN tenants t ON t.id = r.tenant_id
+            'SELECT r.codigo, r.tenant_id, t.nombre_comercial FROM reservas r JOIN tenants t ON t.id = r.tenant_id
               WHERE r.cliente_id = :c AND r.ocupa_agenda = 1 AND r.inicio_utc < :fin AND r.fin_utc > :ini AND r.id <> :ex
               LIMIT 1',
             ['c' => $clienteId, 'ini' => $inicioUtc, 'fin' => $finUtc, 'ex' => $excludeId ?? 0]

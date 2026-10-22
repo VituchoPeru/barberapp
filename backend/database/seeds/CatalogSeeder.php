@@ -50,6 +50,7 @@ final class CatalogSeeder
         'reservas.reprogramar' => ['reservas', 'Reprogramar citas'],
         'reservas.cancelar' => ['reservas', 'Cancelar reservas'],
         'reservas.asistencia' => ['reservas', 'Registrar inicio, fin, asistencia o inasistencia'],
+        'reservas.cobrar' => ['reservas', 'Registrar y anular cobros de citas'],
         'clientes.ver' => ['clientes', 'Consultar clientes e historial'],
         'clientes.notas' => ['clientes', 'Registrar observaciones autorizadas'],
         'reportes.operativos' => ['reportes', 'Reportes operativos'],

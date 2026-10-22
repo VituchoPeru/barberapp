@@ -61,6 +61,20 @@ final class BookingPolicy
         );
     }
 
+    /**
+     * Versión para el personal de la barbería (agenda del panel): sin anticipación mínima ni
+     * horizonte corto. La jornada, los bloqueos, la grilla y el margen se respetan igual.
+     */
+    public function forStaff(): self
+    {
+        $p = clone $this;
+        $p->anticipacion = 0;
+        $p->horizonteDias = max($this->horizonteDias, self::STAFF_HORIZON_DAYS);
+        return $p;
+    }
+
+    public const STAFF_HORIZON_DAYS = 365;
+
     /** @return array<string, mixed> */
     public function toArray(): array
     {
