@@ -81,7 +81,27 @@ export async function revisarPantalla(page, nombre) {
         const r = el.getBoundingClientRect();
         return `${nombreDe(el)} [${Math.round(r.left)}–${Math.round(r.right)}px]`;
       });
-    return { scroll: Math.max(doc.scrollWidth, window.innerWidth), vista, anchos };
+    const scroll = Math.max(doc.scrollWidth, window.innerWidth);
+    if (scroll > vista + 1 && anchos.length === 0) {
+      // El desborde no es de una caja (texto o contenido interno de un control): se busca
+      // ocultando ramas hasta dar con el elemento cuyo retiro lo elimina.
+      let rama = document.body;
+      const ruta = [];
+      for (let nivel = 0; nivel < 25; nivel++) {
+        const hijo = [...rama.children].find((h) => {
+          const antes = h.style.display;
+          h.style.display = 'none';
+          const ok = doc.scrollWidth <= vista + 1;
+          h.style.display = antes;
+          return ok;
+        });
+        if (!hijo) break;
+        ruta.push(nombreDe(hijo));
+        rama = hijo;
+      }
+      anchos.push(`ruta: ${ruta.join(' > ') || '(no aislado)'}`);
+    }
+    return { scroll, vista, anchos };
   }, vista);
   expect(ancho.scroll, `${nombre}: desborde horizontal (${ancho.anchos.join(', ')})`).toBeLessThanOrEqual(ancho.vista + 1);
   await expect(page.locator('h1').first(), `${nombre}: sin título principal`).toBeAttached();
