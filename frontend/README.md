@@ -18,4 +18,12 @@ Pantallas disponibles:
 - `www/pages/auth/`: iniciar sesión, crear cuenta (cliente o barbería), recuperar contraseña, nueva contraseña, verificar correo y "Mi cuenta" (barberías, invitaciones, sesiones abiertas).
 
 `API_BASE_URL` se calcula desde `js/config.js`; en otro despliegue define `window.BARBERAPP_API_URL` antes de cargar los módulos.
-`package.json`, `capacitor.config.json`, `android/` e `ios/` se crean en la Fase 12, tras verificar versiones compatibles de Capacitor.
+## PWA y apps (Fase 12)
+
+- `www/manifest.webmanifest`, `www/sw.js` (solo estáticos, nunca la API), `www/offline.html` y `www/pages/instalar.html`.
+- `www/js/shell.js` se carga en todas las pantallas: registra el service worker, muestra el aviso sin conexión y la tarjeta de instalación, y en la app inicia lo nativo.
+- `www/js/native.js` (adaptador de Capacitor), `www/js/push.js` (notificaciones), `www/js/descargas.js` (descargas y Compartir).
+- `package.json` (versiones fijas), `capacitor.config.json`, `android/` e `ios/`.
+- `npm run configurar` escribe la URL de la API en `www/js/runtime-config.js` (vacío en el repositorio); `npm run recursos` genera iconos y splash desde `resources/emblema.svg`; `npm run verificar` comprueba la PWA.
+
+Guía completa (compilar, firmar, push, enlaces y tiendas): [docs/APPS_MOVILES.md](../docs/APPS_MOVILES.md).

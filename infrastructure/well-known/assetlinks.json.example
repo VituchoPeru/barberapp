@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "pe.barberapp.app",
+      "sha256_cert_fingerprints": [
+        "REEMPLAZAR:CON:LA:HUELLA:SHA-256:DEL:CERTIFICADO:DE:FIRMA:DE:GOOGLE:PLAY"
+      ]
+    }
+  }
+]

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Avisos push (APNs). Xcode lo cambia a "production" al exportar para TestFlight o App Store. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Enlaces universales: https://app.barberapp.pe/b/{slug} abre la app si está instalada.
+	     El dominio publica /.well-known/apple-app-site-association (docs/APPS_MOVILES.md). -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:app.barberapp.pe</string>
+	</array>
+</dict>
+</plist>

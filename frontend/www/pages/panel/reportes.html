@@ -4,9 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111111">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="manifest" href="../../manifest.webmanifest">
+  <link rel="icon" href="../../assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../../assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BARBERAPP">
   <link rel="stylesheet" href="../../css/tokens.css">
   <link rel="stylesheet" href="../../css/base.css">
   <link rel="stylesheet" href="../../css/auth.css">
@@ -30,9 +35,11 @@
         <div class="export-menu__list" role="group" aria-label="Formatos de exportación">
           <button type="button" class="export-menu__item" data-dl="resumen:csv">Resumen <small>CSV</small></button>
           <button type="button" class="export-menu__item" data-dl="resumen:xlsx">Resumen <small>Excel</small></button>
+          <button type="button" class="export-menu__item" data-dl="resumen:pdf">Resumen <small>PDF</small></button>
           <button type="button" class="export-menu__item" data-dl="reservas:csv">Reservas una por una <small>CSV</small></button>
           <button type="button" class="export-menu__item" data-dl="reservas:xlsx">Reservas una por una <small>Excel</small></button>
-          <button type="button" class="export-menu__item" data-print>Imprimir o guardar en PDF</button>
+          <button type="button" class="export-menu__item" data-dl="reservas:pdf">Reservas una por una <small>PDF</small></button>
+          <button type="button" class="export-menu__item" data-print>Imprimir con gráficos</button>
         </div>
       </details>
     </div>
@@ -63,5 +70,6 @@
     </div>
   </main>
   <script type="module" src="../../js/pages/panel-reportes.js"></script>
+  <script type="module" src="../../js/shell.js"></script>
 </body>
 </html>

@@ -2,6 +2,8 @@ import { api } from '../api.js';
 import { currentUser, logout } from '../auth.js';
 import { $, withLoading, notice, escapeHtml } from '../ui.js';
 import { mountTabbar } from '../marketplace.js';
+import { isNative } from '../native.js';
+import { isInstalled } from '../shell.js';
 
 mountTabbar('cuenta');
 
@@ -94,12 +96,28 @@ async function renderPrefs() {
       : '<td><span class="muted" aria-label="No disponible">—</span></td>')).join('')}</tr>`).join('')}</tbody></table>`;
 }
 
+/** Avisos push en este teléfono (solo en la app nativa, Fase 12). */
+async function renderPushHere() {
+  const box = $('[data-push-here]');
+  if (!isNative()) { box.hidden = true; return; }
+  const { pushPermission } = await import('../push.js');
+  const state = await pushPermission();
+  box.hidden = state === 'unsupported';
+  box.innerHTML = state === 'granted'
+    ? '<p class="hint">Este teléfono tiene los avisos activados.</p>'
+    : state === 'denied'
+      ? '<p class="alert" data-type="info">Las notificaciones de BARBERAPP están desactivadas en este teléfono. Puedes activarlas en los ajustes del sistema, en Notificaciones.</p>'
+      : '<button class="btn btn--sm" type="button" data-push-enable data-loading="Activando…">Activar avisos en este teléfono</button>';
+}
+
 const PLATAFORMAS = { android: 'Android', ios: 'iPhone / iPad', web: 'Navegador' };
 async function renderDevices() {
   const devices = await api('/me/dispositivos');
   const el = $('[data-devices]');
   if (!devices.length) {
-    el.innerHTML = '<li class="muted">Ningún teléfono recibe notificaciones todavía. Se activan al instalar la app de BARBERAPP y permitir los avisos.</li>';
+    el.innerHTML = isNative()
+      ? '<li class="muted">Ningún teléfono recibe notificaciones todavía.</li>'
+      : '<li class="muted">Ningún teléfono recibe notificaciones todavía. Se activan al <a href="../instalar.html">instalar la app de BARBERAPP</a> y permitir los avisos.</li>';
     return;
   }
   el.innerHTML = devices.map((d) => `<li class="item">
@@ -124,6 +142,9 @@ document.addEventListener('change', async (event) => {
   }
 });
 
+// Enlace a la pantalla de instalación cuando se usa desde el navegador (Fase 12).
+$('[data-install-link]').hidden = isInstalled();
+
 async function load() {
   const me = await currentUser();
   if (!me) {
@@ -131,7 +152,7 @@ async function load() {
     return;
   }
   await renderProfile(me);
-  await Promise.all([renderMemberships(me), renderPrefs(), renderDevices(), renderSessions()]);
+  await Promise.all([renderMemberships(me), renderPrefs(), renderDevices(), renderSessions(), renderPushHere().catch(() => {})]);
   if (location.hash === '#avisos') $('#avisos').scrollIntoView();
 }
 
@@ -152,7 +173,13 @@ document.addEventListener('click', (event) => {
   else if (b.dataset.accept) run(b, () => api(`/me/memberships/${b.dataset.accept}/aceptar`, { method: 'POST', body: {} }), 'Invitación aceptada. ¡Bienvenido al equipo!');
   else if (b.dataset.reject) run(b, () => api(`/me/memberships/${b.dataset.reject}/rechazar`, { method: 'POST', body: {} }), 'Invitación rechazada.');
   else if (b.dataset.revoke) run(b, () => api(`/me/sessions/${b.dataset.revoke}`, { method: 'DELETE' }), 'Sesión cerrada.');
-  else if (b.dataset.deviceOff) run(b, () => api(`/me/dispositivos/${b.dataset.deviceOff}`, { method: 'DELETE' }), 'Ese teléfono ya no recibirá notificaciones.');
+  else if (b.hasAttribute('data-push-enable')) {
+    run(b, async () => {
+      const { enablePush } = await import('../push.js');
+      const state = await enablePush();
+      if (state !== 'granted') throw new Error('No se activaron los avisos: el permiso de notificaciones no fue concedido.');
+    }, 'Listo: este teléfono recibirá tus recordatorios.');
+  } else if (b.dataset.deviceOff) run(b, () => api(`/me/dispositivos/${b.dataset.deviceOff}`, { method: 'DELETE' }), 'Ese teléfono ya no recibirá notificaciones.');
   else if (b.hasAttribute('data-resend')) run(b, () => api('/auth/verify-email/resend', { method: 'POST', body: {} }).then((d) => notice(noticeEl, d.mensaje, 'ok')));
   else if (b.hasAttribute('data-logout') || b.hasAttribute('data-logout-all')) {
     const all = b.hasAttribute('data-logout-all');

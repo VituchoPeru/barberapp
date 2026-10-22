@@ -44,8 +44,8 @@ function render(p) {
   $('[data-qr]').innerHTML = p.enlace_activo
     ? `<img src="${escapeHtml(qrBase)}?formato=svg" alt="Código QR de ${escapeHtml(p.nombre_comercial)}" width="260" height="260">
        <div class="contact-list">
-         <a class="btn btn--sm" href="${escapeHtml(qrBase)}?formato=png&tam=20&descargar=1">${icon('download')}Descargar PNG</a>
-         <a class="btn btn--sm btn--ghost" href="${escapeHtml(qrBase)}?formato=svg&descargar=1">${icon('download')}SVG para imprenta</a>
+         <a class="btn btn--sm" href="${escapeHtml(qrBase)}?formato=png&tam=20&descargar=1" data-api-download="${escapeHtml(qrBase.slice(config.API_BASE_URL.length))}?formato=png&tam=20&descargar=1" data-filename="qr-barberia.png">${icon('download')}Descargar PNG</a>
+         <a class="btn btn--sm btn--ghost" href="${escapeHtml(qrBase)}?formato=svg&descargar=1" data-api-download="${escapeHtml(qrBase.slice(config.API_BASE_URL.length))}?formato=svg&descargar=1" data-filename="qr-barberia.svg">${icon('download')}SVG para imprenta</a>
          <a class="btn btn--sm btn--ghost" href="${escapeHtml(p.enlace)}" target="_blank" rel="noopener">${icon('external')}Ver mi perfil</a>
        </div>`
     : '<p class="muted">El QR estará disponible cuando tu barbería esté activa.</p>';

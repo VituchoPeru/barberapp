@@ -8,7 +8,10 @@ import { icon } from '../icons.js';
  * queda en sus registros. Se quita de la barra de direcciones apenas se lee.
  * No confirmar nunca cancela la cita.
  */
-const token = new URLSearchParams(location.hash.slice(1)).get('t') || '';
+const hash = new URLSearchParams(location.hash.slice(1));
+const token = hash.get('t') || '';
+// confirmar=1: llega desde el botón "Confirmar asistencia" del aviso en el iPhone (Fase 12).
+const autoConfirm = hash.get('confirmar') === '1';
 if (token) history.replaceState(null, '', location.pathname);
 const content = $('[data-content]');
 const noticeEl = $('[data-notice]');
@@ -51,6 +54,7 @@ async function start() {
   }
   try {
     render(await api('/asistencia/consultar', { method: 'POST', body: { token } }));
+    if (autoConfirm) content.querySelector('[data-confirm]')?.click();
   } catch (e) {
     content.innerHTML = '<a class="btn btn--ghost btn--block" href="mis-citas.html">Ver mis citas</a>';
     notice(noticeEl, e.message, 'error');

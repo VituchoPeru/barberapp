@@ -120,7 +120,7 @@ sequenceDiagram
 - **Web:** vence a los 7 días (`SESSION_LIFETIME_HOURS`) o tras 2 horas sin uso (`SESSION_IDLE_MINUTES`). El token CSRF es un HMAC de la sesión con `APP_KEY`: no se guarda y no cambia mientras dure la sesión. El frontend lo guarda en `sessionStorage` (no es una credencial: sin la cookie no sirve) y, si lo pierde, lo recupera con `GET /auth/csrf`.
 - **Login CSRF:** los endpoints públicos solo aceptan `application/json`; un formulario de otro sitio no puede enviar ese tipo sin una verificación CORS previa, que solo pasan los orígenes de `CORS_ALLOWED_ORIGINS`.
 - **Móvil:** la sesión vence a los 90 días (`AUTH_MOBILE_SESSION_DAYS`). Si alguien presenta un refresh token ya usado (señal de robo), se revoca la sesión completa y queda en la auditoría como `auth.refresh_reutilizado`.
-- **Almacenamiento en la app (Fase 12):** el refresh token debe guardarse en almacenamiento seguro nativo (Keychain en iOS, Keystore/EncryptedSharedPreferences en Android) mediante un plugin de Capacitor; el access token solo en memoria. No usar `localStorage` para tokens.
+- **Almacenamiento en la app (Fase 12):** el refresh token debe guardarse en almacenamiento seguro nativo (Keychain en iOS, Keystore/EncryptedSharedPreferences en Android) mediante un plugin de Capacitor; el access token de 15 min en `sessionStorage` de la WebView (cada pantalla es un documento distinto; se borra al cerrar la app). No usar `localStorage` para tokens. Implementado en la Fase 12 con `capacitor-secure-storage-plugin` (ver [APPS_MOVILES.md](APPS_MOVILES.md) y la decisión 094).
 - **Rotar `APP_KEY`** invalida todos los access tokens y los tokens CSRF (las sesiones web recuperan el suyo con `GET /auth/csrf`).
 
 ## 4. Roles, permisos y contexto de barbería

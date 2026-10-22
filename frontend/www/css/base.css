@@ -33,3 +33,23 @@ a { color: var(--accent); }
 .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
 .status[data-state="ok"]::before { background: var(--success); }
 .status[data-state="error"]::before { background: var(--danger); }
+
+/* ---- Fase 12: conexión e instalación (PWA) ---- */
+.net-banner {
+  position: sticky; top: 0; z-index: 90;
+  padding: calc(var(--space-2) + env(safe-area-inset-top)) var(--space-4) var(--space-2);
+  background: #3A2A10; color: var(--accent-strong); border-bottom: 1px solid var(--accent);
+  font-size: .875rem; text-align: center;
+}
+.net-banner[hidden] { display: none; }
+.install-card {
+  display: grid; grid-template-columns: 48px 1fr; gap: var(--space-3); align-items: center;
+  padding: var(--space-4); background: var(--surface); border: 1px solid #2A2A2E; border-radius: var(--radius-md);
+}
+.install-card img { border-radius: 12px; }
+.install-card__title { margin: 0; font-size: 1rem; font-weight: 700; }
+.install-card__text { margin: 0; font-size: .875rem; color: var(--text-muted); }
+.install-card__actions { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--space-4); }
+.install-card .link-btn { background: none; border: 0; padding: 0; color: var(--text-muted); font: inherit; font-size: .875rem; cursor: pointer; text-decoration: underline; }
+.install-steps { margin: 0; padding-left: 1.25rem; display: grid; gap: var(--space-2); }
+.install-steps li::marker { color: var(--accent); font-weight: 700; }

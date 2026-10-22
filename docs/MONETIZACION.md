@@ -139,7 +139,7 @@ El permiso nuevo `negocio.suscripcion.gestionar` lo tiene el propietario (`negoc
 
 ## Apps móviles (Apple y Google)
 
-Las tiendas tienen reglas propias para cobrar suscripciones dentro de una app (en general exigen su sistema de compras para contenido digital y limitan los botones o enlaces a pagos externos; hay excepciones para servicios a empresas y cambios recientes por país). Mientras no se revise caso por caso, **la app nativa no muestra botones de pago**: en Capacitor (`window.Capacitor.isNativePlatform()`) la pantalla de suscripción muestra el plan, el uso y el historial, y dice que el pago se hace desde la web. Esto debe verificarse con las guías vigentes de App Store y Google Play antes de publicar (Fase 12).
+Las tiendas tienen reglas propias para cobrar suscripciones dentro de una app (en general exigen su sistema de compras para contenido digital y limitan los botones o enlaces a pagos externos; hay excepciones para servicios a empresas y cambios recientes por país). Revisado en la Fase 12 (ver [APPS_MOVILES.md](APPS_MOVILES.md#6-pagos-y-tiendas)): **la app nativa no muestra precios, botones de pago, prueba ni cambio de plan, ni textos que dirijan a pagar fuera** (tampoco "paga desde la web"). La pantalla de suscripción muestra el plan, el uso y el historial; los planes se contratan en la web.
 
 ## Impuestos y comprobantes (SUNAT)
 

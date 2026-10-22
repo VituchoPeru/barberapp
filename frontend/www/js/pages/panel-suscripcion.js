@@ -45,11 +45,11 @@ function renderCurrent() {
   const s = data.suscripcion;
   const fn = r.funciones || {};
   let estadoTxt = '';
-  if (r.estado === 'sin_suscripcion') estadoTxt = 'Aún no tienes una suscripción. Elige un plan para contratarlo.';
+  if (r.estado === 'sin_suscripcion') estadoTxt = nativo ? 'Aún no tienes una suscripción.' : 'Aún no tienes una suscripción. Elige un plan para contratarlo.';
   else if (r.vigente) estadoTxt = `${r.estado === 'prueba' ? 'La prueba termina' : 'Vigente hasta'} el ${fecha(r.periodo_fin_en)}${r.dias_restantes !== null ? ` (${r.dias_restantes <= 1 ? 'menos de un día' : `${r.dias_restantes} días`})` : ''}.`;
   else estadoTxt = `Terminó el ${fecha(r.periodo_fin_en)}.`;
-  if (r.restringida) estadoTxt += ' Tu barbería no aparece en el marketplace ni recibe reservas nuevas hasta que pagues.';
-  else if (r.restriccion_en) estadoTxt += ` Si no renuevas, desde el ${fecha(r.restriccion_en)} dejará de recibir reservas nuevas (las citas registradas se mantienen).`;
+  if (r.restringida) estadoTxt += nativo ? ' Tu barbería no aparece en el marketplace ni recibe reservas nuevas por ahora.' : ' Tu barbería no aparece en el marketplace ni recibe reservas nuevas hasta que pagues.';
+  else if (r.restriccion_en) estadoTxt += nativo ? ` Desde el ${fecha(r.restriccion_en)} dejará de recibir reservas nuevas si la suscripción no está al día (las citas registradas se mantienen).` : ` Si no renuevas, desde el ${fecha(r.restriccion_en)} dejará de recibir reservas nuevas (las citas registradas se mantienen).`;
 
   const usos = Object.entries(r.limites || {}).map(([k, l]) => ({
     label: `${k === 'sucursales' ? 'Sucursales' : 'Barberos'} activos`,
@@ -64,13 +64,13 @@ function renderCurrent() {
       ${s && s.estado !== 'prueba' && r.vigente ? `<p style="margin:0"><strong>${money(s.precio_pactado)}</strong> <span class="muted">por ${CICLOS[s.ciclo]}</span></p>` : ''}
     </div>
     <p>${escapeHtml(estadoTxt)}</p>
-    ${r.restringida ? `<p class="alert" data-type="error">Restringida desde el ${escapeHtml(fecha(r.restringida_desde))}. Al confirmarse tu pago se levanta al instante.</p>` : ''}
+    ${r.restringida ? `<p class="alert" data-type="error">Restringida desde el ${escapeHtml(fecha(r.restringida_desde))}.${nativo ? '' : ' Al confirmarse tu pago se levanta al instante.'}</p>` : ''}
     ${cambio ? `<p class="alert" data-type="info">Cambio programado para el ${escapeHtml(fecha(cambio.desde))}: pasas al plan ${escapeHtml(cambio.plan.nombre)} por ${money(cambio.precio)} al ${CICLOS[cambio.ciclo]}. Ese día renuevas a ese precio.
       ${data.puede_gestionar ? ' <button class="link-btn" type="button" data-cancel-change>Anular cambio</button>' : ''}</p>` : ''}
     <div class="grid-2" style="margin-top:12px">
       <div><h4 style="margin:0 0 8px">Uso del plan</h4>
         ${usos.length ? `<ul class="hbars">${usos.map((u) => hbars([{ label: u.label, value: u.value }], u.max === null ? Math.max(u.value, 1) : u.max, (v) => (u.max === null ? `${v}` : `${v} de ${u.max}`))).join('')}</ul>
-          ${usos.some((u) => u.excedido) ? '<p class="alert" data-type="error">Usas más de lo que incluye tu plan. Nada se desactiva solo, pero no puedes añadir más hasta que desactives algunos o cambies de plan.</p>' : ''}`
+          ${usos.some((u) => u.excedido) ? `<p class="alert" data-type="error">Usas más de lo que incluye tu plan. Nada se desactiva solo, pero no puedes añadir más hasta que desactives algunos${nativo ? '' : ' o cambies de plan'}.</p>` : ''}`
     : '<p class="muted">Sin datos de uso.</p>'}
       </div>
       <div><h4 style="margin:0 0 8px">Incluye</h4>${feats({ reportes_avanzados: fn.reportes_avanzados, personalizacion: fn.personalizacion, canales: fn.canales || [] })}</div>
@@ -127,7 +127,7 @@ function actionFor(p) {
       if (o.motivo) out.push(`<p class="plan__note">${escapeHtml(o.motivo)}</p>`);
   }
   if (['renovacion', 'contratacion', 'mejora'].includes(o.accion) && !pagos) {
-    out.push(`<p class="plan__note">${nativo ? 'Paga desde la web de BARBERAPP.' : 'El pago en línea no está disponible por ahora. Escríbenos para pagar por transferencia.'}</p>`);
+    out.push('<p class="plan__note">El pago en línea no está disponible por ahora. Escríbenos para pagar por transferencia.</p>');
   }
   if (p.excede) out.push('<p class="plan__note">Tu uso actual supera los límites de este plan: desactiva sucursales o barberos para poder elegirlo.</p>');
   return out.join('');
@@ -136,7 +136,6 @@ function actionFor(p) {
 function renderPlans() {
   document.querySelectorAll('[data-ciclo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ciclo === ciclo)));
   $('[data-planes-hint]').textContent = ciclo === 'anual' ? 'Precio por año. Pagar el año cuesta menos que doce meses.' : 'Precio por mes, en soles (PEN).';
-  $('[data-native]').hidden = !nativo;
   $('[data-plans]').innerHTML = data.planes.map((p) => {
     const precio = ciclo === 'anual' ? p.precio_anual : p.precio_mensual;
     return `<article class="plan${p.actual ? ' plan--actual' : ''}" aria-labelledby="plan-${p.id}">
@@ -171,15 +170,25 @@ function renderPayments() {
     </tbody></table></div>` : '<p class="muted">Aún no hay pagos registrados.</p>';
 }
 
+/**
+ * App nativa (Fase 12, docs/APPS_MOVILES.md "Pagos y tiendas"): solo el estado del plan, el uso
+ * y el historial. Sin precios, botones de compra, cambios de plan ni textos que dirijan a pagar
+ * fuera de la app, como piden App Store (3.1.1, 3.1.3) y Google Play (Pagos, sección 4).
+ */
 function render() {
   renderCurrent();
-  renderPlans();
-  renderOrders();
+  $('[data-plans-box]').hidden = nativo;
+  if (!nativo) {
+    renderPlans();
+    renderOrders();
+  } else {
+    $('[data-orders-box]').hidden = true;
+  }
   renderPayments();
   $('[data-support]').innerHTML = data.soporte_email
-    ? `¿Dudas con tu plan o un pago? Escríbenos a <a href="mailto:${escapeHtml(data.soporte_email)}">${escapeHtml(data.soporte_email)}</a>.`
+    ? `¿Dudas con tu plan${nativo ? '' : ' o un pago'}? Escríbenos a <a href="mailto:${escapeHtml(data.soporte_email)}">${escapeHtml(data.soporte_email)}</a>.`
     : '';
-  if (!data.puede_gestionar) $('[data-support]').insertAdjacentHTML('afterbegin', 'Solo el propietario de la barbería puede pagar o cambiar el plan. ');
+  if (!data.puede_gestionar && !nativo) $('[data-support]').insertAdjacentHTML('afterbegin', 'Solo el propietario de la barbería puede pagar o cambiar el plan. ');
 }
 
 async function load() {
