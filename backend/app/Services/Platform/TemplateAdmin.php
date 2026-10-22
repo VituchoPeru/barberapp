@@ -28,6 +28,7 @@ final class TemplateAdmin
         'barbero' => 'Barbero Ejemplo', 'cliente' => 'Cliente Ejemplo', 'fecha' => 'viernes 24 de octubre', 'hora' => '16:30',
         'cuando' => 'mañana a las 16:30', 'servicios' => 'Corte clásico', 'codigo' => 'EJ-1234',
         'accion' => 'Confirma tu asistencia desde la app.', 'motivo' => 'Motivo de ejemplo.',
+        'plan' => 'Profesional', 'dias' => '3', 'monto' => 'S/ 79.00',
     ];
 
     /** @return list<array<string, mixed>> */
@@ -56,7 +57,7 @@ final class TemplateAdmin
                 $out[] = [
                     'codigo' => $codigo,
                     'nombre' => Templates::NOMBRES[$codigo] ?? $codigo,
-                    'grupo' => str_starts_with($codigo, 'barberia_') ? 'cuenta' : 'citas',
+                    'grupo' => Templates::isSubscription($codigo) ? 'suscripcion' : (str_starts_with($codigo, 'barberia_') ? 'cuenta' : 'citas'),
                     'canal' => $canal,
                     'asunto' => $asunto,
                     'cuerpo' => $cuerpo,

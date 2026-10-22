@@ -50,7 +50,11 @@ const MODULES = [
   ['perfil-publico', 'Perfil público', 'globe', 'negocio.perfil.gestionar'],
   ['avisos', 'Avisos', 'bell', ['notificaciones.gestionar', 'reportes.operativos']],
   ['configuracion', 'Configuración', 'settings', ['negocio.perfil.gestionar', 'politicas.gestionar']],
+  ['suscripcion', 'Suscripción', 'cash', 'negocio.suscripcion.ver'],
 ];
+
+/** App nativa (Capacitor): los pagos del plan se hacen desde la web (ver docs/MONETIZACION.md). */
+export const isNativeApp = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
 
 /** Primer módulo del panel al que puede entrar quien inicia sesión (según permisos). */
 export function homeModule(ctx) {
@@ -84,6 +88,7 @@ export async function bootPanel(active) {
         + (ctx.barbero ? `<a href="../barbero/index.html${q}">${icon('scissors')}<span>Mi agenda</span></a>` : '');
     }
     showStateNotice(ctx.aviso_estado);
+    if (!ctx.aviso_estado && active !== 'suscripcion') showSubscriptionNotice(ctx.suscripcion, can(ctx, 'negocio.suscripcion.ver'));
     mountBell(ctx.tenant.slug);
     return ctx;
   } catch (e) {
@@ -116,6 +121,38 @@ function showStateNotice(aviso) {
   p.innerHTML = escapeHtml(AVISOS_ESTADO[aviso.estado] || 'Tu barbería no está activa.')
     + (aviso.motivo ? ` <strong>Motivo:</strong> ${escapeHtml(aviso.motivo)}` : '')
     + (aviso.soporte_email ? ` Escríbenos a <a href="mailto:${escapeHtml(aviso.soporte_email)}">${escapeHtml(aviso.soporte_email)}</a>.` : '');
+  main.prepend(p);
+}
+
+const fechaLarga = (iso) => new Date(iso).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
+
+/**
+ * Aviso de la suscripción (Fase 10): prueba o periodo por vencer (7 días o menos), vencida en
+ * periodo de gracia o barbería restringida. Quien puede ver la suscripción recibe el enlace.
+ */
+function showSubscriptionNotice(s, canSee) {
+  if (!s || s.estado === 'sin_suscripcion' || document.querySelector('[data-sub-notice]')) return;
+  let text = '';
+  let type = 'info';
+  if (s.restringida) {
+    text = 'Tu barbería no tiene una suscripción vigente: no aparece en el marketplace ni recibe reservas nuevas. Las citas ya registradas se mantienen.';
+    type = 'error';
+  } else if (!s.vigente) {
+    text = `Tu suscripción venció.${s.restriccion_en ? ` Si no la renuevas, desde el ${fechaLarga(s.restriccion_en)} tu barbería dejará de recibir reservas nuevas.` : ''}`;
+    type = 'error';
+  } else if (s.dias_restantes !== null && s.dias_restantes <= 7) {
+    const cuando = s.dias_restantes <= 1 ? 'en menos de un día' : `en ${s.dias_restantes} días`;
+    text = s.estado === 'prueba' ? `Tu prueba gratuita del plan ${s.plan.nombre} termina ${cuando}.` : `Tu plan ${s.plan.nombre} vence ${cuando}.`;
+  }
+  if (!text) return;
+  const main = document.querySelector('main');
+  if (!main) return;
+  const p = document.createElement('p');
+  p.className = 'alert';
+  p.dataset.type = type;
+  p.dataset.subNotice = '';
+  p.setAttribute('role', 'status');
+  p.innerHTML = escapeHtml(text) + (canSee ? ` <a href="suscripcion.html${q}">Ver mi suscripción</a>` : ' Avisa al propietario de la barbería.');
   main.prepend(p);
 }
 

@@ -12,6 +12,7 @@ use App\Core\Request;
 use App\Helpers\Clock;
 use App\Repositories\BaseRepository;
 use App\Services\Audit;
+use App\Services\Billing\Entitlements;
 use DateTimeImmutable;
 use DateTimeZone;
 use PDOException;
@@ -35,10 +36,11 @@ final class SubscriptionService extends BaseRepository
     public const METODOS = ['manual', 'transferencia', 'yape', 'plin', 'efectivo'];
 
     private const SELECT = 'SELECT s.*, t.slug tenant_slug, t.nombre_comercial tenant_nombre, t.es_demo tenant_demo, t.estado tenant_estado,
-                                   p.codigo plan_codigo, p.nombre plan_nombre
+                                   p.codigo plan_codigo, p.nombre plan_nombre, pp.codigo plan_programado_codigo, pp.nombre plan_programado_nombre
                               FROM suscripciones s
                               JOIN tenants t ON t.id = s.tenant_id
-                              JOIN planes p ON p.id = s.plan_id';
+                              JOIN planes p ON p.id = s.plan_id
+                              LEFT JOIN planes pp ON pp.id = s.plan_programado_id';
 
     /** Estado mostrado: una suscripción vigente cuyo periodo ya terminó se muestra como vencida. */
     public static function effectiveState(string $estado, string $periodoFin): string
@@ -193,8 +195,10 @@ final class SubscriptionService extends BaseRepository
             if ((int) $plan['id'] === (int) $s['plan_id'] && $ciclo === $s['ciclo'] && (float) $precio === (float) $s['precio_pactado']) {
                 throw new HttpException(409, 'no_changes', 'La suscripción ya tiene ese plan, ciclo y precio.');
             }
-            $this->execute('UPDATE suscripciones SET plan_id = :p, ciclo = :c, precio_pactado = :pr, moneda = :m WHERE id = :id',
+            $this->execute('UPDATE suscripciones SET plan_id = :p, ciclo = :c, precio_pactado = :pr, moneda = :m,
+                                   plan_programado_id = NULL, ciclo_programado = NULL, precio_programado = NULL, cambio_programado_en = NULL WHERE id = :id',
                 ['p' => (int) $plan['id'], 'c' => $ciclo, 'pr' => $precio, 'm' => (string) $plan['moneda'], 'id' => $id]);
+            Entitlements::flush((int) $s['tenant_id']);
             $this->event($s, 'cambio_plan', [
                 'plan_anterior_id' => (int) $s['plan_id'], 'plan_nuevo_id' => (int) $plan['id'],
                 'precio_anterior' => (string) $s['precio_pactado'], 'precio_nuevo' => $precio, 'notas' => $d['notas'] ?? ($ciclo !== $s['ciclo'] ? "Ciclo: {$s['ciclo']} → {$ciclo}" : null),
@@ -283,6 +287,181 @@ final class SubscriptionService extends BaseRepository
         foreach ($this->fetchAll($sql . ' FOR UPDATE', $p) as $s) {
             $this->execute("UPDATE suscripciones SET estado = 'vencida', terminada_en = periodo_fin_en WHERE id = :id AND estado IN ('prueba','activa')", ['id' => (int) $s['id']]);
             $this->event($s, 'vencimiento', ['estado_anterior' => $s['estado'], 'estado_nuevo' => 'vencida'], null);
+            $n++;
+        }
+        return $n;
+    }
+
+    // ------------------------------------------------------------------ Fase 10: autoservicio y pasarela
+
+    /**
+     * Prueba gratuita automática al activarse una barbería (registro sin aprobación o aprobación).
+     * Solo si está habilitada, el plan configurado tiene días de prueba y la barbería nunca tuvo
+     * suscripción. Debe llamarse dentro de una transacción. Devuelve el id o null.
+     */
+    public function startTrial(int $tenantId): ?int
+    {
+        $cfg = PlatformSettings::all();
+        if (!(bool) $cfg['plataforma.prueba_automatica']) {
+            return null;
+        }
+        if ($this->fetchOne('SELECT id FROM suscripciones WHERE tenant_id = :t LIMIT 1', ['t' => $tenantId]) !== null) {
+            return null;
+        }
+        $plan = $this->fetchOne('SELECT * FROM planes WHERE codigo = :c AND activo = 1', ['c' => (string) $cfg['plataforma.plan_prueba']]);
+        if ($plan === null || (int) $plan['dias_prueba'] < 1) {
+            return null;
+        }
+        $inicio = Clock::nowUtc();
+        return $this->insertSubscription($tenantId, $plan, 'prueba', 'mensual', self::planPrice($plan, 'mensual'), $inicio,
+            $inicio->modify('+' . (int) $plan['dias_prueba'] . ' days'), 'Prueba gratuita automática', null, 'prueba_automatica', null);
+    }
+
+    /**
+     * Aplica una orden de pago en línea ya cobrada (dentro de la transacción del procesador, con la
+     * orden bloqueada). Revalida que la suscripción siga como cuando se creó la orden; si no,
+     * lanza HttpException y el pago queda para revisión manual.
+     *
+     * @param array<string, mixed> $o fila de ordenes_pago
+     * @return array{0:int, 1:string, 2:string} [suscripción, periodo_inicio, periodo_fin] (AAAA-MM-DD)
+     */
+    public function applyOrder(array $o): array
+    {
+        $tenantId = (int) $o['tenant_id'];
+        $this->fetchOne('SELECT id FROM tenants WHERE id = :id FOR UPDATE', ['id' => $tenantId]);
+        $this->expireDue($tenantId);
+        $vig = $this->vigente($tenantId);
+        $vig = $vig !== null ? $this->lock((int) $vig['id']) : null;
+        $plan = $this->plan((int) $o['plan_id'], false);
+        $ciclo = (string) $o['ciclo'];
+        $periodos = max(1, (int) $o['periodos']);
+        $now = Clock::nowUtc();
+        $changed = static fn (): HttpException => new HttpException(409, 'subscription_changed', 'La suscripción cambió después de crear la orden de pago.');
+
+        if ($o['tipo'] === 'mejora') {
+            if ($vig === null || (int) $vig['id'] !== (int) $o['suscripcion_id'] || $vig['estado'] !== 'activa' || $vig['ciclo'] !== $ciclo
+                || (float) self::planPrice($plan, $ciclo) <= (float) $vig['precio_pactado']) {
+                throw $changed();
+            }
+            $precio = self::planPrice($plan, $ciclo);
+            $this->execute('UPDATE suscripciones SET plan_id = :p, precio_pactado = :pr, moneda = :m,
+                                   plan_programado_id = NULL, ciclo_programado = NULL, precio_programado = NULL, cambio_programado_en = NULL WHERE id = :id',
+                ['p' => (int) $plan['id'], 'pr' => $precio, 'm' => (string) $plan['moneda'], 'id' => (int) $vig['id']]);
+            $this->event($vig, 'cambio_plan', ['plan_anterior_id' => (int) $vig['plan_id'], 'plan_nuevo_id' => (int) $plan['id'],
+                'precio_anterior' => (string) $vig['precio_pactado'], 'precio_nuevo' => $precio, 'notas' => 'Mejora de plan pagada en línea (prorrateo del periodo restante)'], null);
+            Entitlements::flush($tenantId);
+            return [(int) $vig['id'], $now->format('Y-m-d'), self::date((string) $vig['periodo_fin_en'])];
+        }
+
+        $precio = number_format((float) $o['monto'] / $periodos, 2, '.', '');
+        if ($o['tipo'] === 'renovacion' && $vig !== null && (int) $vig['id'] === (int) $o['suscripcion_id'] && $vig['estado'] === 'activa') {
+            $nextPlan = (int) ($vig['plan_programado_id'] ?? $vig['plan_id']);
+            $nextCiclo = (string) ($vig['ciclo_programado'] ?? $vig['ciclo']);
+            if ($nextPlan !== (int) $plan['id'] || $nextCiclo !== $ciclo) {
+                throw $changed();
+            }
+            $desde = new DateTimeImmutable((string) $vig['periodo_fin_en'], new DateTimeZone('UTC'));
+            $fin = self::addCycles($desde, $ciclo, $periodos);
+            $this->execute('UPDATE suscripciones SET periodo_fin_en = :f WHERE id = :id', ['f' => $fin->format('Y-m-d H:i:s'), 'id' => (int) $vig['id']]);
+            $this->event($vig, 'renovacion', ['estado_anterior' => 'activa', 'estado_nuevo' => 'activa', 'periodo_fin_anterior' => (string) $vig['periodo_fin_en'],
+                'periodo_fin_nuevo' => $fin->format('Y-m-d H:i:s'), 'notas' => "Renovación pagada en línea ({$periodos} periodo(s))"], null);
+            $this->liftRestriction($tenantId);
+            return [(int) $vig['id'], $desde->format('Y-m-d'), $fin->format('Y-m-d')];
+        }
+
+        // Contratación (o renovación cuyo periodo ya terminó): desde el fin de la prueba o desde hoy.
+        if ($vig !== null && $vig['estado'] === 'prueba') {
+            $desde = new DateTimeImmutable((string) $vig['periodo_fin_en'], new DateTimeZone('UTC'));
+            $fin = self::addCycles($desde, $ciclo, $periodos);
+            $this->execute("UPDATE suscripciones SET estado = 'activa', plan_id = :p, ciclo = :c, precio_pactado = :pr, moneda = :m, periodo_fin_en = :f,
+                                   plan_programado_id = NULL, ciclo_programado = NULL, precio_programado = NULL, cambio_programado_en = NULL WHERE id = :id",
+                ['p' => (int) $plan['id'], 'c' => $ciclo, 'pr' => $precio, 'm' => (string) $plan['moneda'], 'f' => $fin->format('Y-m-d H:i:s'), 'id' => (int) $vig['id']]);
+            $this->event($vig, 'renovacion', ['estado_anterior' => 'prueba', 'estado_nuevo' => 'activa', 'plan_anterior_id' => (int) $vig['plan_id'], 'plan_nuevo_id' => (int) $plan['id'],
+                'precio_anterior' => (string) $vig['precio_pactado'], 'precio_nuevo' => $precio, 'periodo_fin_anterior' => (string) $vig['periodo_fin_en'],
+                'periodo_fin_nuevo' => $fin->format('Y-m-d H:i:s'), 'notas' => 'Plan contratado en línea al terminar la prueba'], null);
+            $this->liftRestriction($tenantId);
+            return [(int) $vig['id'], $desde->format('Y-m-d'), $fin->format('Y-m-d')];
+        }
+        if ($vig !== null) {
+            throw $changed();
+        }
+        $tenant = $this->fetchOne('SELECT estado FROM tenants WHERE id = :id', ['id' => $tenantId]);
+        if (($tenant['estado'] ?? 'cancelado') === 'cancelado') {
+            throw new HttpException(409, 'tenant_cancelled', 'La barbería está dada de baja.');
+        }
+        $last = $this->fetchOne('SELECT * FROM suscripciones WHERE tenant_id = :t ORDER BY id DESC LIMIT 1', ['t' => $tenantId]);
+        $fin = self::addCycles($now, $ciclo, $periodos);
+        $id = $this->insertSubscription($tenantId, $plan, 'activa', $ciclo, $precio, $now, $fin, 'Plan contratado en línea', null, $last !== null ? 'renovacion' : 'alta', $last);
+        return [$id, $now->format('Y-m-d'), $fin->format('Y-m-d')];
+    }
+
+    /**
+     * Prueba en curso: cambia de plan al instante (mismo fin de prueba). Dentro de una transacción.
+     *
+     * @param array<string, mixed> $s    suscripción bloqueada
+     * @param array<string, mixed> $plan
+     */
+    public function switchTrialPlan(array $s, array $plan, string $ciclo, ?int $uid): void
+    {
+        $precio = self::planPrice($plan, $ciclo);
+        $this->execute('UPDATE suscripciones SET plan_id = :p, ciclo = :c, precio_pactado = :pr, moneda = :m WHERE id = :id',
+            ['p' => (int) $plan['id'], 'c' => $ciclo, 'pr' => $precio, 'm' => (string) $plan['moneda'], 'id' => (int) $s['id']]);
+        $this->event($s, 'cambio_plan', ['plan_anterior_id' => (int) $s['plan_id'], 'plan_nuevo_id' => (int) $plan['id'],
+            'precio_anterior' => (string) $s['precio_pactado'], 'precio_nuevo' => $precio, 'notas' => 'Cambio de plan durante la prueba (propietario)'], $uid);
+        Entitlements::flush((int) $s['tenant_id']);
+    }
+
+    /**
+     * Mejora sin cobro (el prorrateo no llega al mínimo cobrable): cambia el plan ya. Dentro de una transacción.
+     *
+     * @param array<string, mixed> $s    suscripción activa bloqueada
+     * @param array<string, mixed> $plan
+     */
+    public function upgradeWithoutCharge(array $s, array $plan, ?int $uid): void
+    {
+        $precio = self::planPrice($plan, (string) $s['ciclo']);
+        $this->execute('UPDATE suscripciones SET plan_id = :p, precio_pactado = :pr, moneda = :m,
+                               plan_programado_id = NULL, ciclo_programado = NULL, precio_programado = NULL, cambio_programado_en = NULL WHERE id = :id',
+            ['p' => (int) $plan['id'], 'pr' => $precio, 'm' => (string) $plan['moneda'], 'id' => (int) $s['id']]);
+        $this->event($s, 'cambio_plan', ['plan_anterior_id' => (int) $s['plan_id'], 'plan_nuevo_id' => (int) $plan['id'],
+            'precio_anterior' => (string) $s['precio_pactado'], 'precio_nuevo' => $precio, 'notas' => 'Mejora sin cobro (prorrateo menor al mínimo)'], $uid);
+        Entitlements::flush((int) $s['tenant_id']);
+    }
+
+    /**
+     * Programa (o anula, con $plan null) un cambio de plan o de ciclo para el fin del periodo pagado.
+     *
+     * @param array<string, mixed>      $s
+     * @param array<string, mixed>|null $plan
+     */
+    public function scheduleChange(array $s, ?array $plan, ?string $ciclo, ?int $uid): void
+    {
+        if ($plan === null) {
+            $this->execute('UPDATE suscripciones SET plan_programado_id = NULL, ciclo_programado = NULL, precio_programado = NULL, cambio_programado_en = NULL WHERE id = :id', ['id' => (int) $s['id']]);
+            $this->event($s, 'cambio_programado', ['notas' => 'Cambio programado anulado'], $uid);
+            return;
+        }
+        $precio = self::planPrice($plan, (string) $ciclo);
+        $this->execute('UPDATE suscripciones SET plan_programado_id = :p, ciclo_programado = :c, precio_programado = :pr, cambio_programado_en = :en WHERE id = :id',
+            ['p' => (int) $plan['id'], 'c' => $ciclo, 'pr' => $precio, 'en' => (string) $s['periodo_fin_en'], 'id' => (int) $s['id']]);
+        $this->event($s, 'cambio_programado', ['plan_anterior_id' => (int) $s['plan_id'], 'plan_nuevo_id' => (int) $plan['id'], 'precio_anterior' => (string) $s['precio_pactado'],
+            'precio_nuevo' => $precio, 'periodo_fin_anterior' => (string) $s['periodo_fin_en'], 'notas' => "Desde el fin del periodo actual: {$plan['nombre']} {$ciclo}"], $uid);
+    }
+
+    /** Cron: aplica los cambios programados cuyo momento llegó (si la suscripción sigue vigente). */
+    public function applyScheduledChanges(): int
+    {
+        $now = Clock::nowSql();
+        $n = 0;
+        foreach ($this->fetchAll("SELECT * FROM suscripciones WHERE cambio_programado_en IS NOT NULL AND cambio_programado_en <= :n1
+                                     AND estado IN ('prueba','activa') AND periodo_fin_en > :n2 FOR UPDATE", ['n1' => $now, 'n2' => $now]) as $s) {
+            $plan = $this->plan((int) $s['plan_programado_id'], false);
+            $this->execute('UPDATE suscripciones SET plan_id = plan_programado_id, ciclo = ciclo_programado, precio_pactado = precio_programado, moneda = :m,
+                                   plan_programado_id = NULL, ciclo_programado = NULL, precio_programado = NULL, cambio_programado_en = NULL WHERE id = :id',
+                ['m' => (string) $plan['moneda'], 'id' => (int) $s['id']]);
+            $this->event($s, 'cambio_plan', ['plan_anterior_id' => (int) $s['plan_id'], 'plan_nuevo_id' => (int) $plan['id'],
+                'precio_anterior' => (string) $s['precio_pactado'], 'precio_nuevo' => (string) $s['precio_programado'], 'notas' => 'Cambio programado aplicado'], null);
+            Entitlements::flush((int) $s['tenant_id']);
             $n++;
         }
         return $n;
@@ -466,7 +645,7 @@ final class SubscriptionService extends BaseRepository
      *
      * @return array{0:int, 1:int, 2:string, 3:string}
      */
-    private function renewLocked(int $id, int $periodos, ?string $notas, ?int $uid, ?int $pagoId, bool $fromPayment = false): array
+    public function renewLocked(int $id, int $periodos, ?string $notas, ?int $uid, ?int $pagoId, bool $fromPayment = false): array
     {
         if ($periodos < 1 || $periodos > 24) {
             throw new ValidationException(['periodos' => ['Indica entre 1 y 24 periodos.']]);
@@ -479,6 +658,7 @@ final class SubscriptionService extends BaseRepository
             $desde = new DateTimeImmutable((string) $s['periodo_fin_en'], new DateTimeZone('UTC'));
             $fin = self::addCycles($desde, (string) $s['ciclo'], $periodos);
             $this->execute("UPDATE suscripciones SET estado = 'activa', periodo_fin_en = :f WHERE id = :id", ['f' => $fin->format('Y-m-d H:i:s'), 'id' => $id]);
+            $this->liftRestriction($tenantId);
             $this->event($s, 'renovacion', [
                 'estado_anterior' => $s['estado'], 'estado_nuevo' => 'activa',
                 'periodo_fin_anterior' => (string) $s['periodo_fin_en'], 'periodo_fin_nuevo' => $fin->format('Y-m-d H:i:s'),
@@ -524,6 +704,7 @@ final class SubscriptionService extends BaseRepository
                     'n' => mb_substr($motivo, 0, 500), 'id' => $id]
             );
             $this->event($s, $tipo, ['estado_anterior' => $s['estado'], 'estado_nuevo' => $to, 'notas' => mb_substr($motivo, 0, 500)], $uid);
+            Entitlements::flush((int) $s['tenant_id']);
             return (int) $s['tenant_id'];
         });
         Audit::record('plataforma.suscripcion.' . $to, 'exito', $request, $uid, $tenantId, 'suscripciones', $id, ['motivo' => $motivo]);
@@ -534,7 +715,7 @@ final class SubscriptionService extends BaseRepository
      * @param array<string, mixed>      $plan
      * @param array<string, mixed>|null $origen suscripción de la que proviene (renovación o reactivación)
      */
-    private function insertSubscription(int $tenantId, array $plan, string $estado, string $ciclo, string $precio, DateTimeImmutable $inicio, DateTimeImmutable $fin,
+    public function insertSubscription(int $tenantId, array $plan, string $estado, string $ciclo, string $precio, DateTimeImmutable $inicio, DateTimeImmutable $fin,
         ?string $notas, ?int $uid, string $tipoEvento, ?array $origen, ?int $pagoId = null): int
     {
         if ($fin <= $inicio) {
@@ -554,6 +735,9 @@ final class SubscriptionService extends BaseRepository
             }
             throw $e;
         }
+        if (in_array($estado, ['prueba', 'activa'], true)) {
+            $this->liftRestriction($tenantId);
+        }
         $this->event(['id' => $id, 'tenant_id' => $tenantId], $tipoEvento, [
             'estado_anterior' => $origen['estado'] ?? null, 'estado_nuevo' => $estado,
             'plan_anterior_id' => $origen !== null ? (int) $origen['plan_id'] : null, 'plan_nuevo_id' => (int) $plan['id'],
@@ -567,7 +751,7 @@ final class SubscriptionService extends BaseRepository
      * @param array<string, mixed> $s fila de suscripciones (id, tenant_id)
      * @param array<string, mixed> $f
      */
-    private function event(array $s, string $tipo, array $f, ?int $uid, ?int $pagoId = null): void
+    public function event(array $s, string $tipo, array $f, ?int $uid, ?int $pagoId = null): void
     {
         $this->execute(
             'INSERT INTO suscripcion_eventos (tenant_id, suscripcion_id, tipo, estado_anterior, estado_nuevo, plan_anterior_id, plan_nuevo_id,
@@ -580,8 +764,15 @@ final class SubscriptionService extends BaseRepository
         );
     }
 
+    /** Levanta la restricción por falta de pago al quedar vigente una suscripción (Fase 10). */
+    public function liftRestriction(int $tenantId): void
+    {
+        $this->execute('UPDATE tenants SET restringido_en = NULL WHERE id = :id AND restringido_en IS NOT NULL', ['id' => $tenantId]);
+        Entitlements::flush($tenantId);
+    }
+
     /** @return array<string, mixed> */
-    private function lock(int $id): array
+    public function lock(int $id): array
     {
         $s = $this->fetchOne('SELECT s.* FROM suscripciones s JOIN tenants t ON t.id = s.tenant_id WHERE s.id = :id AND t.deleted_at IS NULL FOR UPDATE', ['id' => $id]);
         if ($s === null) {
@@ -601,7 +792,7 @@ final class SubscriptionService extends BaseRepository
     }
 
     /** @return array<string, mixed>|null */
-    private function vigente(int $tenantId): ?array
+    public function vigente(int $tenantId): ?array
     {
         return $this->fetchOne("SELECT * FROM suscripciones WHERE tenant_id = :t AND estado IN ('prueba','activa') LIMIT 1", ['t' => $tenantId]);
     }
@@ -615,7 +806,7 @@ final class SubscriptionService extends BaseRepository
     }
 
     /** @return array<string, mixed> */
-    private function plan(int $id, bool $mustBeActive): array
+    public function plan(int $id, bool $mustBeActive): array
     {
         $p = $this->fetchOne('SELECT * FROM planes WHERE id = :id', ['id' => $id]);
         if ($p === null) {
@@ -702,6 +893,11 @@ final class SubscriptionService extends BaseRepository
             'terminada_en' => $r['terminada_en'] ? self::iso((string) $r['terminada_en']) : null,
             'cancelada_en' => $r['cancelada_en'] ? self::iso((string) $r['cancelada_en']) : null,
             'dias_restantes' => $dias,
+            'cambio_programado' => !empty($r['plan_programado_id']) ? [
+                'plan' => ['id' => (int) $r['plan_programado_id'], 'codigo' => (string) ($r['plan_programado_codigo'] ?? ''), 'nombre' => (string) ($r['plan_programado_nombre'] ?? '')],
+                'ciclo' => (string) $r['ciclo_programado'], 'precio' => (string) $r['precio_programado'],
+                'desde' => self::iso((string) $r['cambio_programado_en']),
+            ] : null,
             'notas' => $r['notas'],
         ];
     }

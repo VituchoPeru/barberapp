@@ -14,6 +14,7 @@ use App\Helpers\Slug;
 use App\Helpers\Validator;
 use App\Repositories\BranchRepository;
 use App\Services\Audit;
+use App\Services\Billing\Entitlements;
 use App\Services\Schedule\Intervals;
 use App\Services\Schedule\WeeklySchedule;
 use DateTimeZone;
@@ -55,6 +56,9 @@ final class BranchService
         $data['es_principal'] = false;
 
         $id = Database::transaction(function () use ($data, $principal): int {
+            if (($data['activo'] ?? true) !== false) {
+                Entitlements::assertCanAdd($this->tenantId, 'sucursales'); // límite del plan (Fase 10)
+            }
             $id = $this->repo->create($data);
             if ($principal) {
                 $this->repo->setPrincipal($id);
@@ -81,7 +85,10 @@ final class BranchService
             throw new ValidationException(['es_principal' => ['La sucursal principal debe estar activa.']]);
         }
 
-        Database::transaction(function () use ($id, $data): void {
+        Database::transaction(function () use ($id, $data, $before): void {
+            if (($data['activo'] ?? null) === true && !(bool) $before['activo']) {
+                Entitlements::assertCanAdd($this->tenantId, 'sucursales');
+            }
             $principal = !empty($data['es_principal']);
             unset($data['es_principal']);
             $this->repo->update($id, $data);

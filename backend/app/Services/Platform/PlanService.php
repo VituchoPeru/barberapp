@@ -17,7 +17,7 @@ use App\Services\Audit;
  * Planes comerciales del SaaS (Fase 9). Se crean y editan desde el panel de la plataforma; no
  * se eliminan (se desactivan) para no romper suscripciones ni pagos históricos. El precio de un
  * plan aplica a suscripciones nuevas: las existentes conservan su precio pactado.
- * Los límites y funcionalidades se guardan aquí y se aplicarán a las barberías en la Fase 10.
+ * Los límites y funcionalidades se aplican a cada barbería con Billing\Entitlements (Fase 10).
  */
 final class PlanService extends BaseRepository
 {
@@ -132,6 +132,7 @@ final class PlanService extends BaseRepository
         if ($changes !== []) {
             $sets = implode(', ', array_map(static fn (string $k): string => "{$k} = :{$k}", array_keys($changes)));
             $this->execute("UPDATE planes SET {$sets} WHERE id = :id", $changes + ['id' => $id]);
+            \App\Services\Billing\Entitlements::flush();
             Audit::record('plataforma.plan.actualizado', 'exito', $request, null, null, 'planes', $id, $changes, array_intersect_key($before, $changes));
         }
         $out = $this->show($id);

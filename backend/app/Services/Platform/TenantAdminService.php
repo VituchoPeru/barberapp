@@ -198,10 +198,13 @@ final class TenantAdminService extends BaseRepository
                 throw new HttpException(409, 'invalid_tenant_state', self::stateMessage($accion, (string) $t['estado']));
             }
             $now = Clock::nowSql();
+            $prueba = null;
             switch ($accion) {
                 case 'aprobar':
                     $this->execute("UPDATE tenants SET estado = 'activo', aprobado_en = :n, motivo_suspension = NULL WHERE id = :id", ['n' => $now, 'id' => $id]);
                     $codigo = 'barberia_aprobada';
+                    // Fase 10: la prueba gratuita empieza al aprobarse (no mientras espera revisión).
+                    $prueba = (new SubscriptionService())->startTrial($id);
                     break;
                 case 'rechazar':
                     $this->execute("UPDATE tenants SET estado = 'cancelado', publicado_marketplace = 0, motivo_suspension = :m WHERE id = :id", ['m' => $motivo, 'id' => $id]);
@@ -224,9 +227,9 @@ final class TenantAdminService extends BaseRepository
                 'exito', $request, null, $id, 'tenants', $id,
                 array_filter(['estado' => $to, 'motivo' => $motivo, 'reservas_futuras' => $futuras], static fn ($v) => $v !== null),
                 ['estado' => $t['estado']]);
-            return ['reservas_futuras' => $futuras, 'avisos' => $avisos];
+            return ['reservas_futuras' => $futuras, 'avisos' => $avisos, 'prueba' => $prueba ?? null];
         });
-        return ['barberia' => $this->show($id), 'reservas_futuras' => $result['reservas_futuras'], 'avisos_enviados' => $result['avisos']];
+        return ['barberia' => $this->show($id), 'reservas_futuras' => $result['reservas_futuras'], 'avisos_enviados' => $result['avisos'], 'prueba_suscripcion_id' => $result['prueba']];
     }
 
     /** @return array<string, mixed> */

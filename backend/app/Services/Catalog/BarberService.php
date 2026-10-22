@@ -16,6 +16,7 @@ use App\Repositories\BarberRepository;
 use App\Repositories\BranchRepository;
 use App\Repositories\ServiceRepository;
 use App\Services\Audit;
+use App\Services\Billing\Entitlements;
 use App\Services\Media\ImageStore;
 use App\Services\Schedule\WeeklySchedule;
 use App\Services\Schedule\WorkingTime;
@@ -70,7 +71,12 @@ final class BarberService
     {
         $data = $this->validate($input, false);
         $data['orden'] = $data['orden'] ?? $this->repo->nextOrder();
-        $id = $this->repo->create($data);
+        $id = Database::transaction(function () use ($data): int {
+            if (($data['activo'] ?? true) !== false) {
+                Entitlements::assertCanAdd($this->tenantId, 'barberos'); // límite del plan (Fase 10)
+            }
+            return $this->repo->create($data);
+        });
         Audit::record('barbero.creado', 'exito', $request, null, $this->tenantId, 'barberos', $id, $data);
         return $this->detail($id);
     }
@@ -86,6 +92,9 @@ final class BarberService
             // reservas online, en cambio, no afecta a las existentes).
             if (array_key_exists('activo', $data) && $data['activo'] === false && (bool) $before['activo']) {
                 $this->assertNoFutureBookings($id, 'desactivar');
+            }
+            if (($data['activo'] ?? null) === true && !(bool) $before['activo']) {
+                Entitlements::assertCanAdd($this->tenantId, 'barberos');
             }
             $this->repo->update($id, $data);
             return $before;

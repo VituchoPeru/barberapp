@@ -7,6 +7,7 @@ namespace App\Services\Notifications;
 use App\Core\Database;
 use App\Core\Exceptions\ValidationException;
 use App\Repositories\TenantScopedRepository;
+use App\Services\Billing\Entitlements;
 
 /**
  * Reglas de avisos de una barbería (Fase 8), guardadas en `configuraciones` con el prefijo
@@ -70,7 +71,8 @@ final class NotificationSettings extends TenantScopedRepository
             return true; // la bandeja de la app siempre recibe el aviso
         }
         $all = $this->all();
-        return (bool) ($all['canal_' . $canal] ?? false);
+        // El canal debe estar incluido en el plan de la barbería (Fase 10).
+        return (bool) ($all['canal_' . $canal] ?? false) && Entitlements::for($this->tenantId)->channel($canal);
     }
 
     /**

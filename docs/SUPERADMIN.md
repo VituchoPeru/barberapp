@@ -41,7 +41,7 @@ Todo sale de la base de datos; nada se estima en el navegador. Las barberías de
 - **Ingresos:** pagos `confirmado` por fecha de pago. Los pendientes se muestran aparte; los rechazados y reembolsados no cuentan.
 - **Nuevas altas:** barberías creadas en los últimos 30 días (y los 30 anteriores para comparar).
 - **Reservas agregadas:** reservas creadas por fecha de creación; atendidas, canceladas y no asistió por estado.
-- **Consumo por plan:** barberías vigentes por plan, sus sucursales y barberos activos, reservas en 30 días y cuántas superan los límites del plan (solo se informa; el bloqueo por límite queda para la Fase 10).
+- **Consumo por plan:** barberías vigentes por plan, sus sucursales y barberos activos, reservas en 30 días y cuántas superan los límites del plan (desde la Fase 10 el límite se aplica al crear o reactivar; ver [MONETIZACION.md](MONETIZACION.md)).
 - Los meses de los reportes se cortan en la zona horaria de la plataforma (`plataforma.zona_horaria`).
 
 ## Ciclo de vida
@@ -71,9 +71,9 @@ Cron cada hora para marcar vencidas las suscripciones cuyo periodo terminó:
 
 Configura el correo de soporte en *Configuración*: se muestra a las barberías suspendidas o pendientes.
 
-## Pendiente para la Fase 10
+## Fase 10
 
-Pasarela de pago y webhooks, alta automática de prueba al registrarse, bloqueo por límites del plan y avisos de vencimiento próximo al propietario.
+La pasarela de pago y los webhooks, la prueba automática, el bloqueo por límites del plan, los avisos de vencimiento y la restricción tras la gracia están en [MONETIZACION.md](MONETIZACION.md). En este panel se agregan: *Configuración → Suscripciones y cobros* (prueba automática y su plan, días de gracia, restricción y días de aviso) y *Pagos → Pagos en línea* (órdenes de todas las barberías; las que no cuadran quedan «En revisión» con un pago por confirmar).
 
 ## Pruebas
 

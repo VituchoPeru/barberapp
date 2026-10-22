@@ -11,6 +11,15 @@ use Tests\Integration\Auth\ApiTestCase;
 /** Utilidades comunes para las pruebas del panel de servicios, barberos y horarios (Fase 4). */
 abstract class CatalogTestCase extends ApiTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Estas pruebas crean sucursales y barberos: demo-centro usa el plan sin límites (los
+        // límites por plan tienen sus propias pruebas en tests/Integration/Billing).
+        $this->exec("UPDATE suscripciones SET plan_id = (SELECT id FROM planes WHERE codigo = 'premium') WHERE tenant_id = ?", [$this->tenantId('demo-centro')]);
+        \App\Services\Billing\Entitlements::flush();
+    }
+
     /** @return array<string, string> cabeceras de sesión web + barbería */
     protected function actingAs(string $email, string $tenant = 'demo-centro'): array
     {

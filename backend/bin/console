@@ -25,7 +25,8 @@ declare(strict_types=1);
  *   php bin/console notificaciones:purge
  *                                      Borra avisos resueltos más antiguos que NOTIFY_RETENTION_DAYS (cron diario)
  *   php bin/console suscripciones:vencer
- *                                      Marca como vencidas las suscripciones cuyo periodo terminó (cron cada hora)
+ *                                      Cron cada hora: cambios de plan programados, vencimientos, restricción
+ *                                      tras la gracia, avisos de vencimiento y órdenes de pago expiradas
  *   php bin/console push:probar correo@dominio
  *                                      Envía un push de prueba a los dispositivos de esa cuenta (verifica FCM)
  */
@@ -274,8 +275,15 @@ try {
             break;
 
         case 'suscripciones:vencer':
-            $n = App\Core\Database::transaction(static fn (): int => (new App\Services\Platform\SubscriptionService())->expireDue());
-            out(gmdate('Y-m-d H:i:s') . " UTC Suscripciones vencidas: {$n}");
+            // Fase 10: cambios programados, vencimientos, restricción tras la gracia, avisos y órdenes expiradas.
+            $lock = fopen($base . '/storage/cache/suscripciones.lock', 'c');
+            if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+                out('Otra ejecución de suscripciones:vencer está en curso.');
+                break;
+            }
+            $r = (new App\Services\Billing\Lifecycle())->run();
+            out(gmdate('Y-m-d H:i:s') . ' UTC ' . implode(' · ', array_map(static fn ($k, $v) => str_replace('_', ' ', $k) . ": {$v}", array_keys($r), $r)));
+            flock($lock, LOCK_UN);
             break;
 
         case 'push:probar':

@@ -1,5 +1,5 @@
 import { $, escapeHtml, notice } from '../ui.js';
-import { bootPanel, papi, money, mins, fmtDate, today, hbars } from '../panel.js';
+import { bootPanel, papi, q, money, mins, fmtDate, today, hbars } from '../panel.js';
 
 /**
  * Reportes del panel (Fase 6). Todo sale de /panel/reportes: reservas reales, jornadas
@@ -65,12 +65,20 @@ function fillFilters(r) {
     suc.insertAdjacentHTML('beforeend', r.sucursales.map((s) => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join(''));
     suc.closest('.field').hidden = r.sucursales.length < 2;
   }
-  if (!r.filtros.barbero_id) {
+  // Sin reportes avanzados (plan, Fase 10) no hay ocupación por barbero: el filtro se oculta.
+  $('[data-barbero]').closest('.field').hidden = !r.ocupacion;
+  const opt90 = $('[data-rango] option[value="90"]');
+  if (opt90) opt90.disabled = !r.plan.reportes_avanzados;
+  if (r.ocupacion && !r.filtros.barbero_id) {
     barberList = r.ocupacion.barberos.map((b) => ({ id: b.barbero_id, nombre: b.nombre }));
     const sel = $('[data-barbero]');
     sel.innerHTML = '<option value="">Todos</option>' + barberList.map((b) => `<option value="${b.id}">${escapeHtml(b.nombre)}</option>`).join('');
   }
 }
+
+/** Sección no incluida en el plan (Fase 10): explica y enlaza a la suscripción. */
+const locked = (what) => `<p class="muted">${escapeHtml(what)} y los periodos de más de 31 días están en los planes con reportes avanzados.
+  <a href="suscripcion.html${q}">Ver planes</a></p>`;
 
 function render(r) {
   fillFilters(r);
@@ -80,8 +88,8 @@ function render(r) {
     kpi('Atendidas', t.completada, `${t.pendiente + t.confirmada} aún por atender`),
     kpi('Cancelaciones', t.cancelada, `${pct(t.tasa_cancelacion)} de las reservas`),
     kpi('Inasistencias', t.no_asistio, `${pct(t.tasa_inasistencia)} de las citas vencidas`),
-    kpi('Ocupación', pct(r.ocupacion.porcentaje), r.ocupacion.minutos_disponibles ? `${mins(r.ocupacion.minutos_reservados)} de ${mins(r.ocupacion.minutos_disponibles)}` : 'Sin jornada en el periodo'),
   ];
+  if (r.ocupacion) k.push(kpi('Ocupación', pct(r.ocupacion.porcentaje), r.ocupacion.minutos_disponibles ? `${mins(r.ocupacion.minutos_reservados)} de ${mins(r.ocupacion.minutos_disponibles)}` : 'Sin jornada en el periodo'));
   if (t.clientes_nuevos !== null) k.push(kpi('Clientes nuevos', t.clientes_nuevos, 'primera vez en tu barbería'));
   if (r.ingresos) k.push(kpi('Ingresos registrados', money(r.ingresos.registrados), `${r.ingresos.cobros} cobro${r.ingresos.cobros === 1 ? '' : 's'} · previsto de atendidas ${money(t.importe_previsto_atendidas)}`, true));
   $('[data-kpis]').innerHTML = k.join('');
@@ -103,8 +111,8 @@ function render(r) {
     : '<li class="muted">Sin servicios reservados en el periodo.</li>';
 
   // Ocupación por barbero.
-  const occ = r.ocupacion.barberos;
-  $('[data-occupancy]').innerHTML = occ.length ? `<ul class="hbars">${hbars(occ.map((b) => ({ label: b.nombre, value: b.porcentaje ?? 0 })), 100, (v) => `${v} %`)}</ul>
+  const occ = r.ocupacion ? r.ocupacion.barberos : null;
+  $('[data-occupancy]').innerHTML = !occ ? locked('La ocupación por barbero') : occ.length ? `<ul class="hbars">${hbars(occ.map((b) => ({ label: b.nombre, value: b.porcentaje ?? 0 })), 100, (v) => `${v} %`)}</ul>
     <div class="table-wrap" style="margin-top:12px"><table class="data-table"><thead><tr><th>Barbero</th><th>Reservado</th><th>Jornada</th><th>Atendidas</th><th>No asistió</th></tr></thead>
     <tbody>${occ.map((b) => `<tr><td>${escapeHtml(b.nombre)}</td><td>${mins(b.minutos_reservados)}</td><td>${b.minutos_disponibles ? mins(b.minutos_disponibles) : '—'}</td><td>${b.citas.completada}</td><td>${b.citas.no_asistio}${b.tasa_inasistencia !== null ? ` (${b.tasa_inasistencia} %)` : ''}</td></tr>`).join('')}</tbody></table></div>`
     : '<p class="muted">Ningún barbero tuvo jornada en el periodo.</p>';
@@ -130,6 +138,10 @@ function render(r) {
 
   // Evolución mensual.
   const m = r.evolucion_mensual;
+  if (!m) {
+    $('[data-monthly]').innerHTML = locked('La evolución mensual');
+    return;
+  }
   const conIngresos = m.length && m[0].ingresos !== undefined;
   $('[data-monthly]').innerHTML = vbars(m.map((x) => ({
     value: x.reservas,
@@ -157,13 +169,17 @@ function csv() {
   rows.push([]);
   rows.push(['Servicio', 'Veces solicitado', 'Atendidos', 'Importe previsto atendidos']);
   r.servicios.forEach((s) => rows.push([s.nombre, s.cantidad, s.atendidos, s.importe_previsto]));
-  rows.push([]);
-  rows.push(['Barbero', 'Minutos reservados', 'Minutos de jornada', 'Ocupación %', 'Atendidas', 'No asistió', 'Canceladas']);
-  r.ocupacion.barberos.forEach((b) => rows.push([b.nombre, b.minutos_reservados, b.minutos_disponibles, b.porcentaje ?? '', b.citas.completada, b.citas.no_asistio, b.citas.cancelada]));
-  rows.push([]);
-  const conIngresos = r.evolucion_mensual.length && r.evolucion_mensual[0].ingresos !== undefined;
-  rows.push(['Mes', 'Reservas', 'Atendidas', 'Canceladas', 'No asistió', ...(conIngresos ? ['Ingresos registrados'] : [])]);
-  r.evolucion_mensual.forEach((x) => rows.push([x.mes, x.reservas, x.completada, x.cancelada, x.no_asistio, ...(conIngresos ? [x.ingresos] : [])]));
+  if (r.ocupacion) {
+    rows.push([]);
+    rows.push(['Barbero', 'Minutos reservados', 'Minutos de jornada', 'Ocupación %', 'Atendidas', 'No asistió', 'Canceladas']);
+    r.ocupacion.barberos.forEach((b) => rows.push([b.nombre, b.minutos_reservados, b.minutos_disponibles, b.porcentaje ?? '', b.citas.completada, b.citas.no_asistio, b.citas.cancelada]));
+  }
+  if (r.evolucion_mensual) {
+    rows.push([]);
+    const conIngresos = r.evolucion_mensual.length && r.evolucion_mensual[0].ingresos !== undefined;
+    rows.push(['Mes', 'Reservas', 'Atendidas', 'Canceladas', 'No asistió', ...(conIngresos ? ['Ingresos registrados'] : [])]);
+    r.evolucion_mensual.forEach((x) => rows.push([x.mes, x.reservas, x.completada, x.cancelada, x.no_asistio, ...(conIngresos ? [x.ingresos] : [])]));
+  }
   if (r.ingresos) {
     rows.push([]);
     rows.push(['Método de pago', 'Monto registrado']);

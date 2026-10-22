@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Request;
 use App\Core\Response;
 use App\Services\Audit;
+use App\Services\Billing\Entitlements;
 use App\Services\Notifications\NotificationMetrics;
 use App\Services\Notifications\NotificationSettings;
 
@@ -51,6 +52,8 @@ final class PanelNotificationsController extends BaseController
                 'horas_min' => NotificationSettings::HORAS_MIN,
                 'horas_max' => NotificationSettings::HORAS_MAX,
             ],
+            // Canales que incluye el plan (Fase 10): un canal fuera del plan no se envía aunque esté encendido.
+            'canales_plan' => array_values(array_filter(['push', 'email'], static fn (string $c): bool => Entitlements::for($settings->tenantId())->channel($c))),
         ];
     }
 }

@@ -17,6 +17,7 @@ use App\Repositories\BarberRepository;
 use App\Repositories\BookingRepository;
 use App\Repositories\ClientRepository;
 use App\Services\Audit;
+use App\Services\Billing\Entitlements;
 use DateTimeImmutable;
 use DateTimeZone;
 use PDOException;
@@ -186,6 +187,8 @@ final class BookingService
             'notas_internas' => 'nullable|string|max:1000',
             'estado' => 'nullable|in:pendiente,confirmada',
         ]);
+        // Sin suscripción vigente pasada la gracia (Fase 10) no se registran citas nuevas.
+        Entitlements::for($this->tenantId)->assertNotRestricted();
         $barberoId = isset($data['barbero_id']) ? (int) $data['barbero_id'] : null;
         $notas = isset($data['notas']) && trim((string) $data['notas']) !== '' ? trim((string) $data['notas']) : null;
         $internas = isset($data['notas_internas']) && trim((string) $data['notas_internas']) !== '' ? trim((string) $data['notas_internas']) : null;
@@ -329,7 +332,7 @@ final class BookingService
         if ($current === null) {
             throw new NotFoundException('Reserva no encontrada.');
         }
-        if ($current['tenant_estado'] !== 'activo') {
+        if ($current['tenant_estado'] !== 'activo' || ($actor === 'cliente' && $current['tenant_restringido_en'] !== null)) {
             throw new HttpException(409, 'tenant_unavailable', 'La barbería no está recibiendo reservas en este momento. Puedes cancelar tu cita o comunicarte con ella.');
         }
         $auto = (bool) $current['barbero_asignado_auto'];
