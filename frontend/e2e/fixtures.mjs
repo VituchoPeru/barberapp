@@ -60,11 +60,27 @@ export async function revisarPantalla(page, nombre) {
   const vista = page.viewportSize()?.width ?? 0;
   const ancho = await page.evaluate((vista) => {
     const doc = document.scrollingElement || document.documentElement;
+    // Elementos que de verdad ensanchan la página: se salen por la derecha, no están dentro de un
+    // contenedor con scroll o recorte propio y su padre no se sale (se informa el más externo).
+    const sale = (el) => el.getBoundingClientRect().right > vista + 1;
+    const recortado = (el) => {
+      for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+        if (getComputedStyle(p).overflowX !== 'visible') return true;
+      }
+      return false;
+    };
+    const nombreDe = (el) => {
+      const clase = typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).join('.') : '';
+      return `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${clase}`;
+    };
     const anchos = [...document.querySelectorAll('body *')]
-      .filter((el) => el.getBoundingClientRect().right > vista + 1 && getComputedStyle(el).position !== 'fixed' && el.closest('[hidden],dialog:not([open])') === null)
-      .filter((el) => !el.closest('.scroll-x, [data-scroll-x], .table-wrap, .agenda, .heatmap, pre'))
-      .slice(0, 3)
-      .map((el) => `${el.tagName.toLowerCase()}${el.className ? '.' + String(el.className).split(' ').join('.') : ''}`);
+      .filter((el) => sale(el) && getComputedStyle(el).position !== 'fixed' && el.closest('[hidden],dialog:not([open])') === null)
+      .filter((el) => !recortado(el) && !(el.parentElement && el.parentElement !== document.body && sale(el.parentElement)))
+      .slice(0, 4)
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return `${nombreDe(el)} [${Math.round(r.left)}–${Math.round(r.right)}px]`;
+      });
     return { scroll: Math.max(doc.scrollWidth, window.innerWidth), vista, anchos };
   }, vista);
   expect(ancho.scroll, `${nombre}: desborde horizontal (${ancho.anchos.join(', ')})`).toBeLessThanOrEqual(ancho.vista + 1);
