@@ -1,5 +1,6 @@
 import { $, escapeHtml, withLoading } from './ui.js';
 import { icon } from './icons.js';
+import { mountBell } from './avisos.js';
 import {
   papi, q, context, can, openSheet, confirmAction, toast, estadoBadge, mins, money, fmtDate,
 } from './panel.js';
@@ -45,6 +46,7 @@ export async function bootBarber(active) {
       blocked('Tu cuenta no tiene ficha de barbero', 'Pide al propietario que vincule tu cuenta a tu ficha de barbero en Barberos.', ctx);
       return null;
     }
+    mountBell(ctx.tenant.slug);
     // Quien además gestiona la barbería conserva el acceso al panel completo.
     const full = $('[data-full-panel]');
     if (full && can(ctx, ['reservas.ver_todas', 'reportes.operativos', 'barberos.gestionar', 'bloqueos.gestionar'])) {

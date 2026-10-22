@@ -6,7 +6,7 @@ use App\Core\Env;
 
 return [
     'name' => Env::get('APP_NAME', 'BARBERAPP'),
-    'version' => '0.7.0',
+    'version' => '0.8.0',
     'env' => Env::get('APP_ENV', 'production'),
     'debug' => (bool) Env::get('APP_DEBUG', false),
     'url' => Env::get('APP_URL', 'http://localhost'),

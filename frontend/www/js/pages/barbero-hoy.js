@@ -179,4 +179,7 @@ function schedule() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !dialogOpen()) load({ silent: true }); });
   await load();
   schedule();
+  // Desde un aviso (Fase 8): ?cita=ID abre directamente el detalle de esa cita.
+  const citaAviso = Number(new URLSearchParams(location.search).get('cita'));
+  if (citaAviso > 0) openCita(citaAviso, () => load({ silent: true }));
 })();

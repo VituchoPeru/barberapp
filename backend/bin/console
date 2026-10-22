@@ -18,6 +18,14 @@ declare(strict_types=1);
  *   php bin/console key:generate       Genera APP_KEY en .env (firma de tokens; --force para reemplazarla)
  *   php bin/console auth:purge         Borra sesiones, tokens y contadores vencidos (programar en cron diario)
  *   php bin/console reservas:purge     Borra claves de idempotencia vencidas (24 h; programar en cron diario)
+ *   php bin/console notificaciones:procesar [--limite=200]
+ *                                      Worker de avisos: programa recordatorios y envía la cola (cron cada minuto)
+ *   php bin/console notificaciones:estado
+ *                                      Resumen de la cola y de los envíos de las últimas 24 h
+ *   php bin/console notificaciones:purge
+ *                                      Borra avisos resueltos más antiguos que NOTIFY_RETENTION_DAYS (cron diario)
+ *   php bin/console push:probar correo@dominio
+ *                                      Envía un push de prueba a los dispositivos de esa cuenta (verifica FCM)
  */
 
 use App\Core\Config;
@@ -211,6 +219,80 @@ try {
         case 'reservas:purge':
             $k = App\Services\Booking\Idempotency::purge();
             out("Eliminadas: {$k} claves de idempotencia vencidas.");
+            break;
+
+        case 'notificaciones:procesar':
+            $limite = null;
+            foreach ($flags as $f) {
+                if (preg_match('/^--limite=(\d+)$/', $f, $m)) {
+                    $limite = max(1, (int) $m[1]);
+                }
+            }
+            // Un solo worker a la vez por servidor: si el cron anterior sigue corriendo, este sale.
+            $lock = fopen($base . '/storage/cache/notificaciones-worker.lock', 'c');
+            if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+                out('Otro worker de notificaciones sigue en ejecución; se omite esta corrida.');
+                break;
+            }
+            $stats = (new App\Services\Notifications\QueueWorker())->run($limite);
+            flock($lock, LOCK_UN);
+            $line = [];
+            foreach ($stats as $k => $v) {
+                $line[] = "{$k}={$v}";
+            }
+            out(gmdate('Y-m-d H:i:s') . ' UTC ' . implode(' ', $line));
+            break;
+
+        case 'notificaciones:estado':
+            $pdo = Database::connection();
+            out('Cola (todas las barberías):');
+            foreach ($pdo->query("SELECT estado, canal, COUNT(*) AS n FROM notificaciones WHERE canal <> 'interna' OR tipo = 'recordatorio' GROUP BY estado, canal ORDER BY estado, canal")->fetchAll() as $r) {
+                out(sprintf('  %-11s %-8s %d', $r['estado'], $r['canal'], $r['n']));
+            }
+            $vencidas = (int) $pdo->query("SELECT COUNT(*) FROM notificaciones WHERE estado = 'programada' AND programada_para_utc < UTC_TIMESTAMP() - INTERVAL 5 MINUTE")->fetchColumn();
+            out("Avisos atrasados más de 5 min: {$vencidas}" . ($vencidas > 0 ? '  ← ¿está corriendo el cron del worker?' : ''));
+            out('Intentos de envío en las últimas 24 h:');
+            foreach ($pdo->query("SELECT canal, proveedor, resultado, COUNT(*) AS n FROM notificacion_envios WHERE created_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY GROUP BY canal, proveedor, resultado ORDER BY canal, resultado")->fetchAll() as $r) {
+                out(sprintf('  %-8s %-6s %-16s %d', $r['canal'], $r['proveedor'], $r['resultado'], $r['n']));
+            }
+            break;
+
+        case 'notificaciones:purge':
+            $dias = max(30, (int) Config::get('notifications.retention_days', 180));
+            $pdo = Database::connection();
+            $stmt = $pdo->prepare("DELETE FROM notificaciones WHERE estado IN ('enviada','fallida','cancelada','omitida') AND programada_para_utc < UTC_TIMESTAMP() - INTERVAL ? DAY LIMIT 5000");
+            $total = 0;
+            do {
+                $stmt->execute([$dias]);
+                $total += $stmt->rowCount();
+            } while ($stmt->rowCount() === 5000);
+            $d = $pdo->prepare('DELETE FROM dispositivos_push WHERE activo = 0 AND desactivado_en < UTC_TIMESTAMP() - INTERVAL ? DAY');
+            $d->execute([$dias]);
+            out("Eliminados: {$total} avisos de más de {$dias} días (con su registro de envíos) y {$d->rowCount()} dispositivos desactivados.");
+            break;
+
+        case 'push:probar':
+            $email = (string) ($flags[0] ?? '');
+            $u = (new App\Repositories\UserRepository())->findByEmail($email);
+            if ($u === null) {
+                fail('Uso: php bin/console push:probar correo@dominio (la cuenta debe existir).');
+            }
+            $transport = App\Services\Notifications\Push\Push::transport();
+            if ($transport === null) {
+                fail('PUSH_DRIVER=none: el envío push está desactivado.');
+            }
+            $stmt = Database::connection()->prepare('SELECT token, plataforma, modelo FROM dispositivos_push WHERE usuario_id = ? AND activo = 1');
+            $stmt->execute([(int) $u['id']]);
+            $devices = $stmt->fetchAll();
+            if ($devices === []) {
+                fail('Esa cuenta no tiene dispositivos con avisos activados (la app los registra en POST /api/v1/me/dispositivos).');
+            }
+            foreach ($devices as $dev) {
+                $res = $transport->send((string) $dev['token'], (string) $dev['plataforma'], [
+                    'title' => 'Prueba de BARBERAPP', 'body' => 'Si ves este aviso, el envío push funciona.', 'data' => ['tipo' => 'prueba'],
+                ]);
+                out(sprintf('  %s %s → %s%s', $dev['plataforma'], $dev['modelo'] ?? '', $res->status, $res->code ? " ({$res->code})" : '') . ($res->detail ? ': ' . $res->detail : ''));
+            }
             break;
 
         default:

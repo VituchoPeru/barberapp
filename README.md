@@ -15,7 +15,8 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | 5 | Motor de reservas: disponibilidad, reservar, comprobante, mis citas, cancelar y reprogramar sin doble reserva | ✅ Terminada |
 | 6 | Panel administrativo: inicio, agenda diaria/semanal, alta manual, asistencia, cobros, clientes, reportes y configuración | ✅ Terminada |
 | 7 | Panel del barbero: agenda del día, siguiente cliente, atención, historial, horario y solicitudes de ausencia con aprobación | ✅ Terminada |
-| 8+ | Notificaciones, superadministrador, planes, apps… | Pendiente |
+| 8 | Recordatorios automáticos: cola persistente, worker por cron, push FCM, correo, bandeja, preferencias, confirmar asistencia y métricas | ✅ Terminada |
+| 9+ | Superadministrador, planes, apps… | Pendiente |
 
 ## Documentación
 
@@ -28,6 +29,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Motor de reservas](docs/RESERVAS.md) (disponibilidad, endpoints, concurrencia, idempotencia y política)
 - [Panel administrativo](docs/PANEL.md) (agenda, cobros, clientes, reportes, permisos y cálculo de métricas)
 - [Panel del barbero](docs/PANEL_BARBERO.md) (agenda propia, atención, horario, ausencias y ajustes del equipo)
+- [Avisos y recordatorios](docs/RECORDATORIOS.md) (cola, worker y cron, FCM, preferencias, confirmar asistencia y métricas)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -188,6 +190,10 @@ php bin/console routes             Lista las rutas
 php bin/console key:generate       Genera APP_KEY en .env (--force para reemplazarla)
 php bin/console auth:purge         Borra sesiones, tokens y contadores vencidos
 php bin/console reservas:purge     Borra claves de idempotencia vencidas (reservas)
+php bin/console notificaciones:procesar   Envía los avisos pendientes (cron cada minuto)
+php bin/console notificaciones:estado     Cola por estado y canal, atrasados y errores de las últimas 24 h
+php bin/console notificaciones:purge      Borra avisos terminados antiguos (NOTIFY_RETENTION_DAYS)
+php bin/console push:probar correo        Push de prueba a los teléfonos de esa cuenta
 ```
 
 Programa `auth:purge` y `reservas:purge` una vez al día (cron en Linux o el Programador de tareas de Windows):
@@ -195,6 +201,13 @@ Programa `auth:purge` y `reservas:purge` una vez al día (cron en Linux o el Pro
 ```cron
 15 3 * * * cd /ruta/barberapp/backend && php bin/console auth:purge >> storage/logs/cron.log 2>&1
 20 3 * * * cd /ruta/barberapp/backend && php bin/console reservas:purge >> storage/logs/cron.log 2>&1
+30 3 * * * cd /ruta/barberapp/backend && php bin/console notificaciones:purge >> storage/logs/cron.log 2>&1
+```
+
+**Los recordatorios necesitan el worker cada minuto** (ver [RECORDATORIOS.md](docs/RECORDATORIOS.md#puesta-en-marcha), también para Windows/XAMPP y la configuración de Firebase):
+
+```cron
+* * * * * cd /ruta/barberapp/backend && php bin/console notificaciones:procesar >> storage/logs/cron.log 2>&1
 ```
 
 ## Pruebas
@@ -227,7 +240,11 @@ Desde la Fase 7 cubren el panel del barbero: agenda propia sin datos de caja, si
 
 Resultado al cerrar la Fase 7: **228 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 221 y se omiten 7 (sin GD ni zbar). Recorrido E2E del panel del barbero en Chromium (móvil 390×844 y escritorio) sin errores de consola ni desbordes.
 
-> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores) y `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia). `db:seed` no es necesario.
+Desde la Fase 8 cubren los avisos y recordatorios: programación a las horas configuradas, envío por el worker con la app cerrada, anulación al cancelar o reprogramar, reintentos con espera creciente, tokens push rechazados, workers caídos, preferencias, enlace firmado para confirmar asistencia, bandeja privada, reglas del panel, métricas y FCM HTTP v1 con una clave RSA real. Ver [RECORDATORIOS.md](docs/RECORDATORIOS.md#pruebas).
+
+Resultado al cerrar la Fase 8: **252 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 245 y se omiten 7 (sin GD ni zbar). La migración 0013 se probó sobre una base en 0012 con preferencias existentes. Recorrido E2E en Chromium (móvil 390×844 y escritorio): worker → bandeja y campana → confirmar asistencia desde el enlace → preferencias → reglas y métricas del panel, sin errores de consola ni desbordes.
+
+> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) y `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría). `db:seed` no es necesario. Luego programa el cron de `notificaciones:procesar`.
 
 **Panel del barbero:** cada barbero entra con su cuenta en *Mi cuenta → Mi agenda* (`pages/barbero/index.html?tenant=slug`). Su cuenta debe estar vinculada a su ficha en *Panel → Barberos*. Con los datos demo: `barbero1.centro@barberapp.test`.
 

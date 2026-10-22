@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Avisos · Panel BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Avisos <span class="muted" data-tenant-name></span></h1>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos del panel"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <div class="panel-head">
+      <div><h2>Avisos y recordatorios</h2><p>Se envían desde el servidor a su hora, aunque el cliente tenga la app cerrada. Nunca cancelamos una cita porque el cliente no confirmó.</p></div>
+    </div>
+
+    <section class="card-box" aria-labelledby="h-reglas">
+      <h3 id="h-reglas">Reglas de envío</h3>
+      <p class="hint" data-readonly hidden>Solo el propietario o el administrador pueden cambiar estas reglas.</p>
+      <form class="form" data-rules novalidate>
+        <fieldset class="fieldset">
+          <legend>Recordatorios antes de la cita</legend>
+          <p class="hint">Hasta 3, entre 1 y 72 horas antes. Si alguien reserva con menos anticipación, solo recibe los que aún están a tiempo.</p>
+          <div class="av-horas" data-horas></div>
+          <div class="toolbar"><button class="btn btn--ghost btn--sm" type="button" data-add-hora><span data-icon="plus"></span> Agregar recordatorio</button></div>
+          <p class="field__error" data-error-for="recordatorios_horas"></p>
+        </fieldset>
+        <label class="switch"><span><strong>Pedir que confirme su asistencia</strong><br><small class="muted">El recordatorio incluye el botón "Confirmar asistencia". Verás quién confirmó en la agenda.</small></span><input type="checkbox" role="switch" name="pedir_confirmacion"></label>
+        <fieldset class="fieldset">
+          <legend>Avisos al cliente</legend>
+          <label class="switch"><span><strong>Reserva registrada o confirmada</strong><br><small class="muted">Comprobante inmediato con fecha, hora, barbero y código.</small></span><input type="checkbox" role="switch" name="aviso_confirmacion"></label>
+          <label class="switch"><span><strong>La barbería cancela una cita</strong><br><small class="muted">Incluye el motivo si lo escribes al cancelar.</small></span><input type="checkbox" role="switch" name="aviso_cancelacion"></label>
+          <label class="switch"><span><strong>La barbería cambia una cita</strong><br><small class="muted">Nueva fecha, hora o barbero cuando la reprogramas desde la agenda.</small></span><input type="checkbox" role="switch" name="aviso_modificacion"></label>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend>Canales</legend>
+          <p class="hint">La bandeja de la app siempre recibe los avisos. Cada cliente puede apagar push o correo en su cuenta.</p>
+          <label class="switch"><span><strong>Notificaciones push</strong><br><small class="muted">En la app de BARBERAPP (Android e iOS).</small></span><input type="checkbox" role="switch" name="canal_push"></label>
+          <label class="switch"><span><strong>Correo electrónico</strong><br><small class="muted">Solo a correos verificados.</small></span><input type="checkbox" role="switch" name="canal_email"></label>
+        </fieldset>
+        <p class="alert" data-form-alert role="alert" hidden></p>
+        <div class="toolbar"><button class="btn" type="submit" data-loading="Guardando…">Guardar reglas</button></div>
+      </form>
+    </section>
+
+    <section class="card-box" aria-labelledby="h-metricas" style="margin-top:16px">
+      <div class="panel-head">
+        <div><h3 id="h-metricas">Resultados</h3><p class="hint">Recordatorios por la fecha en que se programaron; confirmaciones e inasistencias por la fecha de la cita.</p></div>
+        <div class="field"><label for="f-rango">Periodo</label><select id="f-rango" data-rango><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option></select></div>
+      </div>
+      <div data-metrics-loading><div class="skeleton"></div><div class="skeleton" style="margin-top:8px"></div></div>
+      <div data-metrics hidden>
+        <div class="kpis" data-kpis></div>
+        <div class="grid-2" style="margin-top:16px">
+          <div><h4 class="av-sub">Recordatorios por canal</h4><div class="table-wrap"><table class="data-table" data-canales></table></div></div>
+          <div><h4 class="av-sub">Inasistencia</h4><ul class="hbars" data-noshow></ul><p class="hint">No asistió ÷ (atendidas + no asistió).</p></div>
+        </div>
+        <h4 class="av-sub">Últimos errores de envío</h4>
+        <ul class="list" data-errores></ul>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="../../js/pages/panel-avisos.js"></script>
+</body>
+</html>

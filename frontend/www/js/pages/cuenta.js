@@ -78,6 +78,48 @@ async function renderSessions() {
     </li>`).join('');
 }
 
+const CANALES = [['push', 'Push'], ['email', 'Correo']];
+
+/** Preferencias de avisos (Fase 8): push y correo por categoría. */
+async function renderPrefs() {
+  const prefs = await api('/me/preferencias-notificacion');
+  $('[data-prefs]').innerHTML = `<table class="prefs">
+    <thead><tr><th scope="col"><span class="sr-only">Aviso</span></th>${CANALES.map(([, l]) => `<th scope="col">${l}</th>`).join('')}</tr></thead>
+    <tbody>${prefs.categorias.map((c) => `<tr><th scope="row">${escapeHtml(c.nombre)}</th>${CANALES.map(([k, l]) => (k in c
+      ? `<td><label class="switch"><span class="sr-only">${escapeHtml(c.nombre)} por ${l}</span><input type="checkbox" role="switch" data-pref="${c.categoria}" data-canal="${k}"${c[k] ? ' checked' : ''}></label></td>`
+      : '<td><span class="muted" aria-label="No disponible">—</span></td>')).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+const PLATAFORMAS = { android: 'Android', ios: 'iPhone / iPad', web: 'Navegador' };
+async function renderDevices() {
+  const devices = await api('/me/dispositivos');
+  const el = $('[data-devices]');
+  if (!devices.length) {
+    el.innerHTML = '<li class="muted">Ningún teléfono recibe notificaciones todavía. Se activan al instalar la app de BARBERAPP y permitir los avisos.</li>';
+    return;
+  }
+  el.innerHTML = devices.map((d) => `<li class="item">
+      <div><p class="item__title">${escapeHtml(d.modelo || PLATAFORMAS[d.plataforma] || d.plataforma)}</p>
+        <p class="item__meta">${escapeHtml(PLATAFORMAS[d.plataforma] || d.plataforma)}${d.ultimo_uso_en ? ' · Último aviso: ' + fmt(d.ultimo_uso_en) : ''}${d.activo ? '' : ' · ' + escapeHtml(d.motivo_desactivado || 'Desactivado')}</p></div>
+      <div class="item__actions">${d.activo ? `<button class="btn btn--ghost btn--sm" type="button" data-device-off="${d.id}">Dejar de avisar aquí</button>` : '<span class="chip chip--warn">Inactivo</span>'}</div>
+    </li>`).join('');
+}
+
+document.addEventListener('change', async (event) => {
+  const input = event.target.closest('[data-pref]');
+  if (!input) return;
+  input.disabled = true;
+  try {
+    await api('/me/preferencias-notificacion', { method: 'PUT', body: { [input.dataset.pref]: { [input.dataset.canal]: input.checked } } });
+    notice(noticeEl, 'Preferencias de avisos guardadas.', 'ok');
+  } catch (e) {
+    input.checked = !input.checked;
+    notice(noticeEl, e.message, 'error');
+  } finally {
+    input.disabled = false;
+  }
+});
+
 async function load() {
   const me = await currentUser();
   if (!me) {
@@ -85,7 +127,8 @@ async function load() {
     return;
   }
   await renderProfile(me);
-  await Promise.all([renderMemberships(me), renderSessions()]);
+  await Promise.all([renderMemberships(me), renderPrefs(), renderDevices(), renderSessions()]);
+  if (location.hash === '#avisos') $('#avisos').scrollIntoView();
 }
 
 async function run(button, fn, ok) {
@@ -105,6 +148,7 @@ document.addEventListener('click', (event) => {
   else if (b.dataset.accept) run(b, () => api(`/me/memberships/${b.dataset.accept}/aceptar`, { method: 'POST', body: {} }), 'Invitación aceptada. ¡Bienvenido al equipo!');
   else if (b.dataset.reject) run(b, () => api(`/me/memberships/${b.dataset.reject}/rechazar`, { method: 'POST', body: {} }), 'Invitación rechazada.');
   else if (b.dataset.revoke) run(b, () => api(`/me/sessions/${b.dataset.revoke}`, { method: 'DELETE' }), 'Sesión cerrada.');
+  else if (b.dataset.deviceOff) run(b, () => api(`/me/dispositivos/${b.dataset.deviceOff}`, { method: 'DELETE' }), 'Ese teléfono ya no recibirá notificaciones.');
   else if (b.hasAttribute('data-resend')) run(b, () => api('/auth/verify-email/resend', { method: 'POST', body: {} }).then((d) => notice(noticeEl, d.mensaje, 'ok')));
   else if (b.hasAttribute('data-logout') || b.hasAttribute('data-logout-all')) {
     const all = b.hasAttribute('data-logout-all');

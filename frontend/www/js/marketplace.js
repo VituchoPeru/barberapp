@@ -1,6 +1,7 @@
 import { api, ApiError } from './api.js';
 import { escapeHtml } from './ui.js';
 import { icon } from './icons.js';
+import { mountBell } from './avisos.js';
 
 /** Utilidades compartidas por las pantallas del marketplace (cliente). */
 
@@ -171,8 +172,11 @@ export function mountTabbar(active) {
   nav.innerHTML = items.map(([key, label, ic, href]) =>
     `<a href="${href}"${key === active ? ' aria-current="page"' : ''}>${icon(ic)}<span>${label}</span></a>`).join('');
   document.body.appendChild(nav);
-  // Sin sesión, "Cuenta" lleva a iniciar sesión.
-  me().then((u) => { if (!u) nav.lastElementChild.href = page('auth/login.html'); }).catch(() => {});
+  // Sin sesión, "Cuenta" lleva a iniciar sesión. Con sesión, campana de avisos (Fase 8).
+  me().then((u) => {
+    if (!u) nav.lastElementChild.href = page('auth/login.html');
+    else if (active !== '') mountBell();
+  }).catch(() => {});
 }
 
 /**

@@ -41,6 +41,7 @@ return [
         'restablecer_ip' => [10, 900],
         'verificacion_usuario' => [3, 3600],
         'refresh_ip' => [60, 60],
+        'asistencia_ip' => [30, 900],    // enlaces "Confirmar asistencia" inválidos por IP cada 15 min (Fase 8)
     ],
 
     'password_min' => 8,

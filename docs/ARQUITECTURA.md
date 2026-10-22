@@ -41,6 +41,7 @@ flowchart LR
 - **Repositorios con alcance de tenant** (`TenantScopedRepository`): el `tenant_id` se fija al construir el repositorio, a partir del contexto verificado.
 - **Tiempo**: el servidor y la conexión MySQL trabajan en UTC. Cada sucursal guarda su `zona_horaria` (por defecto `America/Lima`) para convertir horarios locales.
 - **Migraciones SQL versionadas** (`database/migrations/NNNN_*.sql`), aplicadas por `php bin/console migrate` y registradas con checksum en `migraciones`. `database/schema.sql` se genera a partir de ellas.
+- **Trabajo en segundo plano con cron**: los avisos se guardan en una cola en MySQL y los envía `php bin/console notificaciones:procesar` cada minuto (sin colas externas ni procesos persistentes). Ver [RECORDATORIOS.md](RECORDATORIOS.md).
 - **Sin dependencias de producción**: el backend corre sin Composer (autoloader PSR-4 propio). Composer solo instala PHPUnit 9.6 (compatible con PHP 8.0) para pruebas.
 
 ## Estructura de carpetas
@@ -61,7 +62,7 @@ barberapp/
 │   │   ├── Middleware/    ← RequestId, SecurityHeaders, Cors, JsonBody, TenantContext
 │   │   ├── Repositories/  ← BaseRepository, TenantScopedRepository
 │   │   ├── Helpers/       ← Validator, Clock (UTC), Codes
-│   │   ├── Services/      ← Auth, Booking (motor de reservas), Schedule (jornada), Panel (agenda, reportes), Media, Qr…
+│   │   ├── Services/      ← Auth, Booking (motor de reservas), Schedule (jornada), Panel (agenda, reportes), Notifications (cola, worker, FCM), Media, Qr…
 │   ├── database/
 │   │   ├── migrations/    ← 0001…0011 *.sql
 │   │   ├── seeds/         ← CatalogSeeder (todos los entornos), DemoSeeder (solo local/testing)

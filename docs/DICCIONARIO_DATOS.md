@@ -187,6 +187,8 @@ Descansos semanales recurrentes; se descuentan de la jornada al calcular disponi
 | `app_version` | varchar(20) | sí |  |  |  |
 | `modelo` | varchar(80) | sí |  |  |  |
 | `activo` | tinyint(1) | no | `1` |  |  |
+| `desactivado_en` | datetime | sí |  |  | UTC; cuándo dejó de recibir avisos |
+| `motivo_desactivado` | varchar(120) | sí |  |  | p. ej. token rechazado por FCM (UNREGISTERED) o cierre de sesión |
 | `ultimo_uso_en` | datetime | sí |  |  |  |
 | `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
 | `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
@@ -296,6 +298,27 @@ Rol de un usuario dentro de una barbería (un usuario puede tener roles distinto
 
 **Claves foráneas:** (invitado_por) → `usuarios`(id); (rol_id) → `roles`(id); (tenant_id) → `tenants`(id); (usuario_id) → `usuarios`(id)
 
+## `notificacion_envios`
+
+Intentos de envío de la cola de notificaciones (registro de errores y métricas)
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `notificacion_id` | bigint unsigned | no |  | MUL |  |
+| `tenant_id` | bigint unsigned | sí |  | MUL |  |
+| `intento` | tinyint unsigned | no |  |  |  |
+| `canal` | enum('push','email','interna','whatsapp','sms') | no |  |  |  |
+| `proveedor` | varchar(30) | no |  |  | fcm, smtp, log, array, interna |
+| `resultado` | enum('enviada','error_temporal','error_permanente','omitida') | no |  |  |  |
+| `codigo` | varchar(60) | sí |  |  | Código de respuesta del proveedor (p. ej. UNREGISTERED, http_503) |
+| `detalle` | varchar(1000) | sí |  |  |  |
+| `dispositivos` | smallint unsigned | sí |  |  | Push: dispositivos a los que se intentó enviar |
+| `duracion_ms` | int unsigned | sí |  |  |  |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (notificacion_id) → `notificaciones`(id); (tenant_id) → `tenants`(id)
+
 ## `notificaciones`
 
 Cola persistente procesada por worker PHP vía cron
@@ -313,7 +336,7 @@ Cola persistente procesada por worker PHP vía cron
 | `titulo` | varchar(160) | sí |  |  |  |
 | `cuerpo` | text | no |  |  |  |
 | `datos` | json | sí |  |  | Payload adicional (deep link, acciones) |
-| `estado` | enum('programada','procesando','enviada','fallida','cancelada') | no | `programada` | MUL |  |
+| `estado` | enum('programada','procesando','enviada','fallida','cancelada','omitida') | no | `programada` | MUL |  |
 | `programada_para_utc` | datetime | no |  |  |  |
 | `proximo_intento_utc` | datetime | sí |  |  |  |
 | `intentos` | tinyint unsigned | no | `0` |  |  |
@@ -438,7 +461,7 @@ Planes comerciales del SaaS
 | `usuario_id` | bigint unsigned | no |  | MUL |  |
 | `tenant_id` | bigint unsigned | sí |  | MUL | NULL = preferencia global del usuario |
 | `canal` | enum('push','email','interna','whatsapp','sms') | no |  |  |  |
-| `tipo` | varchar(50) | no |  |  | confirmacion, recordatorio_24h, recordatorio_2h, cancelacion, reprogramacion, marketing |
+| `tipo` | varchar(50) | no |  |  | recordatorios, cambios (citas del cliente), agenda (avisos del personal), marketing |
 | `habilitado` | tinyint(1) | no | `1` |  |  |
 | `tenant_scope` | bigint unsigned VIRTUAL GENERATED | sí |  |  |  |
 | `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
@@ -521,7 +544,7 @@ Cobros registrados por la barbería; fuente de los ingresos del panel
 | `sucursal_id` | bigint unsigned | no |  |  |  |
 | `barbero_id` | bigint unsigned | no |  | MUL |  |
 | `cliente_id` | bigint unsigned | no |  | MUL |  |
-| `estado` | enum('pendiente','confirmada','completada','cancelada','no_asistio') | no | `pendiente` |  |  |
+| `estado` | enum('pendiente','confirmada','completada','cancelada','no_asistio') | no | `pendiente` | MUL |  |
 | `inicio_utc` | datetime | no |  |  |  |
 | `fin_utc` | datetime | no |  |  |  |
 | `zona_horaria` | varchar(64) | no |  |  | Zona de la sucursal al momento de reservar |

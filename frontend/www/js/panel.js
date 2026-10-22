@@ -2,6 +2,7 @@ import { api } from './api.js';
 import { $, escapeHtml, notice } from './ui.js';
 import { icon } from './icons.js';
 import { toast } from './marketplace.js';
+import { mountBell } from './avisos.js';
 
 /**
  * Utilidades del panel de la barbería (Fase 4): barbería activa, navegación entre módulos,
@@ -47,6 +48,7 @@ const MODULES = [
   ['ausencias', 'Ausencias', 'calendar', 'bloqueos.gestionar'],
   ['sucursales', 'Sucursales', 'store', 'sucursales.gestionar'],
   ['perfil-publico', 'Perfil público', 'globe', 'negocio.perfil.gestionar'],
+  ['avisos', 'Avisos', 'bell', ['notificaciones.gestionar', 'reportes.operativos']],
   ['configuracion', 'Configuración', 'settings', ['negocio.perfil.gestionar', 'politicas.gestionar']],
 ];
 
@@ -81,6 +83,7 @@ export async function bootPanel(active) {
         // Panel propio del barbero (Fase 7) si la cuenta tiene ficha de barbero.
         + (ctx.barbero ? `<a href="../barbero/index.html${q}">${icon('scissors')}<span>Mi agenda</span></a>` : '');
     }
+    mountBell(ctx.tenant.slug);
     return ctx;
   } catch (e) {
     if (e.status === 401) {
