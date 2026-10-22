@@ -18,6 +18,7 @@ use App\Repositories\TenantRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\UserTokenRepository;
 use App\Services\Audit;
+use App\Services\Platform\SubscriptionService;
 use App\Services\Mail\Mailer;
 
 /**
@@ -107,6 +108,10 @@ final class AuthService
                     'estado' => $estado,
                 ]);
                 $this->memberships->upsert($tenantId, $userId, 'propietario', 'activo', null);
+                // Fase 10: prueba gratuita automática si la barbería nace activa (sin aprobación manual).
+                if ($estado === 'activo') {
+                    (new SubscriptionService())->startTrial($tenantId);
+                }
                 $tenant = ['id' => $tenantId, 'slug' => $slug, 'nombre_comercial' => $barberia['nombre_comercial'], 'estado' => $estado];
             }
             $verifyToken = $this->createToken($userId, UserTokenRepository::VERIFY_EMAIL, $email, (int) Config::get('auth.verify_email_ttl_hours', 48) * 60, null);

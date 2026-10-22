@@ -20,6 +20,12 @@ final class Templates
     /** Avisos de la plataforma al propietario sobre su barbería (Fase 9): solo estas variables. */
     public const VARIABLES_CUENTA = ['barberia', 'motivo'];
 
+    /** Avisos de suscripción y pagos al propietario (Fase 10). */
+    public const VARIABLES_SUSCRIPCION = ['barberia', 'plan', 'fecha', 'dias', 'monto'];
+
+    /** Códigos de los avisos de suscripción (prefijos). */
+    public const PREFIJOS_SUSCRIPCION = ['suscripcion_', 'prueba_', 'pago_'];
+
     /** Nombre legible de cada aviso (panel del superadministrador). */
     public const NOMBRES = [
         'reserva_confirmada' => 'Reserva confirmada',
@@ -31,6 +37,11 @@ final class Templates
         'barberia_rechazada' => 'Solicitud de barbería rechazada',
         'barberia_suspendida' => 'Barbería suspendida',
         'barberia_reactivada' => 'Barbería reactivada',
+        'prueba_por_vencer' => 'Prueba gratuita por terminar',
+        'suscripcion_por_vencer' => 'Suscripción por vencer',
+        'suscripcion_vencida' => 'Suscripción vencida',
+        'suscripcion_restringida' => 'Barbería restringida por falta de pago',
+        'pago_confirmado' => 'Pago de suscripción confirmado',
     ];
 
     /** codigo → canal → [asunto/título, cuerpo] */
@@ -81,12 +92,50 @@ final class Templates
             'email' => ['{{barberia}} vuelve a estar activa',
                 "Hola,\n\n{{barberia}} vuelve a estar activa en BARBERAPP y puede recibir reservas de nuevo."],
         ],
+        'prueba_por_vencer' => [
+            'push' => ['Tu prueba termina pronto', 'La prueba gratuita de {{barberia}} (plan {{plan}}) termina el {{fecha}}. Elige tu plan para seguir recibiendo reservas.'],
+            'email' => ['Tu prueba gratuita termina el {{fecha}}',
+                "Hola,\n\nLa prueba gratuita de {{barberia}} con el plan {{plan}} termina el {{fecha}} (en {{dias}} día(s)).\n\nPara seguir recibiendo reservas sin interrupciones, elige tu plan y págalo desde el panel: Suscripción."],
+        ],
+        'suscripcion_por_vencer' => [
+            'push' => ['Tu suscripción vence pronto', 'El plan {{plan}} de {{barberia}} vence el {{fecha}}. Renuévalo desde Suscripción.'],
+            'email' => ['Tu plan {{plan}} vence el {{fecha}}',
+                "Hola,\n\nEl plan {{plan}} de {{barberia}} vence el {{fecha}} (en {{dias}} día(s)).\n\nRenueva desde el panel: Suscripción. Si ya pagaste, ignora este aviso."],
+        ],
+        'suscripcion_vencida' => [
+            'push' => ['Tu suscripción venció', 'El plan {{plan}} de {{barberia}} venció. Renueva antes del {{fecha}} para no dejar de recibir reservas.'],
+            'email' => ['Tu suscripción de {{barberia}} venció',
+                "Hola,\n\nEl plan {{plan}} de {{barberia}} venció. Tienes hasta el {{fecha}} para renovarlo; después la barbería saldrá del marketplace y no recibirá reservas nuevas (las citas ya registradas se mantienen).\n\nRenueva desde el panel: Suscripción."],
+        ],
+        'suscripcion_restringida' => [
+            'push' => ['Barbería sin reservas nuevas', '{{barberia}} no tiene una suscripción vigente: salió del marketplace y no recibe reservas nuevas. Renueva para reactivarla.'],
+            'email' => ['{{barberia}} dejó de recibir reservas nuevas',
+                "Hola,\n\n{{barberia}} no tiene una suscripción vigente desde hace más del periodo de gracia. Salió del marketplace y no recibe reservas nuevas; tus datos y las citas ya registradas se conservan.\n\nRenueva desde el panel (Suscripción) y todo vuelve a funcionar de inmediato."],
+        ],
+        'pago_confirmado' => [
+            'push' => ['Pago recibido', 'Recibimos tu pago de {{monto}} por el plan {{plan}} de {{barberia}}. Vigente hasta el {{fecha}}.'],
+            'email' => ['Pago recibido: plan {{plan}}',
+                "Hola,\n\nRecibimos tu pago de {{monto}} por el plan {{plan}} de {{barberia}}.\nTu suscripción está vigente hasta el {{fecha}}.\n\nPuedes ver el historial de pagos en el panel: Suscripción."],
+        ],
     ];
 
     /** @return list<string> variables que admite la plantilla */
     public static function variablesFor(string $codigo): array
     {
+        if (self::isSubscription($codigo)) {
+            return self::VARIABLES_SUSCRIPCION;
+        }
         return str_starts_with($codigo, 'barberia_') ? self::VARIABLES_CUENTA : self::VARIABLES;
+    }
+
+    public static function isSubscription(string $codigo): bool
+    {
+        foreach (self::PREFIJOS_SUSCRIPCION as $p) {
+            if (str_starts_with($codigo, $p)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** @var array<string, array{0:string, 1:string}|null> */

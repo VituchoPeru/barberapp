@@ -16,6 +16,7 @@ use App\Repositories\TeamSettingsRepository;
 use App\Services\Audit;
 use App\Services\Platform\PlatformSettings;
 use App\Services\Auth\Gate;
+use App\Services\Billing\Entitlements;
 use App\Services\StaffService;
 
 /**
@@ -41,12 +42,29 @@ final class StaffController extends BaseController
             'tenant' => $tenant,
             // Fase 9: la barbería pendiente, suspendida o rechazada ve por qué y a quién escribir.
             'aviso_estado' => $tenant['estado'] === 'activo' ? null : self::stateNotice((int) $tenant['id'], (string) $tenant['estado']),
+            // Fase 10: plan, vencimiento y restricción (para avisos fijos y botones según el plan).
+            'suscripcion' => self::subscriptionNotice((int) $tenant['id'], Gate::rolePermissions($membership['roles'])),
             'roles' => $membership['roles'],
             'permisos' => Gate::rolePermissions($membership['roles']),
             'barbero' => $barbero === null ? null : [
                 'id' => (int) $barbero['id'], 'nombre' => (string) $barbero['nombre_publico'], 'foto_url' => Media::url($barbero['foto_url']),
             ],
         ]);
+    }
+
+    /**
+     * @param list<string> $permisos
+     * @return array<string, mixed>
+     */
+    private static function subscriptionNotice(int $tenantId, array $permisos): array
+    {
+        $s = Entitlements::for($tenantId)->summary();
+        $out = array_intersect_key($s, array_flip(['estado', 'vigente', 'plan', 'periodo_fin_en', 'dias_restantes', 'restringida', 'restriccion_en', 'funciones']));
+        // Límites y uso solo para quien gestiona el negocio.
+        if (in_array('negocio.suscripcion.ver', $permisos, true) || in_array('sucursales.gestionar', $permisos, true) || in_array('barberos.gestionar', $permisos, true)) {
+            $out['limites'] = $s['limites'];
+        }
+        return $out;
     }
 
     /** @return array{estado:string, motivo:?string, soporte_email:?string} */

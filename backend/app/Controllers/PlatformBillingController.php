@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Request;
 use App\Core\Response;
 use App\Helpers\Validator;
+use App\Services\Billing\OrderBrowser;
 use App\Services\Platform\PlanService;
 use App\Services\Platform\SubscriptionService;
 
@@ -21,6 +22,7 @@ use App\Services\Platform\SubscriptionService;
  *   GET  /api/v1/plataforma/pagos?estado=&metodo=&tenant_id=&desde=&hasta=&q=       (plataforma.pagos.gestionar)
  *   POST /api/v1/plataforma/suscripciones/{id}/pagos
  *   POST /api/v1/plataforma/pagos/{id}/confirmar | rechazar | reembolsar
+ *   GET  /api/v1/plataforma/ordenes?estado=&tenant_id=&por_revisar=1              Pagos en línea (Fase 10)
  */
 final class PlatformBillingController extends BaseController
 {
@@ -145,5 +147,14 @@ final class PlatformBillingController extends BaseController
     private function motivo(Request $request): string
     {
         return (string) Validator::validate($request->json(), ['motivo' => 'required|string|min:5|max:255'])['motivo'];
+    }
+
+    // ---------------- Órdenes de pago en línea (Fase 10)
+
+    public function orders(Request $request): Response
+    {
+        $pg = $this->pagination($request, 25, 100);
+        $r = (new OrderBrowser())->list($request->allQuery(), $pg['per_page'], $pg['offset']);
+        return $this->ok($r['items'], ['total' => $r['total'], 'page' => $pg['page'], 'per_page' => $pg['per_page'], 'pasarela' => $r['pasarela']]);
     }
 }

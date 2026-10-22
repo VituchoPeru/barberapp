@@ -8,6 +8,7 @@ use App\Core\Exceptions\NotFoundException;
 use App\Core\Exceptions\ValidationException;
 use App\Helpers\Clock;
 use App\Helpers\Validator;
+use App\Services\Billing\Entitlements;
 use App\Repositories\AgendaBlockRepository;
 use App\Repositories\AgendaRepository;
 use App\Repositories\BarberRepository;
@@ -29,6 +30,8 @@ use DateTimeZone;
 final class ReportService
 {
     public const MAX_DIAS_REPORTE = 366;
+    /** Rango máximo sin reportes avanzados (Fase 10). */
+    public const MAX_DIAS_BASICO = 31;
     private const ESTADOS = ['pendiente', 'confirmada', 'completada', 'cancelada', 'no_asistio'];
 
     private ReportRepository $repo;
@@ -134,6 +137,11 @@ final class ReportService
         if ((new DateTimeImmutable($desde))->diff(new DateTimeImmutable($hasta))->days >= self::MAX_DIAS_REPORTE) {
             throw new ValidationException(['hasta' => ['El rango máximo es de ' . self::MAX_DIAS_REPORTE . ' días.']]);
         }
+        // Plan (Fase 10): sin reportes avanzados, rango de hasta 31 días y sin ocupación ni evolución mensual.
+        $avanzados = Entitlements::for($this->tenantId)->feature('reportes_avanzados');
+        if (!$avanzados && (new DateTimeImmutable($desde))->diff(new DateTimeImmutable($hasta))->days >= self::MAX_DIAS_BASICO) {
+            Entitlements::for($this->tenantId)->assertFeature('reportes_avanzados');
+        }
         [$desdeUtc, $hastaUtc] = $this->utcRange($desde, $hasta, $tz);
         $tzName = $tz->getName();
         $rows = $this->repo->bookings($desdeUtc, $hastaUtc, $sucursalId, $barberoId);
@@ -162,13 +170,16 @@ final class ReportService
             $porBarbero[$b] ??= array_fill_keys(self::ESTADOS, 0);
             $porBarbero[$b][$r['estado']]++;
         }
-        $ocupacion = $this->occupancy($desde, $hasta, $sucursalId, $barberoId, $rows, $branches);
-        foreach ($ocupacion['barberos'] as &$ob) {
-            $c = $porBarbero[$ob['barbero_id']] ?? array_fill_keys(self::ESTADOS, 0);
-            $ob['citas'] = $c;
-            $ob['tasa_inasistencia'] = $this->rate($c['no_asistio'], $c['completada'] + $c['no_asistio']);
+        $ocupacion = null;
+        if ($avanzados) {
+            $ocupacion = $this->occupancy($desde, $hasta, $sucursalId, $barberoId, $rows, $branches);
+            foreach ($ocupacion['barberos'] as &$ob) {
+                $c = $porBarbero[$ob['barbero_id']] ?? array_fill_keys(self::ESTADOS, 0);
+                $ob['citas'] = $c;
+                $ob['tasa_inasistencia'] = $this->rate($c['no_asistio'], $c['completada'] + $c['no_asistio']);
+            }
+            unset($ob);
         }
-        unset($ob);
 
         $total = count($rows);
         $out = [
@@ -191,8 +202,9 @@ final class ReportService
             'ocupacion' => $ocupacion,
             'cancelaciones' => ['total' => $estados['cancelada'], 'por' => $cancelPor, 'tasa' => $this->rate($estados['cancelada'], $total)],
             'inasistencias' => ['total' => $estados['no_asistio'], 'tasa' => $this->rate($estados['no_asistio'], $estados['completada'] + $estados['no_asistio'])],
-            'evolucion_mensual' => $this->monthly($hasta, $tz, $sucursalId, $barberoId),
+            'evolucion_mensual' => $avanzados ? $this->monthly($hasta, $tz, $sucursalId, $barberoId) : null,
             'ingresos' => null,
+            'plan' => ['reportes_avanzados' => $avanzados, 'max_dias' => $avanzados ? self::MAX_DIAS_REPORTE : self::MAX_DIAS_BASICO],
         ];
         if ($this->financial()) {
             $pagos = $this->repo->payments($desdeUtc, $hastaUtc, $sucursalId, $barberoId);

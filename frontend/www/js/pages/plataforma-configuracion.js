@@ -8,10 +8,15 @@ let view;
 const LABELS = {
   'plataforma.nombre': 'Nombre de la plataforma', 'plataforma.soporte_email': 'Correo de soporte', 'plataforma.zona_horaria': 'Zona horaria',
   'plataforma.moneda': 'Moneda por defecto', 'plataforma.aprobacion_manual_tenants': 'Aprobar manualmente las nuevas barberías',
+  'plataforma.prueba_automatica': 'Prueba gratuita automática', 'plataforma.plan_prueba': 'Plan de la prueba gratuita',
+  'plataforma.dias_gracia': 'Días de gracia tras vencer', 'plataforma.restringir_sin_suscripcion': 'Restringir barberías sin suscripción',
+  'plataforma.avisos_vencimiento': 'Avisos de vencimiento (días antes)',
   recordatorios_horas: 'Recordatorios (horas antes de la cita)', pedir_confirmacion: 'Pedir confirmación de asistencia',
   aviso_confirmacion: 'Aviso de reserva registrada o confirmada', aviso_cancelacion: 'Aviso de cancelación por la barbería',
   aviso_modificacion: 'Aviso de cambio de fecha, hora o barbero', canal_push: 'Canal push', canal_email: 'Canal correo',
 };
+
+const BILLING = ['plataforma.prueba_automatica', 'plataforma.plan_prueba', 'plataforma.dias_gracia', 'plataforma.restringir_sin_suscripcion', 'plataforma.avisos_vencimiento'];
 
 const err = (name) => `<p class="field__error" data-error-for="${escapeHtml(name)}"></p>`;
 const sw = (name, label, desc, checked) => `<div><label class="switch"><span>${escapeHtml(label)}<br><small class="muted">${escapeHtml(desc)}</small></span><input type="checkbox" role="switch" name="${escapeHtml(name)}"${checked ? ' checked' : ''}></label>${err(name)}</div>`;
@@ -28,13 +33,22 @@ function paramHtml(p) {
   if (p.tipo === 'bool') return sw(p.clave, label, p.descripcion, p.valor);
   let control;
   if (p.tipo === 'moneda') control = `<select id="${id}" name="${p.clave}">${view.monedas.map((m) => `<option${m === p.valor ? ' selected' : ''}>${m}</option>`).join('')}</select>`;
+  else if (p.tipo === 'plan') control = `<select id="${id}" name="${p.clave}">${view.planes.map((pl) => `<option value="${escapeHtml(pl.codigo)}"${pl.codigo === p.valor ? ' selected' : ''}>${escapeHtml(pl.nombre)} (${plural(pl.dias_prueba, 'día', 'días')} de prueba)</option>`).join('')}</select>`;
+  else if (p.tipo === 'entero') control = `<input id="${id}" name="${p.clave}" type="number" inputmode="numeric" min="0" max="30" step="1" value="${escapeHtml(String(p.valor))}">`;
+  else if (p.tipo === 'dias') control = `<input id="${id}" name="${p.clave}" inputmode="numeric" value="${escapeHtml(p.valor.join(', '))}" placeholder="7, 3, 1">`;
   else if (p.tipo === 'zona') control = `<select id="${id}" name="${p.clave}">${zones(p.valor)}</select>`;
   else control = `<input id="${id}" name="${p.clave}" ${p.tipo === 'email' ? 'type="email" placeholder="soporte@tu-dominio.com"' : 'maxlength="80"'} value="${escapeHtml(p.valor)}">`;
   return `<div class="field"><label for="${id}">${escapeHtml(label)}</label>${control}<p class="hint">${escapeHtml(p.descripcion)}</p>${err(p.clave)}</div>`;
 }
 
 function render() {
-  $('[data-params]').innerHTML = view.parametros.map(paramHtml).join('');
+  const cobro = (p) => BILLING.includes(p.clave);
+  $('[data-params]').innerHTML = view.parametros.filter((p) => !cobro(p)).map(paramHtml).join('');
+  $('[data-billing]').innerHTML = view.parametros.filter(cobro).map(paramHtml).join('');
+  const g = view.pasarela;
+  $('[data-gateway]').textContent = g.habilitada
+    ? `Pago en línea: ${g.nombre === 'mercadopago' ? 'Mercado Pago' : 'simulador local (sin dinero real)'}. Se configura en el servidor (PAYMENT_DRIVER en .env).`
+    : 'Pago en línea desactivado (PAYMENT_DRIVER=none): las barberías pagan por transferencia y registras el pago en Pagos.';
   const l = view.avisos_limites;
   $('[data-av-hint]').textContent = `Se aplican a toda barbería que no definió sus propias reglas${view.barberias_con_reglas_propias ? ` (${plural(view.barberias_con_reglas_propias, 'barbería tiene', 'barberías tienen')} reglas propias)` : ''}. Hasta ${l.max_recordatorios} recordatorios, entre ${l.horas_min} y ${l.horas_max} horas antes.`;
   $('[data-avisos]').innerHTML = view.avisos.map((a) => {
@@ -62,7 +76,10 @@ form.addEventListener('submit', (e) => {
   const parametros = {};
   view.parametros.forEach((p) => {
     const el = form.elements[p.clave];
-    parametros[p.clave] = p.tipo === 'bool' ? el.checked : el.value.trim();
+    if (p.tipo === 'bool') parametros[p.clave] = el.checked;
+    else if (p.tipo === 'entero') parametros[p.clave] = el.value.trim() === '' ? '' : Number(el.value);
+    else if (p.tipo === 'dias') parametros[p.clave] = el.value.split(',').map((x) => x.trim()).filter(Boolean).map(Number);
+    else parametros[p.clave] = el.value.trim();
   });
   const avisos = {};
   view.avisos.forEach((a) => {

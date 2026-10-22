@@ -17,7 +17,8 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | 7 | Panel del barbero: agenda del día, siguiente cliente, atención, historial, horario y solicitudes de ausencia con aprobación | ✅ Terminada |
 | 8 | Recordatorios automáticos: cola persistente, worker por cron, push FCM, correo, bandeja, preferencias, confirmar asistencia y métricas | ✅ Terminada |
 | 9 | Superadministrador SaaS: dashboard con MRR y churn reales, barberías, planes, suscripciones, pagos, usuarios, avisos, auditoría, configuración y reportes | ✅ Terminada |
-| 10+ | Pasarela de pago, límites por plan, apps… | Pendiente |
+| 10 | Planes y monetización: límites por plan, prueba gratuita automática, pago en línea con Mercado Pago (y simulador local), webhooks firmados, vencimientos, avisos y restricción | ✅ Terminada |
+| 11+ | Apps, publicación… | Pendiente |
 
 ## Documentación
 
@@ -32,6 +33,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Panel del barbero](docs/PANEL_BARBERO.md) (agenda propia, atención, horario, ausencias y ajustes del equipo)
 - [Avisos y recordatorios](docs/RECORDATORIOS.md) (cola, worker y cron, FCM, preferencias, confirmar asistencia y métricas)
 - [Panel del superadministrador SaaS](docs/SUPERADMIN.md) (módulos, privacidad, cálculo de indicadores, ciclo de vida de suscripciones)
+- [Planes y monetización](docs/MONETIZACION.md) (límites, prueba, Mercado Pago, webhooks, vencimientos, restricción, SUNAT pendiente)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
 
@@ -198,7 +200,7 @@ php bin/console notificaciones:procesar   Envía los avisos pendientes (cron cad
 php bin/console notificaciones:estado     Cola por estado y canal, atrasados y errores de las últimas 24 h
 php bin/console notificaciones:purge      Borra avisos terminados antiguos (NOTIFY_RETENTION_DAYS)
 php bin/console push:probar correo        Push de prueba a los teléfonos de esa cuenta
-php bin/console suscripciones:vencer      Marca como vencidas las suscripciones cuyo periodo terminó (cron cada hora)
+php bin/console suscripciones:vencer      Cambios programados, vencimientos, restricción tras la gracia, avisos y órdenes expiradas (cron cada hora)
 ```
 
 Programa `auth:purge` y `reservas:purge` una vez al día (cron en Linux o el Programador de tareas de Windows):
@@ -254,7 +256,11 @@ Desde la Fase 9 cubren el panel del superadministrador: acceso por rol de plataf
 
 Resultado al cerrar la Fase 9: **282 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 275 y se omiten 7 (sin GD ni zbar). La migración 0014 se probó sobre una base de la Fase 8 con datos demo. Recorrido E2E en Chromium (escritorio y móvil 390×844) de los 10 módulos con superadmin, operador y cliente, sin errores de consola ni desbordes.
 
-> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría) y `0014_superadmin_saas.sql` (barberías demo, bloqueo de cuentas, historial de suscripciones). Desde la Fase 9 ejecuta también `php bin/console db:seed` (agrega el rol `operador`; es idempotente). Programa el cron de `notificaciones:procesar` y el de `suscripciones:vencer`.
+Desde la Fase 10 cubren planes y monetización: límites y funciones por plan, prueba automática, cotización y pago (contratación, renovación, mejora con prorrateo, cambios programados), Mercado Pago con la API simulada (firma, consulta del pago, duplicados, reembolsos, caídas) y el cron de vencimientos y restricción. Ver [MONETIZACION.md](docs/MONETIZACION.md#pruebas).
+
+Resultado al cerrar la Fase 10: **316 pruebas OK en PHP 8.3** (1 omitida, sin zbar); en **PHP 8.0.30** pasan 309 y se omiten 7 (sin GD ni zbar). La migración 0015 se probó sobre una base de la Fase 9 con datos demo. Recorrido E2E en Chromium (escritorio y móvil 390×844): renovar con el simulador y volver con el pago confirmado, cotizar varios meses, programar y anular un cambio, mejora con prorrateo, funciones bloqueadas del plan Básico (reportes, colores, correo), configuración de cobros y pagos en línea de la plataforma; 56/56 comprobaciones sin errores de consola ni desbordes.
+
+> **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría) `0014_superadmin_saas.sql` (barberías demo, bloqueo de cuentas, historial de suscripciones) y `0015_planes_monetizacion.sql` (órdenes de pago, cambios programados, restricción y permiso `negocio.suscripcion.gestionar`). Para el pago en línea configura `PAYMENT_DRIVER` y las claves de Mercado Pago (ver [MONETIZACION.md](docs/MONETIZACION.md#configuración-backendenv)). Desde la Fase 9 ejecuta también `php bin/console db:seed` (agrega el rol `operador`; es idempotente). Programa el cron de `notificaciones:procesar` y el de `suscripciones:vencer`.
 
 **Panel de la plataforma:** el equipo de BARBERAPP entra desde *Mi cuenta → Abrir panel de la plataforma* (`pages/plataforma/index.html`). Con los datos demo: `superadmin@barberapp.test` u `operador@barberapp.test`.
 

@@ -352,6 +352,38 @@ Cola persistente procesada por worker PHP vía cron
 
 **Claves foráneas:** (plantilla_id) → `plantillas_notificacion`(id); (tenant_id,reserva_id) → `reservas`(tenant_id,id); (tenant_id) → `tenants`(id); (usuario_id) → `usuarios`(id)
 
+## `ordenes_pago`
+
+Intentos de pago en línea de las barberías (Fase 10)
+
+| Columna | Tipo | Nulo | Defecto | Clave | Descripción |
+|---|---|---|---|---|---|
+| `id` | bigint unsigned auto_increment | no |  | PRI |  |
+| `tenant_id` | bigint unsigned | no |  | MUL |  |
+| `codigo` | char(24) | no |  | UNI | Referencia pública (external_reference en la pasarela) |
+| `tipo` | enum('renovacion','contratacion','mejora') | no |  |  | renovacion = mismo plan; contratacion = sin suscripción vigente; mejora = subir de plan a mitad del periodo |
+| `suscripcion_id` | bigint unsigned | sí |  |  | Suscripción sobre la que se aplica (NULL si no hay ninguna) |
+| `plan_id` | bigint unsigned | no |  | MUL |  |
+| `ciclo` | enum('mensual','anual') | no |  |  |  |
+| `periodos` | tinyint unsigned | no | `1` |  |  |
+| `monto` | decimal(10,2) | no |  |  |  |
+| `moneda` | char(3) | no | `PEN` |  |  |
+| `detalle` | varchar(255) | no |  |  | Concepto que ve el cliente en la pasarela |
+| `estado` | enum('pendiente','pagada','fallida','expirada','anulada') | no | `pendiente` | MUL |  |
+| `pasarela` | varchar(30) | no |  | MUL |  |
+| `checkout_id` | varchar(120) | sí |  |  | ID de la preferencia o sesión de pago en la pasarela |
+| `checkout_url` | varchar(500) | sí |  |  |  |
+| `pago_externo_id` | varchar(120) | sí |  |  | ID del pago en la pasarela |
+| `pago_saas_id` | bigint unsigned | sí |  | MUL |  |
+| `solicitado_por` | bigint unsigned | sí |  | MUL |  |
+| `error` | varchar(500) | sí |  |  |  |
+| `expira_en` | datetime | no |  |  |  |
+| `pagada_en` | datetime | sí |  |  |  |
+| `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
+| `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
+
+**Claves foráneas:** (pago_saas_id) → `pagos_saas`(id); (plan_id) → `planes`(id); (solicitado_por) → `usuarios`(id); (tenant_id,suscripcion_id) → `suscripciones`(tenant_id,id); (tenant_id) → `tenants`(id)
+
 ## `pagos_saas`
 
 Pagos de suscripción de las barberías a BARBERAPP
@@ -361,6 +393,7 @@ Pagos de suscripción de las barberías a BARBERAPP
 | `id` | bigint unsigned auto_increment | no |  | PRI |  |
 | `tenant_id` | bigint unsigned | no |  | MUL |  |
 | `suscripcion_id` | bigint unsigned | no |  |  |  |
+| `orden_id` | bigint unsigned | sí |  | MUL | Orden de pago en línea que originó el pago |
 | `monto` | decimal(10,2) | no |  |  |  |
 | `moneda` | char(3) | no | `PEN` |  |  |
 | `metodo` | enum('manual','transferencia','yape','plin','efectivo','pasarela') | no |  | MUL |  |
@@ -374,7 +407,7 @@ Pagos de suscripción de las barberías a BARBERAPP
 | `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
 | `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
 
-**Claves foráneas:** (registrado_por) → `usuarios`(id); (tenant_id,suscripcion_id) → `suscripciones`(tenant_id,id)
+**Claves foráneas:** (orden_id) → `ordenes_pago`(id); (registrado_por) → `usuarios`(id); (tenant_id,suscripcion_id) → `suscripciones`(tenant_id,id)
 
 ## `permisos`
 
@@ -675,7 +708,7 @@ Historial de cambios de cada suscripción SaaS
 | `id` | bigint unsigned auto_increment | no |  | PRI |  |
 | `tenant_id` | bigint unsigned | no |  | MUL |  |
 | `suscripcion_id` | bigint unsigned | no |  |  |  |
-| `tipo` | enum('alta','cambio_plan','renovacion','pago','suspension','reactivacion','cancelacion','vencimiento') | no |  | MUL |  |
+| `tipo` | enum('alta','cambio_plan','renovacion','pago','suspension','reactivacion','cancelacion','vencimiento','cambio_programado','prueba_automatica') | no |  | MUL |  |
 | `estado_anterior` | varchar(20) | sí |  |  |  |
 | `estado_nuevo` | varchar(20) | sí |  |  |  |
 | `plan_anterior_id` | bigint unsigned | sí |  |  |  |
@@ -708,12 +741,16 @@ Historial de cambios de cada suscripción SaaS
 | `cancelada_en` | datetime | sí |  |  |  |
 | `terminada_en` | datetime | sí |  |  | UTC; cuándo dejó de estar vigente (vencida, suspendida o cancelada) |
 | `renovacion_automatica` | tinyint(1) | no | `0` |  |  |
+| `plan_programado_id` | bigint unsigned | sí |  | MUL | Plan que regirá al terminar el periodo actual |
+| `ciclo_programado` | enum('mensual','anual') | sí |  |  |  |
+| `precio_programado` | decimal(10,2) | sí |  |  |  |
+| `cambio_programado_en` | datetime | sí |  | MUL | UTC; cuándo aplicar el cambio (fin del periodo pagado) |
 | `notas` | varchar(500) | sí |  |  |  |
 | `tenant_vigente` | bigint unsigned VIRTUAL GENERATED | sí |  | UNI |  |
 | `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` |  |  |
 | `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |
 
-**Claves foráneas:** (plan_id) → `planes`(id); (tenant_id) → `tenants`(id)
+**Claves foráneas:** (plan_id) → `planes`(id); (plan_programado_id) → `planes`(id); (tenant_id) → `tenants`(id)
 
 ## `tenant_fotos`
 
@@ -767,6 +804,7 @@ Cada barbería es un tenant
 | `aprobado_en` | datetime | sí |  |  |  |
 | `suspendido_en` | datetime | sí |  |  |  |
 | `motivo_suspension` | varchar(255) | sí |  |  |  |
+| `restringido_en` | datetime | sí |  | MUL | UTC; sin suscripción vigente pasado el periodo de gracia: sin reservas nuevas ni marketplace |
 | `nota_interna` | varchar(500) | sí |  |  | Nota del equipo de BARBERAPP; no se muestra a la barbería |
 | `created_at` | datetime DEFAULT_GENERATED | no | `CURRENT_TIMESTAMP` | MUL |  |
 | `updated_at` | datetime DEFAULT_GENERATED on update CURRENT_TIMESTAMP | no | `CURRENT_TIMESTAMP` |  |  |

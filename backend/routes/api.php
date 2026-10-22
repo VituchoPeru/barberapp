@@ -17,9 +17,11 @@ use App\Controllers\MarketplaceController;
 use App\Controllers\MeController;
 use App\Controllers\NotificationsController;
 use App\Controllers\PanelAgendaController;
+use App\Controllers\PanelBillingController;
 use App\Controllers\PanelClientsController;
 use App\Controllers\PanelNotificationsController;
 use App\Controllers\PanelReportsController;
+use App\Controllers\PaymentWebhookController;
 use App\Controllers\PlatformBillingController;
 use App\Controllers\PlatformController;
 use App\Controllers\PlatformTenantsController;
@@ -42,6 +44,9 @@ return static function (Router $router): void {
     $router->group('/api/v1', static function (Router $r): void {
         $r->get('/health', [HealthController::class, 'show'], [], 'health');
         $r->get('/health/live', [HealthController::class, 'live'], [], 'health.live');
+
+        // ---------------- Webhooks de la pasarela de pago (Fase 10): públicos, autenticados por firma
+        $r->post('/webhooks/pagos/{proveedor:[a-z]{3,20}}', [PaymentWebhookController::class, 'handle'], [], 'webhooks.payments');
 
         // ---------------- Autenticación (públicas, con limitación de intentos)
         $r->group('/auth', static function (Router $r): void {
@@ -211,6 +216,18 @@ return static function (Router $router): void {
             $r->put('/notificaciones/reglas', [PanelNotificationsController::class, 'updateRules'], [new PermissionMiddleware('notificaciones.gestionar')], 'panel.notifications.rules.update');
             $r->get('/notificaciones/metricas', [PanelNotificationsController::class, 'metrics'], [$verAvisos], 'panel.notifications.metrics');
 
+            // ---------- Suscripción y pagos de la barbería (Fase 10)
+            $verSus = new PermissionMiddleware('negocio.suscripcion.ver');
+            $gesSus = new PermissionMiddleware('negocio.suscripcion.gestionar');
+            $orden = '/suscripcion/ordenes/{codigo:[a-f0-9]{24}}';
+            $r->get('/suscripcion', [PanelBillingController::class, 'show'], [$verSus], 'panel.subscription');
+            $r->post('/suscripcion/cotizar', [PanelBillingController::class, 'quote'], [$gesSus], 'panel.subscription.quote');
+            $r->post('/suscripcion/pagar', [PanelBillingController::class, 'pay'], [$gesSus, new VerifiedEmailMiddleware()], 'panel.subscription.pay');
+            $r->post('/suscripcion/cambiar-plan', [PanelBillingController::class, 'changePlan'], [$gesSus], 'panel.subscription.change_plan');
+            $r->delete('/suscripcion/cambio-programado', [PanelBillingController::class, 'cancelScheduled'], [$gesSus], 'panel.subscription.cancel_scheduled');
+            $r->get($orden, [PanelBillingController::class, 'order'], [$verSus], 'panel.subscription.order');
+            $r->post($orden . '/simular', [PanelBillingController::class, 'simulate'], [$gesSus], 'panel.subscription.simulate');
+
             $negocio = new PermissionMiddleware('negocio.perfil.gestionar');
             $r->get('/negocio', [BusinessController::class, 'show'], [$negocio], 'panel.business');
             $r->put('/negocio', [BusinessController::class, 'update'], [$negocio], 'panel.business.update');
@@ -277,6 +294,7 @@ return static function (Router $router): void {
 
             $pagos = new PermissionMiddleware('plataforma.pagos.gestionar');
             $r->get('/pagos', [PlatformBillingController::class, 'payments'], [$pagos], 'platform.payments');
+            $r->get('/ordenes', [PlatformBillingController::class, 'orders'], [$pagos], 'platform.orders');
             $r->post('/suscripciones/{id:\d+}/pagos', [PlatformBillingController::class, 'storePayment'], [$pagos], 'platform.payments.store');
             $r->post('/pagos/{id:\d+}/confirmar', [PlatformBillingController::class, 'confirmPayment'], [$pagos], 'platform.payments.confirm');
             $r->post('/pagos/{id:\d+}/rechazar', [PlatformBillingController::class, 'rejectPayment'], [$pagos], 'platform.payments.reject');

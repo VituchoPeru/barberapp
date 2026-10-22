@@ -17,7 +17,8 @@ final class MarketplaceRepository extends BaseRepository
 {
     public const ORDENES = ['relevancia', 'nombre', 'precio', 'distancia', 'recientes'];
 
-    private const VISIBLE = "t.estado = 'activo' AND t.publicado_marketplace = 1 AND t.deleted_at IS NULL";
+    // Fase 10: una barbería restringida por falta de pago (restringido_en) tampoco se muestra.
+    private const VISIBLE = "t.estado = 'activo' AND t.restringido_en IS NULL AND t.publicado_marketplace = 1 AND t.deleted_at IS NULL";
     private const SUCURSAL_ACTIVA = 'su.tenant_id = t.id AND su.activo = 1 AND su.deleted_at IS NULL';
     private const SERVICIO_ACTIVO = 's.tenant_id = t.id AND s.activo = 1 AND s.deleted_at IS NULL';
 
@@ -236,7 +237,7 @@ final class MarketplaceRepository extends BaseRepository
             "SELECT t.id, t.slug, t.nombre_comercial, t.descripcion, t.logo_url, t.portada_url, t.color_primario, t.color_secundario,
                     t.telefono, t.whatsapp, t.instagram, t.facebook, t.tiktok, t.sitio_web, t.zona_horaria, t.publicado_marketplace
                FROM tenants t
-              WHERE t.slug = :slug AND t.estado = 'activo' AND t.deleted_at IS NULL",
+              WHERE t.slug = :slug AND t.estado = 'activo' AND t.restringido_en IS NULL AND t.deleted_at IS NULL",
             ['slug' => $slug]
         );
     }

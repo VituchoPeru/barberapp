@@ -57,6 +57,7 @@ final class QueueWorker
         $maxSeconds ??= (int) Config::get('notifications.worker.max_seconds', 50);
         $deadline = microtime(true) + max(1, $maxSeconds);
         NotificationSettings::flush();
+        \App\Services\Billing\Entitlements::flush();
         Templates::flush();
 
         $this->stats['recuperados'] = $this->recoverStale();

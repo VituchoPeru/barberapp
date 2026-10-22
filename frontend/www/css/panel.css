@@ -121,8 +121,8 @@ a.kpi:hover { border-color: rgba(201, 164, 92, .45); }
 .hbars { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .hbar { display: grid; grid-template-columns: minmax(90px, 34%) 1fr auto; gap: var(--space-3); align-items: center; font-size: .85rem; }
 .hbar__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hbar__track { height: 10px; background: #26262A; border-radius: 999px; overflow: hidden; }
-.hbar__fill { height: 100%; min-width: 2px; background: var(--accent); border-radius: 999px; }
+.hbar__track { display: block; height: 10px; background: #26262A; border-radius: 999px; overflow: hidden; }
+.hbar__fill { display: block; height: 100%; min-width: 2px; background: var(--accent); border-radius: 999px; }
 .hbar__value { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
 
 /* Columnas verticales (por día / por mes) */
@@ -263,3 +263,22 @@ details.more-table summary { cursor: pointer; font-size: .82rem; font-weight: 60
 .av-hora .icon-btn { color: var(--text-muted); }
 .av-sub { margin: var(--space-6) 0 var(--space-3); font-size: .95rem; }
 .grid-2 .av-sub { margin-top: 0; }
+
+/* Suscripción y planes (Fase 10) */
+.plans { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.plan { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--surface); border: 1px solid #26262A; border-radius: var(--radius-md); }
+.plan--actual { border-color: var(--accent); }
+.plan__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); }
+.plan__name { margin: 0; font-size: 1.1rem; }
+.plan__price { margin: 0; font-size: 1.6rem; font-weight: 800; }
+.plan__price small { font-size: .85rem; font-weight: 600; color: var(--text-muted); }
+.plan__feats { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: .92rem; }
+.plan__feats li { display: flex; gap: 8px; align-items: flex-start; }
+.plan__feats .icon { flex: none; width: 18px; height: 18px; color: var(--accent); }
+.plan__feats .no { color: var(--text-muted); }
+.plan__feats .no .icon { color: var(--text-muted); }
+.plan__foot { margin-top: auto; display: grid; gap: var(--space-2); }
+.plan__note { margin: 0; font-size: .85rem; color: var(--text-muted); }
+.sub-head { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; }
+.sub-head h3 { margin: 0; font-size: 1.3rem; }
+.sim-box { max-width: 520px; margin: 0 auto; display: grid; gap: var(--space-4); }

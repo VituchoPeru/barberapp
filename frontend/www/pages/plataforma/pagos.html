@@ -42,6 +42,18 @@
     <div data-loading><div class="skeleton"></div></div>
     <ul class="rows" data-list></ul>
     <div class="pager" data-pager hidden></div>
+
+    <section style="margin-top:32px" aria-labelledby="h-online">
+      <div class="panel-head">
+        <div><h2 id="h-online">Pagos en línea</h2><p data-online-hint>Órdenes que las barberías iniciaron en la pasarela. Un pago aprobado se aplica solo; si el monto no coincide queda «En revisión» y aparece arriba como pago por confirmar.</p></div>
+      </div>
+      <form class="filters" data-online-filters>
+        <div class="field"><label for="o-estado">Estado</label><select id="o-estado" name="estado"><option value="">Todos</option><option value="pendiente">Pendiente</option><option value="pagada">Pagada</option><option value="fallida">Rechazada</option><option value="expirada">Expirada</option><option value="anulada">Anulada</option></select></div>
+        <label class="switch"><span>Solo en revisión</span><input type="checkbox" role="switch" name="por_revisar" value="1"></label>
+      </form>
+      <ul class="rows" data-online-list></ul>
+      <div class="toolbar" data-online-more hidden><button class="btn btn--ghost btn--sm" type="button">Ver más</button></div>
+    </section>
   </main>
 
   <script type="module" src="../../js/pages/plataforma-pagos.js"></script>

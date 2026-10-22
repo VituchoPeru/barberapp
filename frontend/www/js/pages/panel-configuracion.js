@@ -33,6 +33,10 @@ function fillBusiness(n) {
   bForm.color_primario.value = (n.colores.primario || DEF_PRI).toLowerCase();
   bForm.color_secundario.value = (n.colores.secundario || DEF_SEC).toLowerCase();
   $('[data-enlace]').textContent = n.enlace;
+  // Colores propios según el plan (Fase 10): sin personalización se muestran pero no se cambian.
+  bForm.color_primario.disabled = !n.personalizacion;
+  bForm.color_secundario.disabled = !n.personalizacion;
+  $('[data-color-plan]').hidden = !!n.personalizacion;
   preview();
 }
 

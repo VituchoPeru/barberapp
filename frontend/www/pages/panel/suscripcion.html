@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/auth.css">
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/panel.css">
+  <meta name="referrer" content="no-referrer">
+  <title>Suscripción · Panel BARBERAPP</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="icon-btn" href="../auth/cuenta.html" aria-label="Volver a mi cuenta" data-icon="back"></a>
+    <h1 class="topbar__title">Suscripción <span class="muted" data-tenant-name></span></h1>
+  </header>
+  <div class="wrap"><nav class="panel-nav" data-panel-nav aria-label="Módulos del panel"></nav></div>
+  <main class="wrap panel-page" aria-busy="true" data-page>
+    <p class="alert" data-notice role="status" hidden></p>
+    <p class="alert" data-return role="status" hidden></p>
+    <div class="panel-head">
+      <div><h2>Suscripción</h2><p>Tu plan de BARBERAPP, lo que incluye, cuánto usas y tus pagos.</p></div>
+    </div>
+    <div data-loading><div class="skeleton"></div><div class="skeleton" style="margin-top:8px"></div></div>
+    <div data-content hidden>
+      <section class="card-box" aria-labelledby="h-plan" data-current></section>
+      <section aria-labelledby="h-planes" style="margin-top:24px">
+        <div class="panel-head" style="margin-bottom:12px">
+          <div><h3 id="h-planes" style="margin:0">Planes</h3><p class="hint" data-planes-hint></p></div>
+          <div class="ag-seg" role="group" aria-label="Ciclo de pago"><button type="button" data-ciclo="mensual" aria-pressed="true">Mensual</button><button type="button" data-ciclo="anual" aria-pressed="false">Anual</button></div>
+        </div>
+        <p class="alert" data-type="info" data-native hidden>En la app móvil no se realizan pagos. Para contratar o renovar tu plan entra a BARBERAPP desde un navegador web.</p>
+        <div class="plans" data-plans></div>
+      </section>
+      <section class="card-box" aria-labelledby="h-ordenes" style="margin-top:24px" data-orders-box hidden><h3 id="h-ordenes">Pagos en línea iniciados</h3><div data-orders></div></section>
+      <section class="card-box" aria-labelledby="h-pagos" style="margin-top:16px"><h3 id="h-pagos">Historial de pagos</h3><div data-payments></div></section>
+      <p class="hint" style="margin-top:16px" data-support></p>
+    </div>
+  </main>
+
+  <dialog class="sheet" data-pay-sheet aria-labelledby="pay-title">
+    <form class="form" data-pay-form novalidate>
+      <div class="sheet__head"><h2 id="pay-title" data-pay-title>Pagar</h2><button class="icon-btn" type="button" data-close aria-label="Cerrar" data-icon="close"></button></div>
+      <div class="sheet__body">
+        <p class="alert" data-pay-error role="alert" hidden></p>
+        <div class="field" data-periodos-field><label for="pay-periodos">Periodos a pagar</label><select id="pay-periodos" name="periodos"></select></div>
+        <dl class="kv" data-quote></dl>
+        <p class="hint">Pagas en la página segura de la pasarela. BARBERAPP no recibe ni guarda los datos de tu tarjeta.</p>
+      </div>
+      <div class="sheet__foot"><button class="btn btn--ghost" type="button" data-close>Cancelar</button><button class="btn" type="submit" data-loading="Preparando…" data-pay-go>Ir a pagar</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="../../js/pages/panel-suscripcion.js"></script>
+</body>
+</html>

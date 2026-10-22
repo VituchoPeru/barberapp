@@ -5,7 +5,7 @@ import { bootPlatform, papi, fail, done, toast, confirmAction, fmtDateTime, plur
 /** Plantillas globales de avisos (Fase 9): edición con variables validadas y vista previa. */
 let items = [];
 const CANAL = { push: 'Push y bandeja de la app', email: 'Correo' };
-const GRUPOS = { citas: 'Avisos de citas (a clientes)', cuenta: 'Avisos de cuenta (a propietarios)' };
+const GRUPOS = { citas: 'Avisos de citas (a clientes)', cuenta: 'Avisos de cuenta (a propietarios)', suscripcion: 'Suscripción y pagos (a propietarios)' };
 
 function render() {
   $('[data-list]').innerHTML = Object.entries(GRUPOS).map(([g, title]) => {

@@ -42,6 +42,8 @@ abstract class ApiTestCase extends DatabaseTestCase
         ]);
         Mailer::reset();
         Gate::flush();
+        \App\Services\Billing\Entitlements::flush();
+        \App\Services\Billing\Gateway\Gateways::use(null);
         $this->cookies = [];
     }
 

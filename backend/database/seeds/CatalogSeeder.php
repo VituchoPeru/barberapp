@@ -37,6 +37,7 @@ final class CatalogSeeder
         // Barbería
         'negocio.perfil.gestionar' => ['negocio', 'Perfil comercial, logotipo, colores'],
         'negocio.suscripcion.ver' => ['negocio', 'Consultar la suscripción de la barbería'],
+        'negocio.suscripcion.gestionar' => ['negocio', 'Pagar, renovar y cambiar el plan de la barbería'],
         'sucursales.gestionar' => ['sucursales', 'Registrar y editar sucursales'],
         'personal.gestionar' => ['personal', 'Invitar personal y asignar roles'],
         'barberos.gestionar' => ['barberos', 'Registrar, editar y activar barberos'],
@@ -147,7 +148,7 @@ final class CatalogSeeder
 
     private function planes(): void
     {
-        // Precios referenciales del documento de negocio; editables desde el panel SaaS (Fase 10).
+        // Precios referenciales del documento de negocio; editables desde el panel SaaS (Fases 9 y 10).
         $planes = [
             ['basico', 'Básico', 'Para barberías que inician: una sucursal y equipo pequeño.', '39.00', '390.00', 14, 1, 3,
                 ['reportes_avanzados' => false, 'personalizacion' => false, 'canales' => ['push', 'interna']], 1],

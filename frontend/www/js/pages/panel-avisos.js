@@ -1,6 +1,6 @@
 import { icon } from '../icons.js';
 import { $, escapeHtml, notice, clearErrors, showErrors, withLoading } from '../ui.js';
-import { bootPanel, papi, can, today, hbars, toast } from '../panel.js';
+import { bootPanel, papi, q, can, today, hbars, toast } from '../panel.js';
 
 /**
  * Avisos y recordatorios del panel (Fase 8): reglas de envío de la barbería y resultados
@@ -38,6 +38,14 @@ function fillRules(r) {
   limites = r.limites;
   paintHoras(r.recordatorios_horas);
   SWITCHES.forEach((k) => { form.elements[k].checked = !!r[k]; form.elements[k].disabled = !editable; });
+  // Canales fuera del plan (Fase 10): el interruptor se puede dejar como está, pero no se envía.
+  ['push', 'email'].forEach((c) => {
+    const label = form.elements[`canal_${c}`].closest('label');
+    label.querySelector('[data-plan-hint]')?.remove();
+    if (!(r.canales_plan || []).includes(c)) {
+      label.querySelector('span').insertAdjacentHTML('beforeend', `<br><small class="muted" data-plan-hint>No incluido en tu plan: no se envía. <a href="suscripcion.html${q}">Ver planes</a></small>`);
+    }
+  });
 }
 
 async function loadRules() {

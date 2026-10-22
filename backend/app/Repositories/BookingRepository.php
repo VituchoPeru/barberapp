@@ -17,7 +17,7 @@ final class BookingRepository extends TenantScopedRepository
                 r.barbero_asignado_auto, r.notas_cliente, r.confirmada_en, r.asistencia_confirmada_en, r.cancelada_en,
                 r.cancelada_por_tipo, r.motivo_cancelacion, r.reprogramaciones, r.version, r.created_at,
                 t.slug AS tenant_slug, t.nombre_comercial AS tenant_nombre, t.logo_url AS tenant_logo, t.telefono AS tenant_telefono,
-                t.whatsapp AS tenant_whatsapp, t.estado AS tenant_estado,
+                t.whatsapp AS tenant_whatsapp, t.estado AS tenant_estado, t.restringido_en AS tenant_restringido_en,
                 su.nombre AS sucursal_nombre, su.direccion AS sucursal_direccion, su.distrito AS sucursal_distrito,
                 su.referencia AS sucursal_referencia, su.telefono AS sucursal_telefono, su.latitud, su.longitud,
                 b.nombre_publico AS barbero_nombre, b.foto_url AS barbero_foto, b.usuario_id AS barbero_usuario_id,

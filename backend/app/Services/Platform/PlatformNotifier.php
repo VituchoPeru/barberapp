@@ -20,12 +20,13 @@ use App\Services\Notifications\Templates;
 final class PlatformNotifier
 {
     /**
-     * @param array<string, mixed> $tenant fila de tenants (id, slug, nombre_comercial)
+     * @param array<string, mixed>  $tenant fila de tenants (id, slug, nombre_comercial)
+     * @param array<string, string> $extra  variables adicionales (avisos de suscripción, Fase 10)
      * @return int avisos encolados
      */
-    public static function tenantStatus(array $tenant, string $codigo, ?string $motivo, string $dedupe): int
+    public static function tenantStatus(array $tenant, string $codigo, ?string $motivo, string $dedupe, array $extra = [], string $url = 'pages/panel/inicio.html'): int
     {
-        $vars = ['barberia' => (string) $tenant['nombre_comercial'], 'motivo' => (string) ($motivo ?? '')];
+        $vars = ['barberia' => (string) $tenant['nombre_comercial'], 'motivo' => (string) ($motivo ?? '')] + $extra;
         $now = Clock::nowSql();
         $db = Database::connection();
         $stmt = $db->prepare(
@@ -33,7 +34,7 @@ final class PlatformNotifier
              VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE id = id"
         );
-        $datos = json_encode(['tenant_slug' => (string) $tenant['slug'], 'plantilla' => $codigo, 'url' => 'pages/panel/inicio.html?tenant=' . rawurlencode((string) $tenant['slug'])], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $datos = json_encode(['tenant_slug' => (string) $tenant['slug'], 'plantilla' => $codigo, 'url' => $url . '?tenant=' . rawurlencode((string) $tenant['slug'])], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $n = 0;
         foreach (self::owners((int) $tenant['id'], isset($tenant['propietario_usuario_id']) ? (int) $tenant['propietario_usuario_id'] : null) as $uid) {
             [$t, $c] = Templates::render($codigo, 'push', null, $vars);

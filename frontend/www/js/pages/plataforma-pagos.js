@@ -69,8 +69,43 @@ async function act(id, a) {
   } catch (e) { toast(errorText(e), 'error'); }
 }
 
+// ======================================================================= pagos en línea (Fase 10)
+
+const ORDEN_ESTADOS = { pendiente: ['Pendiente', 'warn'], pagada: ['Pagada', 'ok'], fallida: ['Rechazada', 'off'], expirada: ['Expirada', 'off'], anulada: ['Anulada', 'off'] };
+const oForm = $('[data-online-filters]');
+let oPage = 1;
+
+function orderRow(o) {
+  return `<li class="row" data-inactive="${['fallida', 'expirada', 'anulada'].includes(o.estado)}">
+    <span class="thumb">${icon('globe')}</span>
+    <div class="row__main"><p class="row__title">${money(o.monto, o.moneda)} · ${escapeHtml(o.barberia.nombre)}</p>
+      <p class="row__meta"><span>${escapeHtml(o.detalle)}</span>
+        <span>Creada ${fmtDateTime(o.creada_en)}${o.solicitado_por ? ` por ${escapeHtml(o.solicitado_por)}` : ''}${o.pagada_en ? ` · pagada ${fmtDateTime(o.pagada_en)}` : ''}</span>
+        <span>${escapeHtml(o.pasarela === 'mercadopago' ? 'Mercado Pago' : o.pasarela)}${o.pago_externo_id ? ` · operación ${escapeHtml(o.pago_externo_id)}` : ''}</span>
+        ${o.error ? `<span>${escapeHtml(o.error)}</span>` : ''}</p></div>
+    <div class="row__actions">${demoBadge(o.barberia)}${o.por_revisar ? '<span class="badge badge--warn">En revisión</span>' : ''}${badge(ORDEN_ESTADOS, o.estado)}</div></li>`;
+}
+
+async function loadOrders(append = false) {
+  try {
+    const { data, meta } = await papi(`/ordenes?${formQuery(oForm, { page: oPage })}`, { withMeta: true });
+    const g = meta.pasarela;
+    if (!g.habilitada) $('[data-online-hint]').textContent = 'El pago en línea está desactivado (PAYMENT_DRIVER=none). Aquí se verán las órdenes cuando se active.';
+    const html = data.map(orderRow).join('');
+    const list = $('[data-online-list]');
+    if (append) list.insertAdjacentHTML('beforeend', html);
+    else list.innerHTML = html || `<li class="empty">${icon('globe')}<h3>Sin órdenes</h3><p>Ninguna barbería inició un pago en línea con esos filtros.</p></li>`;
+    $('[data-online-more]').hidden = meta.page * meta.per_page >= meta.total;
+  } catch (e) { toast(errorText(e), 'error'); }
+}
+
 (async () => {
   if (!await bootPlatform('pagos')) return;
+  const reloadOrders = () => { oPage = 1; loadOrders(); };
+  oForm.addEventListener('change', reloadOrders);
+  oForm.addEventListener('submit', (e) => { e.preventDefault(); reloadOrders(); });
+  $('[data-online-more] button').addEventListener('click', () => { oPage += 1; loadOrders(true); });
+  loadOrders();
   const reload = () => { page = 1; load(); };
   form.addEventListener('submit', (e) => { e.preventDefault(); reload(); });
   form.q.addEventListener('input', debounce(reload));

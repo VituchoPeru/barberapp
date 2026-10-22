@@ -104,7 +104,7 @@ final class BookingsController extends BaseController
     {
         [$svc, $id] = $this->own($request);
         $r = (array) $svc->repo()->find($id);
-        if ($r['tenant_estado'] !== 'activo') {
+        if ($r['tenant_estado'] !== 'activo' || $r['tenant_restringido_en'] !== null) {
             throw new HttpException(409, 'tenant_unavailable', 'La barbería no está recibiendo reservas en este momento.');
         }
         $ids = array_map(static fn (array $s): int => (int) $s['servicio_id'], $svc->repo()->services($id));
