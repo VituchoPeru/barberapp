@@ -7,6 +7,7 @@
  * - Cada pantalla HTML enlaza el manifiesto, carga js/shell.js y no usa fuentes externas.
  * - Los módulos JS importan archivos que existen.
  * - Las versiones de Capacitor y sus plugins están fijadas (sin ^ ni ~).
+ * - Fase 13: ninguna pantalla usa scripts en línea ni atributos on*= (la CSP de la web los bloquea).
  * Sale con código 1 si algo falla.
  */
 import { readFile, readdir, access } from 'node:fs/promises';
@@ -56,6 +57,9 @@ if (!manifest.icons.some((i) => i.sizes === '512x512')) errors.push('manifest: f
 // 3. Pantallas HTML
 for (const f of await walk(WWW, '.html')) {
   const rel = relative(WWW, f);
+  const raw = await readFile(f, 'utf8');
+  if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(raw)) errors.push(`${rel}: tiene un <script> en línea (la CSP solo permite archivos)`);
+  if (/\son[a-z]+\s*=/i.test(raw.replace(/<script[\s\S]*?<\/script>/gi, ''))) errors.push(`${rel}: usa un atributo on*= (la CSP lo bloquea; usa addEventListener)`);
   if (rel === 'offline.html') continue; // autocontenida a propósito
   const html = await readFile(f, 'utf8');
   if (!/rel="manifest"/.test(html)) errors.push(`${rel}: no enlaza el manifiesto`);

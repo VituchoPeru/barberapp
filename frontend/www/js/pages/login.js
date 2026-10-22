@@ -21,8 +21,10 @@ form.addEventListener('submit', async (event) => {
     return;
   }
   try {
-    await withLoading(form.querySelector('[type=submit]'), () => login(email, password));
-    location.assign(nextUrl());
+    const data = await withLoading(form.querySelector('[type=submit]'), () => login(email, password));
+    // Textos legales nuevos sin aceptar: primero Mi cuenta, que los pide, y luego el destino.
+    const pending = data && data.usuario && data.usuario.legal_pendiente && data.usuario.legal_pendiente.length;
+    location.assign(pending ? `cuenta.html?next=${encodeURIComponent(nextUrl())}` : nextUrl());
   } catch (e) {
     form.password.value = '';
     showErrors(form, e);

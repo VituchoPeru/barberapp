@@ -13,12 +13,13 @@
  * Al publicar una versión nueva, sube VERSION: el navegador instala el worker nuevo, vuelve a
  * descargar el núcleo y borra las cachés anteriores.
  */
-const VERSION = 'fase12-v1';
+const VERSION = 'fase13-v1';
 const CORE = `barberapp-core-${VERSION}`;
 const RUNTIME = `barberapp-runtime-${VERSION}`;
 const RUNTIME_MAX = 120;
 
-// Núcleo: lo necesario para abrir la app y mostrar la pantalla sin conexión.
+// Núcleo: lo necesario para abrir la app y mostrar la pantalla sin conexión, y los textos
+// legales (Fase 13), que se pueden leer sin conexión.
 const CORE_FILES = [
   'index.html',
   'offline.html',
@@ -29,6 +30,7 @@ const CORE_FILES = [
   'assets/fonts/manrope-latin-wght-normal.woff2', 'assets/fonts/manrope-latin-ext-wght-normal.woff2',
   'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/favicon.svg',
   'pages/inicio.html', 'pages/explorar.html', 'pages/mis-citas.html',
+  'css/legal.css', 'js/pages/legal.js', 'pages/legal/privacidad.html', 'pages/legal/terminos.html', 'pages/legal/eliminar-cuenta.html',
 ];
 
 const SCOPE = new URL(self.registration.scope);

@@ -7,9 +7,11 @@ use App\Core\Config;
 use App\Core\Env;
 use App\Core\Router;
 use App\Middleware\CorsMiddleware;
+use App\Middleware\HttpsMiddleware;
 use App\Middleware\JsonBodyMiddleware;
 use App\Middleware\RequestIdMiddleware;
 use App\Middleware\SecurityHeadersMiddleware;
+use App\Middleware\WriteRateLimitMiddleware;
 
 if (PHP_VERSION_ID < 80000) {
     http_response_code(500);
@@ -35,5 +37,7 @@ return new Application($router, [
     RequestIdMiddleware::class,
     SecurityHeadersMiddleware::class,
     CorsMiddleware::class,
+    HttpsMiddleware::class,
     JsonBodyMiddleware::class,
+    WriteRateLimitMiddleware::class,
 ]);

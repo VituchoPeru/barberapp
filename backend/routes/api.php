@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\AccountController;
 use App\Controllers\AgendaBlocksController;
 use App\Controllers\AttendanceController;
 use App\Controllers\AuthController;
@@ -13,6 +14,7 @@ use App\Controllers\BranchesController;
 use App\Controllers\BusinessController;
 use App\Controllers\FavoritesController;
 use App\Controllers\HealthController;
+use App\Controllers\LegalController;
 use App\Controllers\MarketplaceController;
 use App\Controllers\MeController;
 use App\Controllers\NotificationsController;
@@ -24,6 +26,7 @@ use App\Controllers\PanelReportsController;
 use App\Controllers\PaymentWebhookController;
 use App\Controllers\PlatformBillingController;
 use App\Controllers\PlatformController;
+use App\Controllers\PlatformPrivacyController;
 use App\Controllers\PlatformTenantsController;
 use App\Controllers\PlatformUsersController;
 use App\Controllers\PublicProfileController;
@@ -45,6 +48,9 @@ return static function (Router $router): void {
         $r->get('/health', [HealthController::class, 'show'], [], 'health');
         $r->get('/health/live', [HealthController::class, 'live'], [], 'health.live');
 
+        // ---------------- Textos legales y responsable del tratamiento (Fase 13): público
+        $r->get('/legal', [LegalController::class, 'show'], [], 'legal');
+
         // ---------------- Webhooks de la pasarela de pago (Fase 10): públicos, autenticados por firma
         $r->post('/webhooks/pagos/{proveedor:[a-z]{3,20}}', [PaymentWebhookController::class, 'handle'], [], 'webhooks.payments');
 
@@ -56,6 +62,7 @@ return static function (Router $router): void {
             $r->post('/forgot-password', [AuthController::class, 'forgotPassword'], [], 'auth.forgot');
             $r->post('/reset-password', [AuthController::class, 'resetPassword'], [], 'auth.reset');
             $r->post('/verify-email', [AuthController::class, 'verifyEmail'], [], 'auth.verify');
+            $r->post('/confirm-email', [AccountController::class, 'confirmEmail'], [], 'auth.confirm_email');
 
             $r->post('/logout', [AuthController::class, 'logout'], [new AuthMiddleware()], 'auth.logout');
             $r->get('/csrf', [AuthController::class, 'csrf'], [new AuthMiddleware()], 'auth.csrf');
@@ -71,6 +78,18 @@ return static function (Router $router): void {
             $r->post('/context', [MeController::class, 'setContext'], [], 'me.context');
             $r->get('/sessions', [MeController::class, 'sessions'], [], 'me.sessions');
             $r->delete('/sessions/{id:\d+}', [MeController::class, 'revokeSession'], [], 'me.sessions.revoke');
+
+            // Datos de la cuenta y derechos sobre datos personales (Fase 13)
+            $r->put('/perfil', [AccountController::class, 'updateProfile'], [], 'me.profile.update');
+            $r->post('/password', [AccountController::class, 'changePassword'], [], 'me.password');
+            $r->post('/email', [AccountController::class, 'changeEmail'], [], 'me.email');
+            $r->post('/sessions/cerrar-otras', [AccountController::class, 'closeOtherSessions'], [], 'me.sessions.close_others');
+            $r->post('/legal/aceptar', [AccountController::class, 'acceptLegal'], [], 'me.legal.accept');
+            $r->post('/datos/exportar', [AccountController::class, 'export'], [], 'me.data.export');
+            $r->get('/eliminacion', [AccountController::class, 'deletionPreview'], [], 'me.deletion.preview');
+            $r->post('/eliminar', [AccountController::class, 'delete'], [], 'me.delete');
+            $r->get('/solicitudes-datos', [AccountController::class, 'requests'], [], 'me.data_requests');
+            $r->post('/solicitudes-datos', [AccountController::class, 'storeRequest'], [], 'me.data_requests.store');
 
             // Favoritos (Fase 3)
             $r->get('/favoritos', [FavoritesController::class, 'index'], [new PermissionMiddleware('cliente.favoritos')], 'me.favorites');
@@ -323,6 +342,11 @@ return static function (Router $router): void {
             $config = new PermissionMiddleware('plataforma.configuracion.gestionar');
             $r->get('/configuracion', [PlatformController::class, 'settings'], [$config], 'platform.settings');
             $r->put('/configuracion', [PlatformController::class, 'updateSettings'], [$config], 'platform.settings.update');
+
+            // Solicitudes de derechos sobre datos personales (Fase 13)
+            $privacidad = new PermissionMiddleware('plataforma.privacidad.gestionar');
+            $r->get('/solicitudes-datos', [PlatformPrivacyController::class, 'index'], [$privacidad], 'platform.data_requests');
+            $r->post('/solicitudes-datos/{id:\d+}/responder', [PlatformPrivacyController::class, 'respond'], [$privacidad], 'platform.data_requests.respond');
         }, [new AuthMiddleware(), new PlatformMiddleware()]);
     });
 };

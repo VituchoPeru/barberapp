@@ -32,6 +32,12 @@ final class PlatformSettings
         'plataforma.dias_gracia' => ['entero', 3, 'Días de gracia tras vencer la suscripción antes de restringir la barbería (0 a 30)', false],
         'plataforma.restringir_sin_suscripcion' => ['bool', true, 'Pasada la gracia, la barbería sin suscripción vigente sale del marketplace y no recibe reservas nuevas', false],
         'plataforma.avisos_vencimiento' => ['dias', [7, 3, 1], 'Días antes del vencimiento en que se avisa al propietario (hasta 4, de 1 a 30)', false],
+        // Fase 13: responsable del tratamiento de datos personales (se muestran en la política de privacidad)
+        'plataforma.legal_razon_social' => ['texto_largo', '', 'Razón social de la empresa titular de BARBERAPP', true],
+        'plataforma.legal_ruc' => ['ruc', '', 'RUC de la empresa titular (11 dígitos)', true],
+        'plataforma.legal_domicilio' => ['texto_largo', '', 'Domicilio legal para notificaciones', true],
+        'plataforma.privacidad_email' => ['email', '', 'Correo para ejercer derechos sobre datos personales (vacío = correo de soporte)', true],
+        'plataforma.legal_registro_bdp' => ['texto_opcional', '', 'Código de inscripción del banco de datos en el Registro Nacional de Protección de Datos Personales', true],
     ];
 
     public const MONEDAS = ['PEN', 'USD'];
@@ -172,6 +178,15 @@ final class PlatformSettings
             case 'texto':
                 $v = is_string($v) ? trim($v) : '';
                 return $v !== '' && mb_strlen($v) <= 60 ? $v : ['error' => 'Escribe un nombre de 1 a 60 caracteres.'];
+            case 'texto_largo':
+                $v = is_string($v) ? trim($v) : '';
+                return mb_strlen($v) <= 200 && !preg_match('/[<>]/', $v) ? $v : ['error' => 'Hasta 200 caracteres, sin < ni >.'];
+            case 'texto_opcional':
+                $v = is_string($v) ? trim($v) : '';
+                return mb_strlen($v) <= 60 && !preg_match('/[<>]/', $v) ? $v : ['error' => 'Hasta 60 caracteres, sin < ni >.'];
+            case 'ruc':
+                $v = is_string($v) ? trim($v) : '';
+                return $v === '' || preg_match('/^(10|15|17|20)\d{9}$/', $v) ? $v : ['error' => 'RUC inválido (11 dígitos).'];
             case 'email':
                 $v = is_string($v) ? trim($v) : '';
                 return $v === '' || (strlen($v) <= 190 && filter_var($v, FILTER_VALIDATE_EMAIL)) ? $v : ['error' => 'Correo electrónico inválido.'];

@@ -34,6 +34,7 @@ final class CatalogSeeder
         'plataforma.configuracion.gestionar' => ['plataforma', 'Parámetros generales de la plataforma'],
         'plataforma.plantillas.gestionar' => ['plataforma', 'Plantillas de notificación globales'],
         'plataforma.usuarios.gestionar' => ['plataforma', 'Usuarios de plataforma'],
+        'plataforma.privacidad.gestionar' => ['plataforma', 'Atender solicitudes de derechos sobre datos personales'],
         // Barbería
         'negocio.perfil.gestionar' => ['negocio', 'Perfil comercial, logotipo, colores'],
         'negocio.suscripcion.ver' => ['negocio', 'Consultar la suscripción de la barbería'],
@@ -71,7 +72,7 @@ final class CatalogSeeder
         // Equipo de BARBERAPP con acceso parcial (Fase 9): no toca planes, plantillas, configuración ni usuarios.
         'operador' => [
             'plataforma.tenants.gestionar', 'plataforma.suscripciones.gestionar', 'plataforma.pagos.gestionar',
-            'plataforma.reportes.ver', 'plataforma.auditoria.ver',
+            'plataforma.reportes.ver', 'plataforma.auditoria.ver', 'plataforma.privacidad.gestionar',
         ],
         'propietario' => [
             'negocio.*', 'sucursales.*', 'personal.*', 'barberos.*', 'servicios.*', 'horarios.gestionar',

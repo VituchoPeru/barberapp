@@ -10,7 +10,23 @@ Options -Indexes
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Fase 13: política de contenido. Solo scripts propios (sin scripts en línea ni eval), sin
+    # incrustar la web en marcos ajenos (clickjacking). connect-src permite la API en otro dominio.
+    # La app nativa no recibe esta cabecera: Capacitor inyecta su puente como script en línea.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http://localhost:* http://127.0.0.1:*; font-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'"
+    Header always set X-Frame-Options "DENY"
+    Header always set Permissions-Policy "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
 </IfModule>
+# HTTPS obligatorio en producción: descomenta (o configúralo en el VirtualHost) cuando el sitio tenga certificado.
+# <IfModule mod_rewrite.c>
+#     RewriteCond %{HTTPS} off
+#     RewriteCond %{HTTP:X-Forwarded-Proto} !https
+#     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+# </IfModule>
+# <IfModule mod_headers.c>
+#     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+# </IfModule>
 
 # PWA (Fase 12): tipo correcto del manifiesto y el service worker siempre revalidado,
 # para que una versión nueva llegue en la siguiente visita.

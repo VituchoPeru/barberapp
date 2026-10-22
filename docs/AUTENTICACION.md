@@ -35,6 +35,14 @@ Base: `/api/v1`. Todas las respuestas usan el sobre `{"ok": true, "data": …}` 
 | POST | `/me/memberships/{id}/aceptar` · `/rechazar` | sesión | Responde una invitación al equipo. |
 | GET | `/me/sessions` | sesión | Sesiones abiertas (dispositivo, IP, último uso). |
 | DELETE | `/me/sessions/{id}` | sesión | Cierra la sesión de otro dispositivo. |
+| POST | `/me/sessions/cerrar-otras` | sesión | Cierra todas las sesiones salvo la actual (Fase 13). |
+| PUT | `/me/perfil` | sesión | Rectifica nombres, apellidos y teléfono (Fase 13). |
+| POST | `/me/password` | sesión + contraseña actual | Cambia la contraseña y cierra las demás sesiones (Fase 13). |
+| POST | `/me/email` | sesión + contraseña | Pide cambiar el correo: enlace al correo nuevo y aviso al anterior (Fase 13). |
+| POST | `/auth/confirm-email` | token de correo | Confirma el correo nuevo (`verificar.html?token=…&cambio=1`). |
+| POST | `/me/legal/aceptar` | sesión | Acepta la versión vigente de términos y privacidad. |
+| POST · GET · POST | `/me/datos/exportar` · `/me/eliminacion` · `/me/eliminar` | sesión + contraseña | Descargar mis datos, qué pasará al eliminar la cuenta y eliminarla. Ver [SEGURIDAD.md](SEGURIDAD.md#9-derechos-de-las-personas-arco-y-eliminación-de-cuenta). |
+| GET · POST | `/me/solicitudes-datos` | sesión | Solicitudes de derechos ARCO. |
 | GET | `/panel/contexto` | integrante | Barbería, mis roles y permisos en ella. |
 | GET | `/panel/personal` | `personal.gestionar` | Equipo de la barbería. |
 | POST | `/panel/personal` | `personal.gestionar` + correo verificado | Invita a un administrador o barbero. |
@@ -170,6 +178,8 @@ Dentro del controlador, `$this->tenant($request)['id']` es la barbería ya verif
 | Tokens de correo inválidos por IP | 10 / 15 min |
 | Reenvío de verificación por usuario | 3 / hora |
 | Refresh por IP | 60 / minuto |
+| Contraseña incorrecta en acciones sensibles, por usuario (Fase 13) | 5 / 15 min |
+| Escrituras por IP, general (Fase 13) | 120 / minuto (`RATE_LIMIT_WRITES`) |
 
 Se configuran en `backend/config/auth.php`. `php bin/console auth:purge` (cron diario) borra contadores, sesiones y tokens vencidos.
 
@@ -179,12 +189,12 @@ Se configuran en `backend/config/auth.php`. `php bin/console auth:purge` (cron d
 
 ## 8. Pantallas web
 
-En `frontend/www/pages/auth/`: `login.html`, `registro.html` (cliente o propietario), `olvide.html`, `restablecer.html` (también para invitaciones), `verificar.html` y `cuenta.html` (perfil, verificación, barberías e invitaciones, selección de barbería, sesiones abiertas, cerrar sesión en todos los dispositivos). Los tokens que llegan por correo se quitan de la barra de direcciones apenas se leen.
+En `frontend/www/pages/auth/`: `login.html`, `registro.html` (cliente o propietario), `olvide.html`, `restablecer.html` (también para invitaciones), `verificar.html` y `cuenta.html` (perfil, verificación, barberías e invitaciones, selección de barbería, sesiones abiertas, cerrar sesión en todos los dispositivos y, desde la Fase 13, editar datos, cambiar correo y contraseña, privacidad y eliminar la cuenta). Los tokens que llegan por correo se quitan de la barra de direcciones apenas se leen.
 
 ## 9. Limitaciones conocidas
 
 - La aprobación de barberías pendientes y el bloqueo de usuarios se harán desde el panel de superadministrador (Fase 9); hoy se cambian en la base.
 - El registro no crea la suscripción de prueba: se hará con los planes en la Fase 10.
-- El cambio de correo y de contraseña desde la cuenta (con la sesión iniciada) no está incluido; la contraseña se cambia con "¿Olvidaste tu contraseña?".
+- ~~El cambio de correo y de contraseña desde la cuenta no está incluido~~: desde la Fase 13 se cambian en Mi cuenta.
 - Los clientes registrados en mostrador sin cuenta (`clientes.usuario_id = NULL`) no se vinculan al crear la cuenta; desde la Fase 5 se vinculan al reservar o abrir "Mis citas" si el correo está verificado y hay un único registro sin dueño con ese correo (decisión 043).
-- Los proxies de confianza (para leer la IP real detrás de un balanceador) se configurarán en el despliegue (Fase 15); hoy se usa `REMOTE_ADDR`.
+- Desde la Fase 13, `TRUSTED_PROXIES` define los proxies de confianza: solo de ellos se aceptan `X-Forwarded-For` y `X-Forwarded-Proto`; sin configurar se usa `REMOTE_ADDR`.

@@ -195,10 +195,20 @@ export async function api(path, options = {}) {
 
 /**
  * Descarga un archivo de la API (CSV, Excel, PDF, QR…) con la sesión actual.
+ * Acepta method/body para descargas que piden datos (p. ej. la contraseña al exportar).
  * Devuelve { blob, filename }; los errores llegan como ApiError con el mensaje del backend.
  */
-export async function apiFile(path, { headers = {}, accept = '*/*', fallbackName = 'archivo', timeout = 60000 } = {}) {
-  const res = await send(path, { headers, accept, timeout });
+export async function apiFile(path, { method = 'GET', body, headers = {}, accept = '*/*', fallbackName = 'archivo', timeout = 60000 } = {}) {
+  let res = await send(path, { method, body, headers, accept, timeout });
+  if (res.status === 419 || res.status === 403) {
+    // Token CSRF perdido (recarga, otra pestaña): se recupera una vez, como en api().
+    const p = await res.clone().json().catch(() => null);
+    if (p && p.error && p.error.code === 'csrf_mismatch') {
+      const data = await request('/auth/csrf');
+      csrf.set(data.csrf_token);
+      res = await send(path, { method, body, headers, accept, timeout });
+    }
+  }
   if (!res.ok) {
     const p = await res.json().catch(() => null);
     const err = (p && p.error) || {};
