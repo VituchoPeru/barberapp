@@ -76,7 +76,7 @@ El QR codifica `{PUBLIC_BOOKING_URL}/b/{slug}?o=qr` para que en el futuro se pue
 3. Corrige la orientación EXIF, reduce al tamaño máximo (logo 512, portada 1920, galería 1600 px) y **recodifica** a WebP (PNG si el GD del servidor no tiene WebP). Así se descartan metadatos como la ubicación GPS y cualquier contenido extra.
 4. Guarda con nombre aleatorio en `MEDIA_PATH/tenants/{tenant_id}/`. La base solo acepta rutas con ese patrón.
 
-`backend/public/media/.htaccess` impide ejecutar PHP y sirve los archivos con `X-Content-Type-Options: nosniff`. En Nginx el bloque equivalente está en `infrastructure/nginx/barberapp-app.conf.example`.
+`backend/public/media/.htaccess` impide ejecutar PHP y sirve los archivos con `X-Content-Type-Options: nosniff`. En Nginx y Apache el bloque equivalente lo genera `php bin/console despliegue:config` (plantillas en `infrastructure/`, ver [DESPLIEGUE.md](DESPLIEGUE.md)): las fotos viven en `MEDIA_PATH`, compartida entre versiones.
 
 Variables de entorno: `MEDIA_PATH`, `MEDIA_URL`, `MEDIA_MAX_UPLOAD_BYTES`, `PUBLIC_BOOKING_URL`.
 

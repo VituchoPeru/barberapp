@@ -19,14 +19,15 @@ php bin/console seguridad:revisar     # termina con código 1 si hay algo críti
 | MySQL | Usuario propio con permisos solo sobre la base de BARBERAPP (y `CREATE`/`DROP` sobre la base temporal de verificación de copias). Nunca `root`. |
 | CORS | `CORS_ALLOWED_ORIGINS` solo con el dominio del frontend y los de la app (`https://localhost`, `capacitor://localhost`). Quita `http://localhost`. |
 | Datos demo | No cargar `db:seed --demo` en producción (usuarios con contraseña conocida). |
-| Cron | Programar `backup:crear`, `backup:verificar` y `privacidad:retencion` (sección 7). |
+| Cron | Programar `backup:crear`, `backup:enviar`, `backup:verificar` y `privacidad:retencion` (sección 7). En un VPS lo hace `instalar-vps.sh` ([DESPLIEGUE.md](DESPLIEGUE.md)). |
+| Copias fuera | `BACKUP_S3_*` configurado y `BACKUP_KEY` guardada fuera del servidor ([DESPLIEGUE.md](DESPLIEGUE.md#10-copias-de-seguridad)). |
 | Legal | Datos del responsable en el panel, revisión legal de los textos e **inscripción del banco de datos** en el Registro Nacional de Protección de Datos Personales (sección 9). |
 
 ## 2. Transporte y cabeceras
 
 - **HTTPS obligatorio** (`HttpsMiddleware`): con `FORCE_HTTPS=true`, un GET por `http` se redirige con 308 a `https` y una escritura por `http` se rechaza con `403 https_required` (no se redirige un POST con datos). Detrás de un proxy, `X-Forwarded-Proto` solo cuenta si viene de `TRUSTED_PROXIES`. La API envía `Strict-Transport-Security` (1 año).
 - **Cabeceras de la API** (`SecurityHeadersMiddleware`): `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` (la API solo devuelve JSON), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `X-Permitted-Cross-Domain-Policies` y `Cache-Control: no-store` salvo que la respuesta declare su propia caché.
-- **Frontend web**: `frontend/www/.htaccess` (Apache/XAMPP) e `infrastructure/nginx/barberapp-app.conf.example` aplican una CSP sin scripts en línea ni `eval` (`script-src 'self'`), sin marcos (`frame-ancestors 'none'`) y con `connect-src` limitado; `npm run verificar` comprueba que ninguna pantalla tenga `<script>` en línea ni atributos `on…=`. En producción reemplaza `https:` por el dominio de la API en `connect-src` e `img-src`.
+- **Frontend web**: `frontend/www/.htaccess` (Apache/XAMPP) y la configuración de servidor que genera `php bin/console despliegue:config` (Fase 15, ver [DESPLIEGUE.md](DESPLIEGUE.md)) aplican una CSP sin scripts en línea ni `eval` (`script-src 'self'`), sin marcos (`frame-ancestors 'none'`) y con `connect-src` e `img-src` limitados al dominio de la API (en el servidor se escriben solos a partir de `APP_URL`); `npm run verificar` comprueba que ninguna pantalla tenga `<script>` en línea ni atributos `on…=`.
 - **App nativa**: no lleva CSP en `<meta>` porque Capacitor inyecta su puente como script en línea; la app solo carga archivos propios empaquetados y la API por HTTPS.
 
 ## 3. Entradas, salidas y base de datos
@@ -90,17 +91,10 @@ php bin/console backup:restaurar <archivo> --solo-descifrar=/ruta/copia.sql.gz  
 - Instantánea consistente (`START TRANSACTION WITH CONSISTENT SNAPSHOT`), sin bloquear la operación.
 - Formato: SQL comprimido con gzip y cifrado con **AES-256-GCM** en bloques de 1 MiB (cada bloque autenticado; un archivo alterado o truncado no se restaura). Lleva un manifiesto con el número de filas por tabla, que la verificación compara.
 - Se guardan en `BACKUP_PATH` (por defecto `backend/storage/backups`, fuera de `public/` y del repositorio) con permisos `600` y un `.sha256`. Se conservan `BACKUP_KEEP` (14) copias.
-- **Copia fuera del servidor**: sincroniza `BACKUP_PATH` a otro lugar (otro servidor, almacenamiento de objetos) y guarda `BACKUP_KEY` en un gestor de contraseñas: sin la clave no se puede restaurar. Como las copias están cifradas, el almacenamiento externo no ve datos personales.
+- **Copia fuera del servidor** (Fase 15): `php bin/console backup:enviar` sube las copias cifradas (y las fotos) a un bucket compatible con S3; `backup:traer` las recupera en un servidor nuevo. Guarda `BACKUP_KEY` en un gestor de contraseñas: sin la clave no se puede restaurar. Como las copias están cifradas, el almacenamiento externo no ve datos personales. Configuración y procedimiento de desastre en [DESPLIEGUE.md](DESPLIEGUE.md#10-copias-de-seguridad).
 - **Prueba de restauración**: `backup:verificar` cada semana. Su código de salida es distinto de 0 si falla, para que el cron avise.
 
-Cron sugerido (además de los de fases anteriores):
-
-```cron
-# Copia diaria 03:15, verificación los domingos 04:00, retención diaria 03:45 (hora del servidor)
-15 3 * * *  cd /var/www/barberapp/backend && php bin/console backup:crear
-0  4 * * 0  cd /var/www/barberapp/backend && php bin/console backup:verificar
-45 3 * * *  cd /var/www/barberapp/backend && php bin/console privacidad:retencion
-```
+El cron completo de producción (copias, envío fuera, verificación y retención) lo genera `despliegue:config` en `/etc/cron.d/barberapp`; ver [DESPLIEGUE.md](DESPLIEGUE.md#9-cron-y-worker). En XAMPP, el Programador de tareas de Windows con los mismos comandos.
 
 ## 8. Retención y eliminación
 
@@ -171,6 +165,6 @@ El reglamento (art. 34) obliga a notificar a la ANPD un incidente que afecte dat
 
 - Los textos legales necesitan revisión de un abogado y los datos reales del titular.
 - La CSP del frontend permite estilos en línea (`'unsafe-inline'` en `style-src`) porque algunas pantallas usan atributos `style`; los scripts en línea sí están prohibidos.
-- Las copias se guardan en el mismo servidor; enviarlas fuera (y probar la restauración ahí) es parte del despliegue (Fase 15).
+- Las copias fuera del servidor (Fase 15) se probaron contra un S3 simulado (moto) y un almacenamiento en memoria; falta probarlas con el proveedor real que se elija.
 - No hay autenticación en dos pasos (2FA) para el equipo de la plataforma; es la mejora de seguridad recomendada siguiente.
 - No se compiló el APK/AAB ni el proyecto de iOS en este entorno; la eliminación de cuenta en la app se probó con Capacitor simulado.

@@ -105,3 +105,53 @@ jobs:
             frontend/e2e-informe
             frontend/e2e-resultados
           retention-days: 7
+
+  despliegue:
+    name: Despliegue en un servidor limpio (Nginx, systemd)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scripts (shellcheck)
+        run: shellcheck -S warning infrastructure/scripts/*.sh
+      - name: Código sin .git (como una carpeta copiada al servidor)
+        run: |
+          sudo mkdir -p /opt/codigo
+          git archive HEAD | sudo tar -x -C /opt/codigo
+      - name: MySQL del runner (root/root)
+        run: |
+          printf '[client]\nuser=root\npassword=root\n' | sudo tee /root/.my.cnf >/dev/null
+          sudo chmod 600 /root/.my.cnf
+          sudo systemctl start mysql
+      - name: Dominios de prueba
+        run: echo "127.0.0.1 app.barberapp.test admin.barberapp.test platform.barberapp.test api.barberapp.test" | sudo tee -a /etc/hosts
+      - name: instalar-vps.sh
+        run: |
+          cat > /tmp/vps.conf <<'CONF'
+          ORIGEN=/opt/codigo
+          DOMINIO_APP=app.barberapp.test
+          DOMINIO_ADMIN=admin.barberapp.test
+          DOMINIO_PLATAFORMA=platform.barberapp.test
+          DOMINIO_API=api.barberapp.test
+          SERVIDOR_WEB=nginx
+          PHP_VERSION=8.3
+          CONF
+          sudo -H bash infrastructure/scripts/instalar-vps.sh --config=/tmp/vps.conf --certificado=propio
+      - name: Comprobar servicios y salud
+        run: |
+          systemctl is-active barberapp-worker nginx php8.3-fpm
+          curl -fsSk https://api.barberapp.test/api/v1/health | tee /dev/stderr | grep -q '"ok"'
+          curl -fsSk -o /dev/null https://app.barberapp.test/
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://api.barberapp.test/.env)" != 200
+          cd /var/www/barberapp/current/backend
+          sudo -u barberapp php bin/console monitor:revisar --sin-certificados || true
+      - name: Desplegar de nuevo y volver atrás
+        run: |
+          sudo /var/www/barberapp/current/infrastructure/scripts/desplegar.sh --origen=/opt/codigo
+          sudo /var/www/barberapp/current/infrastructure/scripts/rollback.sh
+          systemctl is-active barberapp-worker
+          curl -fsSk https://api.barberapp.test/api/v1/health | grep -q '"ok"'
+      - name: Registros si falla
+        if: failure()
+        run: |
+          sudo tail -n 100 /var/log/barberapp/*.log || true
+          sudo journalctl -u barberapp-worker -n 50 --no-pager || true

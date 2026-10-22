@@ -17,6 +17,7 @@ Cuentas demo usadas: una por rol, con el contexto de la barbería `demo-centro`.
 |---|---|---|---|---|---|---|---|
 | `health` | S | S | S | S | S | S | S |
 | `health.live` | S | S | S | S | S | S | S |
+| `health.operation` | L | L | L | L | L | L | L |
 | `legal` | S | S | S | S | S | S | S |
 | `webhooks.payments` | L | L | L | L | L | L | L |
 | `auth.register` | S | S | S | S | S | S | S |

@@ -1,0 +1,29 @@
+# BARBERAPP — datos para instalar-vps.sh (Fase 15). Copia este archivo, complétalo y ejecuta:
+#   sudo bash instalar-vps.sh --config=/root/barberapp-vps.conf
+# Los dominios son referenciales: verifica que sean tuyos y crea antes los registros DNS (A/AAAA)
+# de los cuatro hacia la IP del servidor (docs/DESPLIEGUE.md, "Dominios y DNS").
+
+# Código
+ORIGEN=https://github.com/VituchoPeru/barberapp.git
+REF=main
+
+# Dominios
+DOMINIO_APP=app.barberapp.pe
+DOMINIO_ADMIN=admin.barberapp.pe
+DOMINIO_PLATAFORMA=platform.barberapp.pe
+DOMINIO_API=api.barberapp.pe
+
+# Correo para Let's Encrypt (avisos de vencimiento) y para las alertas del monitoreo.
+CORREO_ADMIN=
+
+# nginx (recomendado) o apache
+SERVIDOR_WEB=nginx
+# Versión de PHP del sistema (Ubuntu 24.04 = 8.3; Debian 12 = 8.2)
+PHP_VERSION=8.3
+
+# Opcional: IPs o redes desde las que se puede abrir el panel de la plataforma (separadas por coma).
+IPS_PLATAFORMA=
+
+# Rutas (normalmente no se cambian)
+RAIZ=/var/www/barberapp
+USUARIO=barberapp

@@ -39,10 +39,36 @@ declare(strict_types=1);
  *   php bin/console backup:listar      Lista las copias guardadas
  *   php bin/console backup:verificar [archivo]
  *                                      Prueba de restauración en una base temporal (cron semanal)
- *   php bin/console backup:restaurar <archivo> --base=<nombre> [--sobrescribir]
- *                                      Restaura en otra base; sobre DB_DATABASE solo con --sobrescribir
+ *   php bin/console backup:restaurar <archivo> --base=<nombre> [--sobrescribir] [--limpiar]
+ *                                      Restaura en otra base; sobre DB_DATABASE solo con --sobrescribir;
+ *                                      --limpiar borra antes todas las tablas (también las que no están en la copia)
  *   php bin/console backup:restaurar <archivo> --solo-descifrar=<destino.sql.gz>
  *                                      Descifra la copia para restaurarla a mano (gunzip | mysql)
+ *
+ *   Despliegue y producción (Fase 15, ver docs/DESPLIEGUE.md)
+ *   php bin/console backup:enviar      Sube las copias cifradas y las fotos al almacenamiento externo (cron diario)
+ *   php bin/console backup:remotas     Lista las copias guardadas fuera del servidor
+ *   php bin/console backup:traer [archivo]
+ *                                      Baja una copia externa (la última si no se indica) y verifica su SHA-256
+ *   php bin/console notificaciones:procesar --continuo [--pausa=5] [--max-minutos=60]
+ *                                      Worker permanente (servicio systemd): procesa la cola sin esperar al cron
+ *   php bin/console monitor:revisar [--alertar] [--json] [--silencioso] [--sin-certificados]
+ *                                      Estado de producción (base, cron, worker, copias, disco, errores, HTTPS);
+ *                                      código 1 si hay problemas; --alertar envía correo a MONITOR_EMAIL
+ *   php bin/console mantenimiento:activar [--motivo=texto] [--reintentar=60]
+ *   php bin/console mantenimiento:desactivar
+ *                                      La API responde 503 mientras se actualiza
+ *   php bin/console logs:purge         Borra registros de más de LOG_RETENTION_DAYS días (cron diario)
+ *   php bin/console plataforma:superadmin correo@dominio [--nombre=…]
+ *                                      Crea (o promueve) la primera cuenta de superadministrador en producción
+ *   php bin/console despliegue:verificar
+ *                                      Revisión previa a publicar una versión (PHP, extensiones, permisos, base,
+ *                                      CORS, DNS y seguridad); código 1 si hay errores
+ *   php bin/console despliegue:config --salida=<carpeta> [--servidor=nginx|apache] [--raiz=/var/www/barberapp]
+ *                                      [--usuario=barberapp] [--php=8.3] [--worker=systemd|cron] [--ips-plataforma=…]
+ *                                      Genera Nginx/Apache, PHP-FPM, cron, systemd y logrotate desde .env
+ *   php bin/console despliegue:frontend --version=<id> [--www=<carpeta>]
+ *                                      Fija la URL de la API en el frontend y la versión del service worker
  */
 
 use App\Core\Config;
@@ -91,6 +117,39 @@ function assertMysql8(PDO $pdo): void
         fail("MySQL {$version} no soportado. Se requiere MySQL 8.0.16 o superior (restricciones CHECK).");
     }
 }
+
+/** @return array<string, string> opciones --clave=valor (y --bandera → '1') */
+function options(array $flags): array
+{
+    $o = [];
+    foreach ($flags as $f) {
+        if (preg_match('/^--([a-z][a-z0-9-]*)(?:=(.*))?$/', $f, $m)) {
+            $o[$m[1]] = $m[2] ?? '1';
+        }
+    }
+    return $o;
+}
+
+/** @param list<array{nivel: string, tema: string, mensaje: string}> $items */
+function printChecks(array $items, bool $onlyProblems = false): int
+{
+    $errors = 0;
+    foreach ($items as $item) {
+        $errors += $item['nivel'] === 'error' ? 1 : 0;
+        if ($onlyProblems && $item['nivel'] === 'ok') {
+            continue;
+        }
+        $marca = ['ok' => '  ✔', 'aviso' => '  !', 'error' => '  ✖'][$item['nivel']] ?? '  ·';
+        out("{$marca} {$item['tema']}: {$item['mensaje']}");
+    }
+    return $errors;
+}
+
+// Tareas programadas que dejan un latido al terminar bien (monitor:revisar los vigila).
+$heartbeatTasks = ['notificaciones:procesar', 'suscripciones:vencer', 'backup:crear', 'backup:verificar', 'backup:enviar',
+    'privacidad:retencion', 'auth:purge', 'reservas:purge', 'notificaciones:purge', 'logs:purge'];
+$heartbeat = in_array($command, $heartbeatTasks, true);
+$heartbeatData = [];
 
 try {
     if (in_array($command, ['db:create', 'migrate', 'migrate:fresh'], true)) {
@@ -239,25 +298,64 @@ try {
             break;
 
         case 'notificaciones:procesar':
-            $limite = null;
-            foreach ($flags as $f) {
-                if (preg_match('/^--limite=(\d+)$/', $f, $m)) {
-                    $limite = max(1, (int) $m[1]);
-                }
-            }
-            // Un solo worker a la vez por servidor: si el cron anterior sigue corriendo, este sale.
+            $o = options($flags);
+            $limite = isset($o['limite']) ? max(1, (int) $o['limite']) : null;
+            // Un solo worker a la vez por servidor: si el cron anterior (o el servicio) sigue corriendo, este sale.
             $lock = fopen($base . '/storage/cache/notificaciones-worker.lock', 'c');
             if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
                 out('Otro worker de notificaciones sigue en ejecución; se omite esta corrida.');
+                $heartbeat = false;
                 break;
             }
-            $stats = (new App\Services\Notifications\QueueWorker())->run($limite);
-            flock($lock, LOCK_UN);
-            $line = [];
-            foreach ($stats as $k => $v) {
-                $line[] = "{$k}={$v}";
+            $fmt = static function (array $stats): string {
+                $line = [];
+                foreach ($stats as $k => $v) {
+                    $line[] = "{$k}={$v}";
+                }
+                return gmdate('Y-m-d H:i:s') . ' UTC ' . implode(' ', $line);
+            };
+            if (!isset($o['continuo'])) {
+                $stats = (new App\Services\Notifications\QueueWorker())->run($limite);
+                flock($lock, LOCK_UN);
+                out($fmt($stats));
+                $heartbeatData = array_map('intval', array_filter($stats, 'is_numeric'));
+                break;
             }
-            out(gmdate('Y-m-d H:i:s') . ' UTC ' . implode(' ', $line));
+            // Modo permanente (Fase 15, servicio barberapp-worker): procesa, descansa unos segundos
+            // si no hubo trabajo y sale solo tras --max-minutos o al recibir SIGTERM/SIGINT, al
+            // terminar el lote en curso. systemd lo vuelve a iniciar (con el código desplegado).
+            $pausa = max(1, (int) ($o['pausa'] ?? 5));
+            $hasta = time() + 60 * max(1, (int) ($o['max-minutos'] ?? 60));
+            $detener = false;
+            if (function_exists('pcntl_async_signals')) {
+                pcntl_async_signals(true);
+                pcntl_signal(SIGTERM, static function () use (&$detener): void { $detener = true; });
+                pcntl_signal(SIGINT, static function () use (&$detener): void { $detener = true; });
+            }
+            out(gmdate('Y-m-d H:i:s') . " UTC worker iniciado (pausa {$pausa} s).");
+            while (!$detener && time() < $hasta) {
+                try {
+                    $stats = (new App\Services\Notifications\QueueWorker())->run($limite);
+                    App\Services\Ops\Heartbeat::record('notificaciones:procesar', ['modo' => 'continuo'] + array_map('intval', array_filter($stats, 'is_numeric')));
+                    $trabajo = array_sum(array_map('intval', array_filter($stats, 'is_numeric')));
+                    if ($trabajo > 0) {
+                        out($fmt($stats));
+                    }
+                } catch (Throwable $e) {
+                    // Un fallo pasajero (base reiniciándose) no debe tumbar el servicio: se registra y se reintenta.
+                    App\Core\Logger::error('Worker de notificaciones', ['exception' => $e]);
+                    fwrite(STDERR, gmdate('Y-m-d H:i:s') . ' UTC error: ' . $e->getMessage() . PHP_EOL);
+                    Database::setConnection(null);
+                    $trabajo = 0;
+                    $pausa = min(60, $pausa * 2);
+                }
+                for ($i = 0; $i < ($trabajo > 0 ? 0 : $pausa) && !$detener; $i++) {
+                    sleep(1);
+                }
+            }
+            flock($lock, LOCK_UN);
+            out(gmdate('Y-m-d H:i:s') . ' UTC worker detenido' . ($detener ? ' (señal)' : ' (tiempo máximo)') . '.');
+            $heartbeat = false;
             break;
 
         case 'notificaciones:estado':
@@ -293,6 +391,7 @@ try {
             $lock = fopen($base . '/storage/cache/suscripciones.lock', 'c');
             if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
                 out('Otra ejecución de suscripciones:vencer está en curso.');
+                $heartbeat = false;
                 break;
             }
             $r = (new App\Services\Billing\Lifecycle())->run();
@@ -428,13 +527,145 @@ try {
             if ($target === $main && !isset($opts['sobrescribir'])) {
                 fail("Restaurar sobre la base principal ({$main}) BORRA sus datos actuales. Si es lo que quieres, agrega --sobrescribir (y detén la API y los cron antes).");
             }
-            $r = $svc->restore($file, $target);
+            $r = $svc->restore($file, $target, isset($opts['limpiar']));
             out(sprintf('Restaurada en `%s`: %d tablas, %d filas.', $target, count($r['manifiesto']), array_sum($r['manifiesto'])));
             App\Services\Audit::record('sistema.backup_restaurado', 'exito', null, null, null, null, null, ['archivo' => basename($file), 'base' => $target]);
             break;
 
+        // ============================================================ Fase 15: producción
+
+        case 'backup:enviar':
+            $off = new App\Services\Backup\OffsiteBackup();
+            $r = $off->push();
+            out(gmdate('Y-m-d H:i:s') . ' UTC copias fuera del servidor: ' . count($r['subidas']) . " subida(s), {$r['ya_estaban']} ya estaban, " . count($r['borradas']) . ' borrada(s) por antigüedad.');
+            foreach ($r['subidas'] as $n) {
+                out("  ↑ {$n}");
+            }
+            foreach ($r['omitidas_sin_cifrar'] as $n) {
+                out("  ! {$n} no está cifrada y no se sube (configura BACKUP_KEY).");
+            }
+            $m = $r['media'];
+            out(sprintf('Fotos: %d subida(s) (%.1f MB), %d sin cambios, %d borrada(s)%s.', $m['subidas'], $m['bytes'] / 1048576, $m['ya_estaban'], $m['borradas'],
+                $m['no_borradas'] > 0 ? ", {$m['no_borradas']} sin permiso para borrar" : ''));
+            $heartbeatData = ['subidas' => count($r['subidas']), 'fotos' => $m['subidas']];
+            break;
+
+        case 'backup:remotas':
+            $list = (new App\Services\Backup\OffsiteBackup())->remote();
+            out($list === [] ? 'No hay copias fuera del servidor.' : count($list) . ' copia(s) fuera del servidor:');
+            foreach ($list as $c) {
+                out(sprintf('  %s  %.1f MB  %s', $c['nombre'], $c['bytes'] / 1048576, $c['fecha']));
+            }
+            break;
+
+        case 'backup:traer':
+            $name = isset($flags[0]) && !str_starts_with($flags[0], '--') ? $flags[0] : null;
+            $path = (new App\Services\Backup\OffsiteBackup())->pull($name);
+            out("Copia descargada y verificada (SHA-256): {$path}");
+            out('Siguiente paso: php bin/console backup:verificar ' . basename($path) . '  o  backup:restaurar ' . basename($path) . ' --base=<nombre>');
+            break;
+
+        case 'monitor:revisar':
+            $o = options($flags);
+            $checks = App\Services\Ops\Monitor::run($base, !isset($o['sin-certificados']));
+            $errors = count(array_filter($checks, static fn (array $c): bool => $c['nivel'] === 'error'));
+            if (isset($o['json'])) {
+                out((string) json_encode(['estado' => $errors === 0 ? 'ok' : 'error', 'revisado_en' => gmdate('Y-m-d\TH:i:s\Z'), 'puntos' => $checks], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            } elseif (!isset($o['silencioso']) || $errors > 0) {
+                out(gmdate('Y-m-d H:i:s') . ' UTC monitor:');
+                printChecks($checks, isset($o['silencioso']));
+                out($errors === 0 ? 'Todo en orden.' : "{$errors} problema(s).");
+            }
+            if (isset($o['alertar'])) {
+                $sent = App\Services\Ops\Monitor::alert($checks);
+                if ($sent !== null) {
+                    out("Alerta enviada: {$sent}");
+                } elseif ($errors > 0 && (string) Config::get('ops.alert_email', '') === '') {
+                    out('Aviso: MONITOR_EMAIL vacío; no se envió ninguna alerta.');
+                }
+            }
+            if ($errors > 0) {
+                exit(1);
+            }
+            break;
+
+        case 'mantenimiento:activar':
+            $o = options($flags);
+            App\Services\Ops\Maintenance::enable((string) ($o['motivo'] ?? 'actualizacion'), (int) ($o['reintentar'] ?? 60));
+            out('API en mantenimiento: responde 503 hasta ejecutar mantenimiento:desactivar.');
+            break;
+
+        case 'mantenimiento:desactivar':
+            App\Services\Ops\Maintenance::disable();
+            out('Mantenimiento desactivado: la API vuelve a atender.');
+            break;
+
+        case 'mantenimiento:estado':
+            $st = App\Services\Ops\Maintenance::status();
+            out($st === null ? 'La API está atendiendo (sin mantenimiento).' : "En mantenimiento desde {$st['desde']} ({$st['motivo']}).");
+            break;
+
+        case 'logs:purge':
+            $r = App\Services\Ops\LogPurge::run();
+            out("Eliminados {$r['borrados']} registro(s) de la aplicación de más de {$r['dias']} días.");
+            $heartbeatData = ['borrados' => $r['borrados']];
+            break;
+
+        case 'plataforma:superadmin':
+            $email = isset($flags[0]) && !str_starts_with($flags[0], '--') ? $flags[0] : '';
+            if ($email === '') {
+                fail('Uso: php bin/console plataforma:superadmin correo@dominio [--nombre="Nombre"] [--apellidos="Apellidos"]');
+            }
+            $o = options(array_slice($flags, 1));
+            $r = App\Services\Platform\PlatformAdmin::ensure($email, (string) ($o['nombre'] ?? 'Administrador'), isset($o['apellidos']) ? (string) $o['apellidos'] : null);
+            if ($r['creado']) {
+                out("Cuenta de superadministrador creada para {$email}.");
+                out("Contraseña temporal (se muestra una sola vez): {$r['clave']}");
+                out('Entra en el panel de la plataforma y cámbiala en Mi cuenta → Contraseña.');
+            } else {
+                out("{$email} ahora es superadministrador de la plataforma.");
+            }
+            break;
+
+        case 'despliegue:verificar':
+            $o = options($flags);
+            out('Revisión previa al despliegue (' . (string) Config::get('app.env') . '):');
+            $errors = printChecks(App\Services\Ops\Preflight::run($base, !isset($o['sin-dns'])));
+            out($errors === 0 ? 'Lista para publicar.' : "{$errors} error(es): la versión no se publica.");
+            if ($errors > 0) {
+                exit(1);
+            }
+            break;
+
+        case 'despliegue:config':
+            $o = options($flags);
+            $dest = (string) ($o['salida'] ?? '');
+            if ($dest === '' || $dest === '1') {
+                fail('Indica la carpeta de destino: --salida=/ruta (ver docs/DESPLIEGUE.md).');
+            }
+            unset($o['salida']);
+            $files = App\Services\Ops\DeployConfig::generate(dirname($base) . '/infrastructure', $dest, $o);
+            out('Configuración generada en ' . $dest . ':');
+            foreach ($files as $f) {
+                out("  {$f}");
+            }
+            break;
+
+        case 'despliegue:frontend':
+            $o = options($flags);
+            $www = (string) ($o['www'] ?? dirname($base) . '/frontend/www');
+            $release = (string) ($o['version'] ?? gmdate('YmdHis'));
+            $api = rtrim((string) Config::get('app.url'), '/') . '/api/v1';
+            $r = App\Services\Ops\FrontendBuild::apply($www, $api, $release);
+            out("Frontend listo: API {$r['api']} · service worker {$r['version']}.");
+            break;
+
         default:
             out(trim((string) preg_replace('/^.*?\/\*\*|\*\/.*$/s', '', (string) file_get_contents(__FILE__))));
+            $heartbeat = false;
+    }
+    if ($heartbeat) {
+        App\Services\Ops\Heartbeat::record($command, $heartbeatData);
     }
 } catch (Throwable $e) {
     fail($e->getMessage());

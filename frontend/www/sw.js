@@ -13,7 +13,7 @@
  * Al publicar una versión nueva, sube VERSION: el navegador instala el worker nuevo, vuelve a
  * descargar el núcleo y borra las cachés anteriores.
  */
-const VERSION = 'fase14-v6';
+const VERSION = 'fase15-v1';
 const CORE = `barberapp-core-${VERSION}`;
 const RUNTIME = `barberapp-runtime-${VERSION}`;
 const RUNTIME_MAX = 120;
@@ -25,7 +25,7 @@ const CORE_FILES = [
   'offline.html',
   'manifest.webmanifest',
   'css/tokens.css', 'css/base.css', 'css/auth.css', 'css/app.css',
-  'js/app.js', 'js/api.js', 'js/config.js', 'js/runtime-config.js', 'js/native.js', 'js/shell.js',
+  'js/app.js', 'js/api.js', 'js/config.js', 'js/runtime-config.js', 'js/site-config.js', 'js/native.js', 'js/shell.js',
   'js/ui.js', 'js/icons.js', 'js/auth.js', 'js/marketplace.js', 'js/avisos.js',
   'assets/fonts/manrope-latin-wght-normal.woff2', 'assets/fonts/manrope-latin-ext-wght-normal.woff2',
   'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/favicon.svg',

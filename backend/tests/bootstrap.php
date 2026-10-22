@@ -26,6 +26,12 @@ Config::set('app.log_path', sys_get_temp_dir() . '/barberapp-test-logs');
 // Pruebas: correo en memoria y clave de firma propia (nunca la de .env).
 Config::set('mail.driver', 'array');
 Config::set('auth.key', 'base64:' . base64_encode(str_repeat('k', 32)));
+// Fase 15: token de /health/operacion fijo (la matriz de acceso no depende del .env local) y
+// latidos/mantenimiento en una carpeta temporal, nunca en storage/ del proyecto.
+Config::set('ops.token', 'token-de-monitoreo-de-pruebas');
+Config::set('ops.heartbeat_path', sys_get_temp_dir() . '/barberapp-test-latidos');
+Config::set('ops.maintenance_file', sys_get_temp_dir() . '/barberapp-test-mantenimiento.json');
+@unlink(sys_get_temp_dir() . '/barberapp-test-mantenimiento.json');
 date_default_timezone_set('UTC');
 
 $testDb = (string) (Env::get('DB_TEST_DATABASE') ?: 'barberapp_test');

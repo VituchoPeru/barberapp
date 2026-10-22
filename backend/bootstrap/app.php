@@ -9,6 +9,7 @@ use App\Core\Router;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\HttpsMiddleware;
 use App\Middleware\JsonBodyMiddleware;
+use App\Middleware\MaintenanceMiddleware;
 use App\Middleware\RequestIdMiddleware;
 use App\Middleware\SecurityHeadersMiddleware;
 use App\Middleware\WriteRateLimitMiddleware;
@@ -38,6 +39,7 @@ return new Application($router, [
     SecurityHeadersMiddleware::class,
     CorsMiddleware::class,
     HttpsMiddleware::class,
+    MaintenanceMiddleware::class,
     JsonBodyMiddleware::class,
     WriteRateLimitMiddleware::class,
 ]);
