@@ -75,6 +75,10 @@ final class BookingPolicyController extends BaseController
     public function destroy(Request $request): Response
     {
         $sucursalId = (int) $request->param('sucursal_id');
+        // Una sucursal ajena o inexistente responde 404 (antes: 204 sin efecto). Detectado en la Fase 14.
+        if ((new \App\Repositories\BranchRepository((int) $this->tenant($request)['id']))->find($sucursalId) === null) {
+            throw new NotFoundException('Sucursal no encontrada.');
+        }
         if ($this->repo($request)->deletePolicy($sucursalId)) {
             Audit::record('politica_reserva.eliminada', 'exito', $request, null, null, 'politicas_reserva', $sucursalId);
         }

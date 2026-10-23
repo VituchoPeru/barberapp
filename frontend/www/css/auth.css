@@ -8,6 +8,7 @@
 }
 .auth__card {
   width: 100%;
+  grid-template-columns: minmax(0, 1fr); /* sin esto, un contenido ancho estiraba la tarjeta en 320 px */
   max-width: 420px;
   display: grid;
   gap: var(--space-6);
@@ -19,7 +20,10 @@
 .auth__lead { margin: calc(-1 * var(--space-4)) 0 0; color: var(--text-muted); }
 
 .form { display: grid; gap: var(--space-4); }
-.field { display: grid; gap: var(--space-1); }
+/* Safari suma al ancho de la página el texto interno de un <select> o un <input> aunque el control
+   lo recorte (la opción más larga, un valor largo): el campo recorta en horizontal. El relleno de
+   4px compensado con margen deja ver el anillo de foco. */
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1); overflow-x: clip; padding-inline: 4px; margin-inline: -4px; }
 .field label { font-size: .875rem; font-weight: 600; }
 .hint { margin: 0; font-size: .8rem; color: var(--text-muted); }
 .input, .field input, .field select {

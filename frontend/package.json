@@ -15,7 +15,9 @@
     "android": "node scripts/configurar.mjs && cap sync android && cap open android",
     "ios": "node scripts/configurar.mjs && cap sync ios && cap open ios",
     "android:apk": "node scripts/configurar.mjs && cap sync android && cd android && ./gradlew assembleDebug",
-    "android:aab": "node scripts/configurar.mjs --produccion && cap sync android && cd android && ./gradlew bundleRelease"
+    "android:aab": "node scripts/configurar.mjs --produccion && cap sync android && cd android && ./gradlew bundleRelease",
+    "e2e": "playwright test --project=chrome-escritorio --project=android-pixel-7 --project=pantalla-pequena-320 --project=tablet-galaxy-tab --project=tablet-horizontal",
+    "e2e:todos": "playwright test"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.3",
+    "@playwright/test": "1.56.1",
     "sharp": "0.35.5"
   }
 }

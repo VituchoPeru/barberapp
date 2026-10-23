@@ -17,10 +17,10 @@ use App\Services\Booking\BookingPresenter;
 final class PanelBookingPresenter
 {
     /** Minutos antes del inicio desde los que se puede registrar inicio o fin de la atención. */
-    public const ATENCION_ANTICIPADA_MIN = 30;
+    public const ATENCION_ANTICIPADA_MIN = \App\Services\Booking\BookingRules::ATENCION_ANTICIPADA_MIN;
 
     /** Días durante los que se puede corregir "atendida" ↔ "no asistió". */
-    public const DIAS_CORRECCION = 7;
+    public const DIAS_CORRECCION = \App\Services\Booking\BookingRules::DIAS_CORRECCION;
 
     /**
      * @param array<string, mixed>       $r        fila de AgendaRepository

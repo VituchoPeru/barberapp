@@ -277,7 +277,7 @@ function showError(title, text, retry = false) {
   $('[data-info]').innerHTML = '';
   $('[data-error]').hidden = false;
   $('[data-error]').innerHTML = `<div class="section">${emptyHtml('store', title, text,
-    retry ? '<button class="btn" type="button" data-reload>Reintentar</button>' : `<a class="btn" href="${page('explorar.html')}">Explorar barberías</a>`)}</div>`;
+    retry ? '<button class="btn" type="button" data-reload>Reintentar</button>' : `<a class="btn" href="${page('explorar.html')}">Explorar barberías</a>`, 1)}</div>`;
 }
 
 load();

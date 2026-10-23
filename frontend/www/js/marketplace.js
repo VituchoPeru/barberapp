@@ -74,8 +74,10 @@ export function cardHtml(b, { mini = false } = {}) {
 
 export const skeletonCards = (n = 6, mini = false) => Array.from({ length: n }, () => `<div class="sk ${mini ? 'sk--mini' : 'sk--card'}" aria-hidden="true"></div>`).join('');
 
-export function emptyHtml(iconName, title, text, actionHtml = '') {
-  return `<div class="empty">${icon(iconName)}<h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p>${actionHtml}</div>`;
+/** Estado vacío o de error. level = 1 cuando reemplaza a toda la pantalla (es su título principal). */
+export function emptyHtml(iconName, title, text, actionHtml = '', level = 2) {
+  const h = level === 1 ? 'h1' : 'h2';
+  return `<div class="empty">${icon(iconName)}<${h}>${escapeHtml(title)}</${h}><p>${escapeHtml(text)}</p>${actionHtml}</div>`;
 }
 
 let toastTimer;

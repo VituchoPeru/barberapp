@@ -16,6 +16,9 @@
 .filters .field { flex: 1 1 150px; min-width: 0; }
 .filters .field--grow { flex: 2 1 240px; }
 .filters select, .filters input { width: 100%; min-height: 44px; }
+/* El interruptor conserva su tamaño: el 100% de arriba lo estiraba fuera de la pantalla (Fase 14). */
+.filters .switch { min-height: 44px; }
+.filters .switch input { width: 52px; min-height: 30px; }
 
 .chips-sum { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .chips-sum button { display: inline-flex; gap: 6px; align-items: center; min-height: 34px; padding: 0 12px; font: inherit; font-size: .82rem; font-weight: 700; color: var(--text-muted); background: var(--surface); border: 1px solid #2E2E32; border-radius: 999px; cursor: pointer; }

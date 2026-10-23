@@ -7,7 +7,11 @@ namespace Tests\Integration\Security;
 use App\Core\Config;
 use Tests\Integration\Auth\ApiTestCase;
 
-/** HTTPS obligatorio, proxies de confianza, Origin, límite de escrituras y cabeceras (Fase 13). */
+/**
+ * HTTPS obligatorio, proxies de confianza, Origin, límite de escrituras y cabeceras (Fase 13).
+ *
+ * @group seguridad
+ */
 final class HttpHardeningTest extends ApiTestCase
 {
     /** @var array<string, mixed> */

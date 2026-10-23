@@ -1,0 +1,107 @@
+# Control de calidad de BARBERAPP (Fase 14). Corre en cada push y pull request.
+# Ningún cambio se fusiona con pruebas críticas en rojo (ver docs/PRUEBAS.md).
+name: Calidad
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calidad-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend PHP ${{ matrix.php }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.3']
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, mbstring, gd, zip, intl, openssl
+          coverage: none
+      - name: Lector de QR para las pruebas del generador
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zbar-tools
+      - run: composer install --no-interaction --no-progress
+      - name: Configurar .env de pruebas
+        run: |
+          cp .env.example .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/; s/^DB_PASSWORD=.*/DB_PASSWORD=root/' .env
+          php bin/console key:generate
+      - name: Sintaxis (php -l)
+        run: composer lint --quiet
+      - name: Pruebas unitarias
+        run: vendor/bin/phpunit --testsuite unit
+      - name: Pruebas de integración, seguridad y concurrencia
+        run: vendor/bin/phpunit --testsuite integration
+
+  frontend:
+    name: Frontend y E2E (Chrome, Android, Safari, Firefox)
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, gd, zip, intl, openssl
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Backend para las pruebas
+        working-directory: backend
+        run: |
+          composer install --no-interaction --no-progress --no-dev
+          cp .env.example .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/; s/^DB_PASSWORD=.*/DB_PASSWORD=root/' .env
+          php bin/console key:generate
+      - run: npm ci
+        working-directory: frontend
+      - name: PWA (manifest, service worker, sin scripts en línea)
+        run: npm run verificar
+        working-directory: frontend
+      - name: Navegadores
+        run: npx playwright install --with-deps chromium webkit firefox
+        working-directory: frontend
+      - name: E2E en todos los dispositivos
+        run: npm run e2e:todos
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: informe-e2e
+          path: |
+            frontend/e2e-informe
+            frontend/e2e-resultados
+          retention-days: 7
