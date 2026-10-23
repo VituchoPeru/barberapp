@@ -9,18 +9,43 @@ use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
 use App\Helpers\Clock;
+use App\Services\Ops\Monitor;
 use Throwable;
 
 /**
  * Verificación de salud.
  *   GET /api/v1/health       → app + base de datos + migraciones (503 si la BD falla)
  *   GET /api/v1/health/live  → solo confirma que PHP responde (sin tocar la BD)
+ *   GET /api/v1/health/operacion (Fase 15) → monitor:revisar para monitores externos, con
+ *       Authorization: Bearer MONITOR_TOKEN; 503 si hay algún problema. Sin token configurado, 404.
  */
 final class HealthController extends BaseController
 {
     public function live(Request $request): Response
     {
         return $this->ok(['status' => 'ok', 'time_utc' => Clock::nowUtc()->format('Y-m-d\TH:i:s\Z')]);
+    }
+
+    public function operation(Request $request): Response
+    {
+        $token = (string) Config::get('ops.token', '');
+        if ($token === '') {
+            return Response::error(404, 'not_found', 'Recurso no encontrado.');
+        }
+        $given = (string) ($request->bearerToken() ?? '');
+        if ($given === '' || !hash_equals(hash('sha256', $token), hash('sha256', $given))) {
+            return Response::error(401, 'unauthenticated', 'Token de monitoreo inválido.');
+        }
+        $checks = Monitor::run(dirname(__DIR__, 2), $request->query('certificados') === '1');
+        $problems = array_values(array_filter($checks, static fn (array $c): bool => $c['nivel'] === 'error'));
+        $response = Response::success([
+            'status' => $problems === [] ? 'ok' : 'error',
+            'time_utc' => Clock::nowUtc()->format('Y-m-d\TH:i:s\Z'),
+            'problemas' => count($problems),
+            'puntos' => $checks,
+        ], $problems === [] ? 200 : 503);
+        $response->setHeader('Cache-Control', 'no-store');
+        return $response;
     }
 
     public function show(Request $request): Response
@@ -54,6 +79,7 @@ final class HealthController extends BaseController
 
         $data = [
             'status' => $healthy ? 'ok' : 'degraded',
+            'maintenance' => \App\Services\Ops\Maintenance::status() !== null,
             'app' => Config::get('app.name'),
             'version' => Config::get('app.version'),
             'environment' => Config::get('app.env'),

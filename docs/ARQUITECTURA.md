@@ -73,7 +73,8 @@ barberapp/
 │   ├── .env.example
 │   └── composer.json
 ├── frontend/www/          ← HTML/CSS/JS compartido (web, PWA, Capacitor)
-├── infrastructure/        ← configuración Apache/XAMPP
+├── infrastructure/        ← plantillas Nginx/Apache, PHP-FPM, cron, systemd, logrotate; scripts de
+│                             instalación, despliegue y rollback (Fase 15); XAMPP
 └── docs/                  ← arquitectura, modelo ER, diccionario, decisiones
 ```
 

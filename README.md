@@ -22,7 +22,8 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 | 12 | PWA, Android e iOS: instalación, service worker, modo sin conexión, app con Capacitor (sesión segura, push, descargas, enlaces directos) y guía de compilación y tiendas | ✅ Terminada |
 | 13 | Seguridad y protección de datos: HTTPS, CORS y CSP, límites, eliminar cuenta, descargar mis datos, derechos ARCO, textos legales, copias cifradas con restauración probada y retención (Ley 29733) | ✅ Terminada |
 | 14 | Pruebas y control de calidad: reglas de estado unitarias, matriz de acceso rol × ruta, CSRF, inyección SQL, XSS y acceso a recursos ajenos en todas las rutas, flujo de punta a punta, E2E en 9 dispositivos/navegadores e integración continua | ✅ Terminada |
-| 15+ | Despliegue y producción, documentación final | Pendiente |
+| 15 | Despliegue y producción: instalador para VPS (Nginx o Apache, PHP-FPM, MySQL, HTTPS), configuración generada desde `.env`, cron y worker permanente, copias fuera del servidor (S3 compatible), registros, monitoreo con alertas, despliegue sin corte con mantenimiento y rollback automático | ✅ Terminada |
+| 16+ | Documentación final | Pendiente |
 
 ## Documentación
 
@@ -42,6 +43,7 @@ Plataforma SaaS multiempresa de reservas para barberías: marketplace, enlace di
 - [Reportes y analítica](docs/REPORTES.md) (demanda por hora, productividad, recurrencia, previsto frente a cobrado, CSV, Excel y PDF)
 - [PWA, Android e iOS](docs/APPS_MOVILES.md) (service worker, instalación, compilación, firma, push, enlaces y reglas de pago de las tiendas)
 - [Pruebas y control de calidad](docs/PRUEBAS.md) (cómo correrlas, matriz de pruebas, E2E por dispositivo, integración continua)
+- [Despliegue y producción](docs/DESPLIEGUE.md) (VPS, dominios, HTTPS, cron y worker, copias fuera del servidor, monitoreo, actualizar y rollback)
 - [Matriz de acceso por rol](docs/MATRIZ_ACCESO.md) (generada por las pruebas)
 - [Registro de decisiones técnicas](docs/DECISIONES.md)
 - Script SQL completo: [`backend/database/schema.sql`](backend/database/schema.sql)
@@ -284,6 +286,10 @@ Resultado al cerrar la Fase 13: **362 pruebas OK en PHP 8.3** (1 omitida); en **
 Desde la Fase 14 hay una suite de control de calidad completa (guía y matriz en [PRUEBAS.md](docs/PRUEBAS.md)): reglas de estado y políticas de reserva como unitarias puras, flujo de punta a punta solo por la API, y pruebas de seguridad que recorren **todas** las rutas (matriz de acceso de 7 roles aprobada en [MATRIZ_ACCESO.md](docs/MATRIZ_ACCESO.md), CSRF, más de 1 500 peticiones con cargas de inyección SQL y acceso a recursos ajenos por id). `vendor/bin/phpunit --group seguridad` y `--group concurrencia` las corren por separado. El frontend tiene E2E con Playwright (`cd frontend && npm run e2e`, ver la guía) y GitHub Actions corre todo en cada PR.
 
 Resultado al cerrar la Fase 14: **384 pruebas OK en PHP 8.3**; en **PHP 8.0** pasan todas y se omiten 8 (sin GD, zbar ni zip). E2E: **300/300** en Chromium (escritorio, Android, pantalla de 320 px, tablet vertical y horizontal: 58 pantallas con cada rol más el flujo de reserva). Safari (WebKit) y Firefox están configurados y corren en GitHub Actions; en este entorno no hay esos navegadores instalados, así que **no se ejecutaron aquí**.
+
+Desde la Fase 15 hay un camino completo a producción ([DESPLIEGUE.md](docs/DESPLIEGUE.md)): `infrastructure/scripts/instalar-vps.sh` deja un VPS Ubuntu listo con HTTPS, `desplegar.sh` publica cada versión (revisión previa, mantenimiento y copia si hay migraciones, vuelta atrás automática si falla la salud) y `rollback.sh` vuelve a la anterior. Comandos nuevos: `despliegue:verificar`, `despliegue:config`, `monitor:revisar`, `backup:enviar`, `backup:remotas`, `backup:traer`, `mantenimiento:activar|desactivar|estado`, `logs:purge` y `plataforma:superadmin`.
+
+Resultado al cerrar la Fase 15: **412 pruebas OK en PHP 8.3** (1 omitida). Instalación completa, actualización con migración, rollback de código y de base, y vuelta atrás automática probadas en un servidor Ubuntu 24.04 de prueba con Nginx y con Apache; copias externas probadas contra un simulador de S3. Let's Encrypt real, un proveedor S3 real y systemd fuera de la CI quedan para el servidor de producción (ver [DESPLIEGUE.md](docs/DESPLIEGUE.md#17-qué-se-probó-y-qué-no)).
 
 > **Al actualizar una instalación existente:** ejecuta `php bin/console migrate`. Aplica `0011_panel_barberia.sql` (cobros y permiso `reservas.cobrar`, ya asignado a propietarios y administradores), `0012_panel_barbero.sql` (comentario y fecha de respuesta de las solicitudes de ausencia) `0013_recordatorios.sql` (registro de envíos, permiso `notificaciones.gestionar` y preferencias por categoría) `0014_superadmin_saas.sql` (barberías demo, bloqueo de cuentas, historial de suscripciones) `0015_planes_monetizacion.sql` (órdenes de pago, cambios programados, restricción y permiso `negocio.suscripcion.gestionar`) y `0016_seguridad_datos.sql` (solicitudes de derechos ARCO, versión de los textos aceptados, cambio de correo y permiso `plataforma.privacidad.gestionar`). Para el pago en línea configura `PAYMENT_DRIVER` y las claves de Mercado Pago (ver [MONETIZACION.md](docs/MONETIZACION.md#configuración-backendenv)). Desde la Fase 9 ejecuta también `php bin/console db:seed` (agrega el rol `operador`; es idempotente). Programa el cron de `notificaciones:procesar`, `suscripciones:vencer` y, desde la Fase 13, `backup:crear`, `backup:verificar` y `privacidad:retencion` (ver [SEGURIDAD.md](docs/SEGURIDAD.md#7-copias-de-seguridad)).
 

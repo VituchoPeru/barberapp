@@ -47,6 +47,7 @@ return static function (Router $router): void {
     $router->group('/api/v1', static function (Router $r): void {
         $r->get('/health', [HealthController::class, 'show'], [], 'health');
         $r->get('/health/live', [HealthController::class, 'live'], [], 'health.live');
+        $r->get('/health/operacion', [HealthController::class, 'operation'], [], 'health.operation');
 
         // ---------------- Textos legales y responsable del tratamiento (Fase 13): público
         $r->get('/legal', [LegalController::class, 'show'], [], 'legal');

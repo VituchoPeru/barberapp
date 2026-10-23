@@ -150,6 +150,8 @@ final class CatalogSeeder
     private function planes(): void
     {
         // Precios referenciales del documento de negocio; editables desde el panel SaaS (Fases 9 y 10).
+        // Un plan que ya existe no se toca: cada despliegue ejecuta db:seed (Fase 15) y no debe
+        // deshacer lo que la plataforma cambió en el panel.
         $planes = [
             ['basico', 'Básico', 'Para barberías que inician: una sucursal y equipo pequeño.', '39.00', '390.00', 14, 1, 3,
                 ['reportes_avanzados' => false, 'personalizacion' => false, 'canales' => ['push', 'interna']], 1],
@@ -161,7 +163,7 @@ final class CatalogSeeder
         $stmt = $this->db->prepare(
             'INSERT INTO planes (codigo, nombre, descripcion, precio_mensual, precio_anual, dias_prueba, max_sucursales, max_barberos, caracteristicas, orden)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE nombre = VALUES(nombre)'
+             ON DUPLICATE KEY UPDATE codigo = codigo'
         );
         foreach ($planes as $p) {
             $p[8] = json_encode($p[8], JSON_UNESCAPED_UNICODE);
