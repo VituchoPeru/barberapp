@@ -169,7 +169,9 @@ info "Base $DB_NAME y usuario $DB_USER listos (la prueba de restauración usa ${
 
 # ------------------------------------------------------------------ 4. configuración del despliegue
 if [ "$HAY_SYSTEMD" = 1 ]; then
-  RECARGAR_PHP="systemctl reload $FPM_SERVICE"; REINICIAR_WORKER="systemctl restart barberapp-worker"; WORKER=systemd
+  RECARGAR_PHP="systemctl reload $FPM_SERVICE"; WORKER=systemd
+  # El servicio se instala después de la primera publicación (paso 8): hasta entonces no hay nada que reiniciar.
+  REINICIAR_WORKER="if systemctl cat barberapp-worker >/dev/null 2>&1; then systemctl restart barberapp-worker; fi"
 else
   RECARGAR_PHP="service $FPM_SERVICE reload"; REINICIAR_WORKER=""; WORKER=cron
 fi

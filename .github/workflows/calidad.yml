@@ -153,5 +153,5 @@ jobs:
       - name: Registros si falla
         if: failure()
         run: |
-          sudo tail -n 100 /var/log/barberapp/*.log || true
+          sudo sh -c 'tail -n 100 /var/log/barberapp/*.log' || true
           sudo journalctl -u barberapp-worker -n 50 --no-pager || true
