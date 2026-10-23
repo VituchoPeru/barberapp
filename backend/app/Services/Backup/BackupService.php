@@ -256,11 +256,12 @@ final class BackupService
     // ================================================================== restaurar
 
     /**
-     * Ejecuta la copia en la base $database (se crea si no existe). Devuelve el manifiesto.
+     * Ejecuta la copia en la base $database (se crea si no existe). Con $clean borra antes todas
+     * sus tablas, también las que no están en la copia. Devuelve el manifiesto.
      *
      * @return array{manifiesto: array<string, int>, sentencias: int}
      */
-    public function restore(string $file, string $database): array
+    public function restore(string $file, string $database, bool $clean = false): array
     {
         if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $database)) {
             throw new RuntimeException('Nombre de base inválido.');
@@ -271,6 +272,11 @@ final class BackupService
             $server = Database::connect($cfg, false);
             $server->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
             $db = Database::connect(['database' => $database] + $cfg);
+            if ($clean) {
+                // Volver a una versión anterior (rollback de la Fase 15): las tablas que creó una
+                // migración posterior a la copia no deben quedar sueltas.
+                (new \App\Core\Migrator($db, ''))->dropAllTables();
+            }
             $gz = gzopen($sql['path'], 'rb');
             if ($gz === false) {
                 throw new RuntimeException('No se pudo leer la copia.');

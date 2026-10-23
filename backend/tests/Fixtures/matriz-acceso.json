@@ -17,6 +17,15 @@
         "operador": "S",
         "superadmin": "S"
     },
+    "health.operation": {
+        "anonimo": "L",
+        "cliente": "L",
+        "barbero": "L",
+        "administrador": "L",
+        "propietario": "L",
+        "operador": "L",
+        "superadmin": "L"
+    },
     "legal": {
         "anonimo": "S",
         "cliente": "S",

@@ -41,6 +41,7 @@ npx playwright test --project=android-pixel-7 -g reserva   # un dispositivo / un
 | Backend PHP 8.0 | `php -l`, unitarias, integración (incluye seguridad y concurrencia) sobre MySQL 8.0 |
 | Backend PHP 8.3 | lo mismo con la versión de producción recomendada |
 | Frontend y E2E | `npm run verificar` y `npm run e2e:todos` (Chromium, WebKit y Firefox); si falla, sube capturas y trazas como artefacto `informe-e2e` |
+| Despliegue (Fase 15) | `shellcheck` de los scripts; `instalar-vps.sh` completo en el runner limpio (Nginx, PHP-FPM, MySQL, systemd, certificado propio), salud, `desplegar.sh` y `rollback.sh` |
 
 ## 2. Matriz de pruebas
 
@@ -106,6 +107,16 @@ Cada dispositivo recorre **todas las pantallas** (58 visitas, con la cuenta que 
 | Firefox escritorio | `firefox-escritorio` | CI |
 
 La app nativa (Android/iOS con Capacitor) usa el mismo frontend dentro de la WebView del sistema (Chromium en Android, WebKit en iOS). Su prueba en dispositivos reales está en [APPS_MOVILES.md](APPS_MOVILES.md): requiere Android Studio y Xcode.
+
+### Despliegue y operación (Fase 15)
+
+| Qué | Dónde |
+|---|---|
+| Plantillas: marcadores desconocidos, URLs sin https o con ruta, dominios repetidos, carpetas dentro de una versión, IPv6, IPs de la plataforma, Apache y Nginx | `Unit/DeployUnitTest.php` |
+| Firma SigV4 contra los ejemplos oficiales de AWS, codificación de claves y consultas | `Unit/DeployUnitTest.php` |
+| Frontend: URL de la API y versión del service worker por despliegue | `Unit/DeployUnitTest.php` |
+| Copias fuera: solo cifradas, SHA-256, rotación con `BACKUP_REMOTE_KEEP`, fotos incrementales y borradas, clave sin permiso de borrar, traer y verificar | `Integration/Ops/OffsiteBackupTest.php` (doble de S3; con `BARBERAPP_S3_PRUEBA_ENDPOINT` también contra un S3 real o simulado) |
+| Mantenimiento (503 y `/health/live`), `/health/operacion` con y sin token, latidos, alertas con repetición y resolución, purga de registros, superadministrador, `db:seed` que no pisa planes | `Integration/Ops/OperationsTest.php` |
 
 ## 3. Hallazgos de la Fase 14
 
