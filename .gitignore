@@ -23,6 +23,7 @@ backend/public/media/tenants/
 backend/storage/push/*.log
 backend/storage/cache/*.json
 backend/storage/cache/*.lock
+backend/storage/cache/latidos/
 # Cuentas de servicio de Firebase: nunca al repositorio
 *firebase-adminsdk*.json
 

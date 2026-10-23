@@ -207,6 +207,8 @@ tail -f /var/log/barberapp/cron.log    # salida del cron
 
 ## 10. Copias de seguridad
 
+> El procedimiento completo (calendario, comprobaciones, recuperación puntual, total y de desastre, clave y responsables) está en [BACKUPS.md](BACKUPS.md). Aquí queda la configuración del servidor.
+
 Hay tres capas:
 
 1. **En el servidor** (Fase 13): `backup:crear` cada día, cifrada con AES-256-GCM, 14 copias en `/var/backups/barberapp`.

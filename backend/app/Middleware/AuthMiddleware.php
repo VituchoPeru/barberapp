@@ -35,6 +35,12 @@ final class AuthMiddleware implements MiddlewareInterface
     {
     }
 
+    /** true si la ruta funciona también sin sesión (para la documentación). */
+    public function isOptional(): bool
+    {
+        return $this->optional;
+    }
+
     public function handle(Request $request, callable $next): Response
     {
         $sessions = new SessionRepository();

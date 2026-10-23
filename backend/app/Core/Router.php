@@ -181,6 +181,19 @@ final class Router
         return $result;
     }
 
+    /**
+     * Rutas con su controlador y middleware (para generar la documentación OpenAPI).
+     *
+     * @return list<array{method:string, path:string, name:?string, handler:mixed, middleware:list<mixed>}>
+     */
+    public function definitions(): array
+    {
+        return array_map(
+            static fn (array $r): array => ['method' => $r['method'], 'path' => $r['path'], 'name' => $r['name'], 'handler' => $r['handler'], 'middleware' => $r['middleware']],
+            $this->routes
+        );
+    }
+
     /** @return list<array{method:string, path:string, name:?string}> */
     public function routes(): array
     {
