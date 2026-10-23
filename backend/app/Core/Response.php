@@ -52,13 +52,14 @@ final class Response
         return self::json(['ok' => false, 'error' => $error], $status);
     }
 
+    public const JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_HEX_TAG;
+
     /** @param mixed $payload */
     public static function json($payload, int $status = 200): self
     {
-        $body = json_encode(
-            $payload,
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR
-        );
+        // JSON_HEX_TAG: < y > salen como \u003C/\u003E. Aunque alguien abra la respuesta como HTML,
+        // un texto guardado con etiquetas no se interpreta (defensa adicional a nosniff; Fase 14).
+        $body = json_encode($payload, self::JSON_FLAGS | JSON_THROW_ON_ERROR);
         return new self($body, $status, ['Content-Type' => 'application/json; charset=utf-8']);
     }
 
@@ -148,10 +149,7 @@ final class Response
         $data = $this->decoded();
         if ($data !== null && array_key_exists('ok', $data)) {
             $data['meta'] = array_merge($data['meta'] ?? [], ['request_id' => $requestId]);
-            $this->body = (string) json_encode(
-                $data,
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION
-            );
+            $this->body = (string) json_encode($data, self::JSON_FLAGS);
         }
         return $this;
     }

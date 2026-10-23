@@ -164,6 +164,7 @@ El reglamento (art. 34) obliga a notificar a la ANPD un incidente que afecte dat
 - `tests/Integration/Privacy/`: eliminación de cuenta (citas canceladas y horario liberado, anonimización, bloqueos, sesión cerrada, correo reutilizable), exportación (contenido, sin datos de otros ni hashes, contraseña y límite), perfil, contraseña, correo, aceptación de textos, solicitudes ARCO (plazos en días hábiles, bandeja, respuesta, permisos) y retención.
 - `tests/Integration/Security/`: HTTPS forzado, proxies de confianza, origen no autorizado, límite general de escrituras, cabeceras; copias (cifrado, alteración detectada, restauración idéntica, rotación, verificación).
 - `tests/Unit/SecurityUnitTest.php`: rangos CIDR, días hábiles y feriados.
+- Desde la Fase 14: matriz de acceso, CSRF, inyección SQL, XSS y recursos ajenos en todas las rutas; ver [PRUEBAS.md](PRUEBAS.md).
 - E2E en Chromium (web y app simulada): páginas legales con datos faltantes y completos, edición de perfil y XSS, cambio de contraseña y correo, descarga de datos (descarga en web, hoja Compartir en la app), solicitudes y respuesta del equipo, aceptación de textos nuevos, bloqueo del único propietario y eliminación de la cuenta.
 
 ## 12. Limitaciones conocidas

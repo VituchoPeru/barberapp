@@ -10,7 +10,11 @@ use App\Services\Backup\BackupService;
 use RuntimeException;
 use Tests\Integration\DatabaseTestCase;
 
-/** Copias de seguridad cifradas y prueba de restauración (Fase 13). */
+/**
+ * Copias de seguridad cifradas y prueba de restauración (Fase 13).
+ *
+ * @group seguridad
+ */
 final class BackupTest extends DatabaseTestCase
 {
     private string $dir;

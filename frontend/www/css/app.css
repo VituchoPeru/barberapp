@@ -167,7 +167,7 @@
   text-align: center; background: var(--surface); border: 1px dashed #34343A; border-radius: var(--radius-lg);
 }
 .empty .icon { width: 40px; height: 40px; color: var(--accent); stroke-width: 1.4; }
-.empty h2, .empty h3 { margin: 0; font-size: 1.1rem; }
+.empty h1, .empty h2, .empty h3 { margin: 0; font-size: 1.1rem; }
 .empty p { margin: 0; max-width: 34ch; color: var(--text-muted); }
 .results-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .results-head p { margin: 0; font-size: .9rem; color: var(--text-muted); }
@@ -280,17 +280,18 @@ dialog.lightbox .icon-btn { position: fixed; top: 12px; right: 12px; background:
 .qr-box img { width: min(260px, 70vw); height: auto; background: #fff; border-radius: var(--radius-md); padding: 8px; }
 
 /* ---------- Reserva (selección) ---------- */
-.steps { display: grid; gap: var(--space-4); }
-.step { padding: var(--space-6); background: var(--surface); border: 1px solid #26262A; border-radius: var(--radius-lg); }
+.steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+.step { min-width: 0; padding: var(--space-6); background: var(--surface); border: 1px solid #26262A; border-radius: var(--radius-lg); }
 .step h2 { display: flex; align-items: center; gap: var(--space-3); margin: 0 0 var(--space-4); font-size: 1.05rem; }
 .step h2 b { display: inline-grid; place-items: center; width: 28px; height: 28px; font-size: .85rem; color: var(--color-negro); background: var(--accent); border-radius: 50%; }
 .step[aria-disabled="true"] { opacity: .5; }
-.options { display: grid; gap: var(--space-2); margin: 0; padding: 0; border: 0; }
-.option { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); background: var(--bg); border: 1px solid #2A2A2E; border-radius: var(--radius-md); cursor: pointer; }
+.options { display: grid; gap: var(--space-2); margin: 0; padding: 0; border: 0; min-width: 0; } /* fieldset: sin min-width 0 crece con su contenido */
+.option { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); background: var(--bg); border: 1px solid #2A2A2E; border-radius: var(--radius-md); cursor: pointer; }
 .option:has(input:checked) { border-color: var(--accent); background: rgba(201, 164, 92, .08); }
 .option:has(input:disabled) { opacity: .45; cursor: not-allowed; }
 .option input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
 .option small { display: block; color: var(--text-muted); }
+.option strong { overflow-wrap: anywhere; }
 .summary { display: grid; gap: var(--space-2); }
 .summary dl { display: grid; grid-template-columns: 1fr auto; gap: 6px var(--space-4); margin: 0; }
 .summary dt { color: var(--text-muted); }
@@ -323,7 +324,11 @@ dialog.lightbox .icon-btn { position: fixed; top: 12px; right: 12px; background:
 .onboarding__actions { display: grid; gap: var(--space-3); }
 
 /* ---------- Panel: perfil público ---------- */
-.panel-page { display: grid; gap: var(--space-6); padding: var(--space-6) 0 var(--space-8); }
+/* WebKit cuenta el texto interno de los campos y listas como desborde de la página: un nombre
+   largo en un <select> o un campo estrecho ensanchaba la agenda en Safari (Fase 14). */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select { overflow: hidden; }
+/* minmax(0, 1fr): la columna no crece con el contenido más ancho (WebKit medía de más los campos de fecha y hora). */
+.panel-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); padding: var(--space-6) 0 var(--space-8); }
 .req { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .req li { display: flex; align-items: center; gap: var(--space-2); font-size: .92rem; }
 .req li::before { content: "✓"; display: inline-grid; place-items: center; width: 22px; height: 22px; font-size: .75rem; font-weight: 800; color: var(--color-negro); background: var(--success); border-radius: 50%; }
@@ -390,8 +395,8 @@ dialog.lightbox .icon-btn { position: fixed; top: 12px; right: 12px; background:
 .badge[data-estado="cancelada"], .badge[data-estado="no_asistio"] { color: #FFB3B5; background: rgba(229, 72, 77, .14); }
 .badge[data-estado="completada"] { color: var(--accent-strong); background: rgba(201, 164, 92, .14); }
 
-.ticket { display: grid; gap: var(--space-4); padding: var(--space-6); background: linear-gradient(160deg, #22201C 0%, var(--surface) 45%); border: 1px solid rgba(201, 164, 92, .3); border-radius: var(--radius-lg); }
-.ticket__head { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-3); align-items: center; }
+.ticket { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: var(--space-4); padding: var(--space-6); background: linear-gradient(160deg, #22201C 0%, var(--surface) 45%); border: 1px solid rgba(201, 164, 92, .3); border-radius: var(--radius-lg); }
+.ticket__head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; }
 .ticket__head h2 { margin: 0; font-size: 1.05rem; }
 .ticket__head p { margin: 0; font-size: .85rem; color: var(--text-muted); }
 .ticket__when { padding: var(--space-4) 0; border-top: 1px dashed #3A3A3F; border-bottom: 1px dashed #3A3A3F; }
@@ -400,7 +405,7 @@ dialog.lightbox .icon-btn { position: fixed; top: 12px; right: 12px; background:
 .step__sub::first-letter, .sheet__sub::first-letter, .ticket__date::first-letter { text-transform: uppercase; }
 .ticket__time { margin: 2px 0 4px; font-size: 2.2rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .ticket__time span { font-size: 1.1rem; font-weight: 600; color: var(--text-muted); }
-.ticket__code { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--bg); border-radius: var(--radius-md); }
+.ticket__code { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--bg); border-radius: var(--radius-md); }
 .ticket__code span { font-size: .8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .12em; }
 .ticket__code strong { font-size: 1.25rem; letter-spacing: .18em; font-variant-numeric: tabular-nums; color: var(--accent-strong); }
 .ticket__rows { display: grid; grid-template-columns: auto 1fr; gap: 8px var(--space-4); margin: 0; font-size: .92rem; }

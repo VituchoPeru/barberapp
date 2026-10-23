@@ -32,3 +32,8 @@ backend/storage/backups/*
 !backend/storage/backups/.htaccess
 *.sql.gz
 *.sql.gz.enc
+
+# Pruebas E2E (Fase 14): sesiones, resultados e informes generados
+frontend/e2e/.auth/
+frontend/e2e-resultados/
+frontend/e2e-informe/
