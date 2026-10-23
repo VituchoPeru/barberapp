@@ -1,8 +1,17 @@
 # Diccionario de datos
 
-_Generado con `php bin/console docs:dictionary` a partir de la base de datos migrada. No editar a mano._
+_Generado con `php bin/console docs:generar` a partir de la base de datos migrada. No editar a mano._
 
-Convenciones: fechas de eventos en UTC; importes en DECIMAL(10,2); `tenant_id` identifica la barbería.
+Convenciones: fechas de eventos en UTC; importes en DECIMAL(10,2); `tenant_id` identifica la barbería. 44 tablas (más la tabla técnica `migraciones`). Diagramas: [MODELO_ER.md](MODELO_ER.md).
+
+## Índice
+
+- **Núcleo SaaS: barberías, sucursales, cuentas y roles:** [`tenants`](#tenants), [`sucursales`](#sucursales), [`horarios_sucursales`](#horarios_sucursales), [`usuarios`](#usuarios), [`roles`](#roles), [`permisos`](#permisos), [`rol_permisos`](#rol_permisos), [`membresias`](#membresias)
+- **Planes, suscripciones y cobros de la plataforma:** [`planes`](#planes), [`suscripciones`](#suscripciones), [`suscripcion_eventos`](#suscripcion_eventos), [`pagos_saas`](#pagos_saas), [`ordenes_pago`](#ordenes_pago)
+- **Catálogo y agenda de la barbería:** [`categorias_servicio`](#categorias_servicio), [`tipos_servicio`](#tipos_servicio), [`servicios`](#servicios), [`barberos`](#barberos), [`barbero_servicios`](#barbero_servicios), [`horarios_barberos`](#horarios_barberos), [`descansos_barberos`](#descansos_barberos), [`bloqueos_agenda`](#bloqueos_agenda), [`politicas_reserva`](#politicas_reserva), [`tenant_fotos`](#tenant_fotos)
+- **Clientes y reservas:** [`clientes`](#clientes), [`cliente_tenants`](#cliente_tenants), [`favoritos`](#favoritos), [`reservas`](#reservas), [`reserva_servicios`](#reserva_servicios), [`reserva_eventos`](#reserva_eventos), [`reserva_pagos`](#reserva_pagos), [`idempotency_keys`](#idempotency_keys)
+- **Avisos y notificaciones:** [`notificaciones`](#notificaciones), [`notificacion_envios`](#notificacion_envios), [`plantillas_notificacion`](#plantillas_notificacion), [`preferencias_notificacion`](#preferencias_notificacion), [`dispositivos_push`](#dispositivos_push)
+- **Seguridad, sesiones y sistema:** [`sesiones`](#sesiones), [`tokens_refresco`](#tokens_refresco), [`tokens_usuario`](#tokens_usuario), [`limites_intentos`](#limites_intentos), [`auditoria`](#auditoria), [`configuraciones`](#configuraciones), [`webhook_eventos`](#webhook_eventos), [`solicitudes_datos`](#solicitudes_datos)
 
 ## `auditoria`
 

@@ -14,7 +14,10 @@ declare(strict_types=1);
  *   php bin/console db:seed --demo     Catálogo + datos de demostración (solo local/testing)
  *   php bin/console schema:build       Regenera database/schema.sql desde las migraciones
  *   php bin/console routes             Lista las rutas registradas
- *   php bin/console docs:dictionary    Regenera docs/DICCIONARIO_DATOS.md desde la base de datos
+ *   php bin/console docs:generar       Regenera la documentación generada (Fase 16): OpenAPI, diccionario de datos,
+ *                                      diagramas ER, endpoints y errores de docs/API.md, matriz de pruebas
+ *   php bin/console docs:verificar     Comprueba que esa documentación está al día; código 1 si no (CI)
+ *   php bin/console docs:dictionary    Alias de docs:generar (nombre anterior)
  *   php bin/console key:generate       Genera APP_KEY en .env (firma de tokens; --force para reemplazarla)
  *   php bin/console auth:purge         Borra sesiones, tokens y contadores vencidos (programar en cron diario)
  *   php bin/console reservas:purge     Borra claves de idempotencia vencidas (24 h; programar en cron diario)
@@ -223,47 +226,31 @@ try {
             break;
 
         case 'docs:dictionary':
-            $pdo = Database::connection();
-            $tables = $pdo->query(
-                "SELECT table_name AS t, table_comment AS c FROM information_schema.tables
-                  WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE' ORDER BY table_name"
-            )->fetchAll();
-            $md = "# Diccionario de datos\n\n_Generado con `php bin/console docs:dictionary` a partir de la base de datos migrada. No editar a mano._\n\n";
-            $md .= "Convenciones: fechas de eventos en UTC; importes en DECIMAL(10,2); `tenant_id` identifica la barbería.\n\n";
-            $colStmt = $pdo->prepare(
-                "SELECT column_name AS n, column_type AS ty, is_nullable AS nu, column_default AS d, column_key AS k, extra AS e, column_comment AS c
-                   FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? ORDER BY ordinal_position"
-            );
-            $fkStmt = $pdo->prepare(
-                "SELECT constraint_name AS n, GROUP_CONCAT(column_name ORDER BY ordinal_position) AS cols, referenced_table_name AS rt,
-                        GROUP_CONCAT(referenced_column_name ORDER BY ordinal_position) AS rcols
-                   FROM information_schema.key_column_usage
-                  WHERE table_schema = DATABASE() AND table_name = ? AND referenced_table_name IS NOT NULL
-                  GROUP BY constraint_name, referenced_table_name ORDER BY constraint_name"
-            );
-            $esc = static fn ($v): string => str_replace(['|', "\n"], ['\\|', ' '], (string) $v);
-            foreach ($tables as $t) {
-                if ($t['t'] === 'migraciones') {
-                    continue;
+        case 'docs:generar':
+        case 'docs:verificar':
+            $gen = new \App\Services\Docs\DocsGenerator(dirname($base), Database::connection());
+            if ($command === 'docs:verificar') {
+                $stale = $gen->stale();
+                foreach ($gen->problems() as $p) {
+                    fwrite(STDERR, "PROBLEMA: {$p}" . PHP_EOL);
                 }
-                $md .= "## `{$t['t']}`\n\n" . ($t['c'] !== '' ? $esc($t['c']) . "\n\n" : '');
-                $md .= "| Columna | Tipo | Nulo | Defecto | Clave | Descripción |\n|---|---|---|---|---|---|\n";
-                $colStmt->execute([$t['t']]);
-                foreach ($colStmt->fetchAll() as $c) {
-                    $extra = $c['e'] !== '' ? ' ' . $c['e'] : '';
-                    $md .= sprintf("| `%s` | %s | %s | %s | %s | %s |\n", $c['n'], $esc($c['ty'] . $extra), $c['nu'] === 'YES' ? 'sí' : 'no',
-                        $c['d'] === null ? '' : '`' . $esc($c['d']) . '`', $c['k'], $esc($c['c']));
+                foreach ($stale as $f) {
+                    fwrite(STDERR, "DESACTUALIZADO: {$f} (ejecuta php bin/console docs:generar)" . PHP_EOL);
                 }
-                $fkStmt->execute([$t['t']]);
-                $fks = $fkStmt->fetchAll();
-                if ($fks !== []) {
-                    $md .= "\n**Claves foráneas:** ";
-                    $md .= implode('; ', array_map(static fn ($f) => "({$f['cols']}) → `{$f['rt']}`({$f['rcols']})", $fks)) . "\n";
+                if ($stale !== [] || $gen->problems() !== []) {
+                    exit(1);
                 }
-                $md .= "\n";
+                out('Documentación generada al día.');
+                break;
             }
-            file_put_contents(dirname($base) . '/docs/DICCIONARIO_DATOS.md', $md);
-            out('docs/DICCIONARIO_DATOS.md regenerado (' . (count($tables) - 1) . ' tablas).');
+            $written = $gen->write();
+            foreach ($gen->problems() as $p) {
+                fwrite(STDERR, "PROBLEMA: {$p}" . PHP_EOL);
+            }
+            out($written === [] ? 'Nada que regenerar: la documentación ya estaba al día.' : 'Regenerados: ' . implode(', ', $written));
+            if ($gen->problems() !== []) {
+                exit(1);
+            }
             break;
 
         case 'key:generate':

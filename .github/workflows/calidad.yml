@@ -106,6 +106,42 @@ jobs:
             frontend/e2e-resultados
           retention-days: 7
 
+  documentacion:
+    name: Documentación generada al día (OpenAPI, diccionario, ER, matriz)
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, gd, zip, intl, openssl
+          coverage: none
+      - name: Base migrada
+        working-directory: backend
+        run: |
+          composer install --no-interaction --no-progress --no-dev
+          cp .env.example .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/; s/^DB_PASSWORD=.*/DB_PASSWORD=root/' .env
+          php bin/console key:generate
+          php bin/console db:create
+          php bin/console migrate
+      - name: docs:verificar (falla si una ruta, tabla o prueba cambió sin regenerar docs/)
+        working-directory: backend
+        run: php bin/console docs:verificar
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: OpenAPI válida (Redocly)
+        run: npx --yes @redocly/cli@1.34.3 lint docs/api/openapi.json
+
   despliegue:
     name: Despliegue en un servidor limpio (Nginx, systemd)
     runs-on: ubuntu-24.04

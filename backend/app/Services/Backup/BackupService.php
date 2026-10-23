@@ -47,6 +47,23 @@ final class BackupService
         return $raw === '' ? null : BackupCipher::parseKey($raw);
     }
 
+    /**
+     * Ruta de una copia. Acepta la ruta completa o solo el nombre del archivo, que se busca en
+     * BACKUP_PATH (así funcionan `backup:verificar <nombre>` y `backup:restaurar <nombre>` tal como
+     * los sugieren `backup:listar` y `backup:traer`, desde cualquier carpeta).
+     */
+    public function resolve(string $file): string
+    {
+        if (is_file($file)) {
+            return $file;
+        }
+        $inDir = $this->dir . DIRECTORY_SEPARATOR . $file;
+        if (basename($file) === $file && is_file($inDir)) {
+            return $inDir;
+        }
+        throw new RuntimeException("No existe la copia {$file} (ni en {$this->dir}).");
+    }
+
     // ================================================================== crear
 
     /** @return array{archivo: string, cifrado: bool, bytes: int, tablas: int, filas: int, sha256: string, borradas: list<string>} */
@@ -324,9 +341,7 @@ final class BackupService
      */
     public function plainCopy(string $file): array
     {
-        if (!is_file($file)) {
-            throw new RuntimeException("No existe la copia {$file}.");
-        }
+        $file = $this->resolve($file);
         $sidecar = $file . '.sha256';
         if (is_file($sidecar)) {
             $expected = strtok((string) file_get_contents($sidecar), " \n");

@@ -37,6 +37,18 @@ final class PermissionMiddleware implements MiddlewareInterface
         return $m;
     }
 
+    /** @return list<string> permisos exigidos (para la documentación) */
+    public function permissions(): array
+    {
+        return $this->permisos;
+    }
+
+    /** true si basta con uno de los permisos; false si se exigen todos. */
+    public function anyOf(): bool
+    {
+        return $this->any;
+    }
+
     public function handle(Request $request, callable $next): Response
     {
         if ($this->any) {

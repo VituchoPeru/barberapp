@@ -68,6 +68,20 @@ final class BackupTest extends DatabaseTestCase
         $this->assertSame(0, $exists, 'La base temporal se borra');
     }
 
+    /** El nombre que muestran backup:listar y backup:traer sirve tal cual, desde cualquier carpeta (Fase 16). */
+    public function testCopiesCanBeNamedWithoutTheirFolder(): void
+    {
+        $svc = new BackupService($this->dir);
+        $r = $svc->create();
+        $name = basename($r['archivo']);
+        $this->assertSame($r['archivo'], $svc->resolve($name));
+        $this->assertSame($r['archivo'], $svc->resolve($r['archivo']));
+        $this->assertTrue($svc->verify($name)['ok']);
+
+        $this->expectException(RuntimeException::class);
+        $svc->resolve('../' . basename($this->dir) . '/' . $name . '.otra');
+    }
+
     public function testRestoredCopyKeepsBinaryAndGeneratedColumns(): void
     {
         $svc = new BackupService($this->dir);

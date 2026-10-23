@@ -1,5 +1,7 @@
 # PWA, Android e iOS (Fase 12)
 
+> Guías de compilación paso a paso (Fase 16): [Android](guias/ANDROID.md) e [iOS](guias/IOS.md).
+
 Un solo frontend (`frontend/www`) se publica como web, se instala como **PWA** y se empaqueta como app de **Android** e **iOS** con **Capacitor 8**. Todo lo que depende del sistema operativo pasa por un adaptador (`js/native.js`); el resto del código es el mismo en las tres formas.
 
 ## 1. Qué se hizo
@@ -50,71 +52,15 @@ npm run verificar                        # comprueba la PWA (núcleo del SW, ico
 
 ## 4. Android
 
-### Compilar un APK de pruebas
+Paso a paso (requisitos, APK de pruebas, prueba contra XAMPP, Firebase, firma, App Links, Google Play y problemas frecuentes): **[guías/ANDROID.md](guias/ANDROID.md)**.
 
-```bash
-npm run android            # configura, sincroniza y abre Android Studio
-# o sin Android Studio:
-npm run android:apk        # android/app/build/outputs/apk/debug/app-debug.apk
-```
-
-Identificador: `pe.barberapp.app`. La versión se cambia en `android/gradle.properties` (`barberappVersionCode` siempre crece; `barberappVersionName` es la visible).
-
-### Firmar la versión de Google Play (AAB)
-
-1. Crea la clave de subida una sola vez y guárdala fuera del repositorio:
-   `keytool -genkeypair -v -keystore barberapp-upload.jks -alias barberapp -keyalg RSA -keysize 4096 -validity 10000`
-2. Crea `android/keystore.properties` (ignorado por git):
-   ```properties
-   storeFile=/ruta/segura/barberapp-upload.jks
-   storePassword=…
-   keyAlias=barberapp
-   keyPassword=…
-   ```
-   O usa variables de entorno en CI: `BARBERAPP_KEYSTORE`, `BARBERAPP_KEYSTORE_PASSWORD`, `BARBERAPP_KEY_ALIAS`, `BARBERAPP_KEY_PASSWORD`.
-3. `npm run android:aab` → `android/app/build/outputs/bundle/release/app-release.aab`. Sin clave configurada el AAB sale sin firmar y Play lo rechaza.
-4. En Play Console activa **Firma de apps de Play**; Google firma lo que se instala con su certificado.
-
-### Push en Android
-
-1. En Firebase crea el proyecto (el mismo que usa el backend en `FCM_CREDENTIALS`) y agrega la app Android `pe.barberapp.app`.
-2. Descarga `google-services.json` a `android/app/` (ignorado por git). Sin ese archivo la app compila, pero no recibe push.
-3. El canal `citas` (importancia alta) lo crea la app; el icono pequeño es `ic_stat_barberapp` y el color, el dorado de la marca.
-
-### Enlaces directos (App Links)
-
-Publica en `https://app.barberapp.pe/.well-known/assetlinks.json` el archivo de `infrastructure/well-known/assetlinks.json.example` con la huella SHA-256 del **certificado de firma de Play** (Play Console → Integridad de la app). La configuración de Nginx de referencia ya sirve esa ruta.
-
-### Permisos
-
-| Permiso | Para qué | Cuándo se pide |
-|---|---|---|
-| `INTERNET` | API | No se pide (normal). |
-| `POST_NOTIFICATIONS` | Recordatorios (Android 13+) | Al iniciar sesión o en Mi cuenta. |
-| `ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION` | "Cerca de mí" en el marketplace | Solo al tocar "Cerca"; el sistema deja elegir ubicación aproximada. |
-
-`allowBackup=false` y reglas de extracción vacías: la sesión y los datos locales no se copian a la nube ni a otro teléfono.
+Resumen: identificador `pe.barberapp.app`, `npm run android:apk` para pruebas y `npm run android:aab` para Play. La versión está en `android/gradle.properties` y la firma en `android/keystore.properties` o en las variables `BARBERAPP_KEYSTORE*`. Los permisos son internet, notificaciones (Android 13+) y ubicación solo al tocar **Cerca**. `allowBackup=false`.
 
 ## 5. iOS (requiere macOS con Xcode)
 
-```bash
-npm run ios                # configura, sincroniza y abre Xcode
-```
+Paso a paso (firma, APNs con Firebase, enlaces universales, versión, TestFlight, App Store y problemas frecuentes): **[guías/IOS.md](guias/IOS.md)**.
 
-En Xcode, con la cuenta del equipo de Apple Developer:
-
-1. **Signing & Capabilities** → elige el equipo. El Bundle Identifier es `pe.barberapp.app`. El archivo `App/App.entitlements` ya declara **Push Notifications** y **Associated Domains** (`applinks:app.barberapp.pe`).
-2. **Push en iOS** (el backend envía todo por FCM):
-   - En Apple Developer crea una clave APNs (.p8) y súbela a Firebase → Configuración → Cloud Messaging.
-   - En Firebase agrega la app iOS y copia `GoogleService-Info.plist` a `ios/App/App/` (ignorado por git) y agrégalo al target en Xcode.
-   - File → Add Package Dependencies → `https://github.com/firebase/firebase-ios-sdk` → producto **FirebaseMessaging**.
-   - `AppDelegate.swift` ya convierte el token de APNs en token de FCM cuando Firebase está presente. Sin Firebase la app compila y funciona, pero no registra el teléfono para push.
-3. **Enlaces universales:** publica `https://app.barberapp.pe/.well-known/apple-app-site-association` desde `infrastructure/well-known/apple-app-site-association.example` con tu Team ID (sin extensión, `application/json`, sin redirecciones).
-4. **Versión:** `MARKETING_VERSION` y `CURRENT_PROJECT_VERSION` del target App.
-5. **TestFlight:** Product → Archive → Distribute App → App Store Connect → Upload. En App Store Connect agrega testers internos y, para externos, envía la build a revisión beta.
-6. **App Store:** completa la ficha (capturas reales, descripción, URL de soporte y de la política de privacidad), la sección **Privacidad de la app** de acuerdo con `App/PrivacyInfo.xcprivacy` (nombre, correo, teléfono, ID de usuario, token del dispositivo, fotos subidas por la barbería; sin rastreo) y envía a revisión.
-
-Textos de permisos (`Info.plist`): ubicación ("Cerca de mí"), cámara y fotos (subir fotos del perfil). La app solo usa HTTPS, por eso declara `ITSAppUsesNonExemptEncryption = false`.
+Resumen: `npm run ios` abre Xcode. Bundle ID `pe.barberapp.app`, mínimo iOS 15, dependencias con Swift Package Manager. Push Notifications y Associated Domains ya están en `App.entitlements`, y la privacidad declarada está en `PrivacyInfo.xcprivacy`.
 
 ## 6. Pagos y tiendas
 
